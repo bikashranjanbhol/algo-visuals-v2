@@ -1,0 +1,28 @@
+{
+  "title": "Algorithms Fundamentals",
+  "description": "Learn to think like a computer scientist: measure efficiency with Big-O, reason recursively, and master the classic sorting and searching algorithms through step-by-step interactive visualizations.",
+  "order": 1,
+  "level": "Beginner",
+  "icon": "binary",
+  "accent": "violet",
+  "chapters": [
+    {
+      "slug": "getting-started",
+      "title": "Getting Started",
+      "description": "What algorithms are, how to measure their efficiency, and how to think recursively.",
+      "topics": ["introduction", "big-o-notation", "recursion"]
+    },
+    {
+      "slug": "sorting",
+      "title": "Sorting",
+      "description": "Four classic ways to put data in order, from simple quadratic sorts to divide-and-conquer.",
+      "topics": ["bubble-sort", "insertion-sort", "merge-sort", "quick-sort"]
+    },
+    {
+      "slug": "searching",
+      "title": "Searching",
+      "description": "Find what you need fast, from scanning every item to halving the search space each step.",
+      "topics": ["linear-search", "binary-search"]
+    }
+  ]
+}

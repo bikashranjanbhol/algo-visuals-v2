@@ -1,0 +1,406 @@
+---
+title: "Linked Lists"
+description: "Chains of nodes connected by pointers: O(1) inserts and deletes at known positions, plus classic techniques like reversal and fast/slow pointers."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+A linked list stores a sequence as a chain of separate **nodes**. Each node holds a value and a pointer to the next node. Unlike an [array](/tutorials/data-structures/linear/arrays), the nodes don't need to sit next to each other in memory. They can live anywhere, because each one knows where to find the next.
+
+That design flips the array's trade-offs. You lose instant access by index, but you gain the ability to insert or remove an element in O(1) time once you're at the right spot, with no shifting at all. Linked lists also show up everywhere as a building block: inside [stacks](/tutorials/data-structures/linear/stacks), [queues](/tutorials/data-structures/linear/queues), LRU caches, and the buckets of [hash tables](/tutorials/data-structures/non-linear/hash-tables).
+
+## A treasure hunt
+
+Think of a treasure hunt where every clue tells you where the next clue is hidden. To reach clue number 5, you have to start at the first clue and follow the trail. There's no shortcut. But if you want to add a detour, you only change one clue to point at your new location and have the new clue point onward. Nothing else needs to move.
+
+That's exactly how a linked list behaves: **sequential access, cheap rewiring**.
+
+## Anatomy of a node
+
+Each node holds a value and a `next` reference. The list itself just remembers the first node, called the **head**, and often the last node too, called the **tail**. The final node's `next` is `null` (or `None` in Python), which marks the end.
+
+```text
+ head                                     tail
+  │                                         │
+  ▼                                         ▼
+┌────┬───┐    ┌────┬───┐    ┌────┬───┐    ┌────┬───┐
+│ 3  │ ●─┼───►│ 7  │ ●─┼───►│ 12 │ ●─┼───►│ 20 │ ∅ │
+└────┴───┘    └────┴───┘    └────┴───┘    └────┴───┘
+ value next
+```
+
+### Singly vs doubly linked
+
+In a **singly linked** list each node points only forward. In a **doubly linked** list each node also keeps a `prev` pointer, so you can walk in both directions and unlink a node without hunting for its predecessor.
+
+```text
+          ┌──────────┐      ┌──────────┐      ┌──────────┐
+ null ◄───┤ prev     │◄─────┤ prev     │◄─────┤ prev     │
+          │    3     │      │    7     │      │    12    │
+          │     next ├─────►│     next ├─────►│     next ├───► null
+          └──────────┘      └──────────┘      └──────────┘
+```
+
+The extra pointer costs memory per node and one more link to keep correct on every insert and delete, but it makes removal from either end O(1).
+
+### Compared with arrays
+
+An array is one contiguous block. A linked list is a scattering of small allocations stitched together with pointers:
+
+```text
+Array:        [ 3 | 7 | 12 | 20 ]          one block, neighbors adjacent
+
+Linked list:  0x2a10: (3, →0x7f04)
+              0x7f04: (7, →0x1c88)         nodes anywhere in memory
+              0x1c88: (12, →0x5e30)
+              0x5e30: (20, ∅)
+```
+
+## Core operations
+
+### Traversal and search
+
+To visit every element, start at `head` and follow `next` until you hit `null`. Finding a value or reaching the k-th node works the same way, so both are **O(n)**. This is the price of giving up contiguous memory.
+
+### Inserting
+
+Inserting at the head is O(1): create a node whose `next` is the current head, then make it the new head. Inserting after a node you already hold is also O(1), because it's just two pointer updates:
+
+```text
+Insert 9 after node 7:
+
+  before:  7 ──► 12
+  step 1:  9 ──► 12           new.next = node.next
+  step 2:  7 ──► 9 ──► 12     node.next = new
+```
+
+### Deleting
+
+To unlink a node in a singly linked list you need its **predecessor**, so you can set `prev.next = node.next`. If you're already holding the predecessor, that's O(1). If you have to search for it first, the search dominates at O(n).
+
+<Callout type="warning" title="Order your pointer updates">
+
+When inserting, set `new.next = node.next` **before** you overwrite `node.next`. Do it the other way around and you lose the only reference to the rest of the list. In languages with garbage collection, those nodes are simply gone.
+
+</Callout>
+
+## Implementation
+
+This singly linked list keeps both `head` and `tail` pointers, so pushing to either end is O(1). Pay attention to the empty-list edge cases. They're where most linked-list bugs live.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="linked_list.py" {38-52}
+class Node:
+    def __init__(self, value, next_node=None):
+        self.value = value
+        self.next = next_node
+
+
+class LinkedList:
+    def __init__(self):
+        self.head = None
+        self.tail = None
+        self.size = 0
+
+    def push_front(self, value):
+        self.head = Node(value, self.head)
+        if self.tail is None:              # list was empty
+            self.tail = self.head
+        self.size += 1
+
+    def push_back(self, value):
+        node = Node(value)
+        if self.tail is None:
+            self.head = self.tail = node
+        else:
+            self.tail.next = node
+            self.tail = node
+        self.size += 1
+
+    def pop_front(self):
+        if self.head is None:
+            raise IndexError("pop from empty list")
+        node = self.head
+        self.head = node.next
+        if self.head is None:              # list is now empty
+            self.tail = None
+        self.size -= 1
+        return node.value
+
+    def remove(self, value):
+        """Remove the first node holding value. Returns True if found."""
+        prev, current = None, self.head
+        while current is not None and current.value != value:
+            prev, current = current, current.next
+        if current is None:
+            return False
+        if prev is None:                   # removing the head
+            self.head = current.next
+        else:
+            prev.next = current.next
+        if current is self.tail:           # removing the tail
+            self.tail = prev
+        self.size -= 1
+        return True
+
+    def __contains__(self, value):
+        return any(v == value for v in self)
+
+    def __iter__(self):
+        current = self.head
+        while current is not None:
+            yield current.value
+            current = current.next
+```
+
+</Tab>
+<Tab>
+
+```javascript title="linkedList.js"
+class Node {
+  constructor(value, next = null) {
+    this.value = value;
+    this.next = next;
+  }
+}
+
+class LinkedList {
+  constructor() {
+    this.head = null;
+    this.tail = null;
+    this.size = 0;
+  }
+
+  pushFront(value) {
+    this.head = new Node(value, this.head);
+    if (this.tail === null) this.tail = this.head; // list was empty
+    this.size++;
+  }
+
+  pushBack(value) {
+    const node = new Node(value);
+    if (this.tail === null) {
+      this.head = this.tail = node;
+    } else {
+      this.tail.next = node;
+      this.tail = node;
+    }
+    this.size++;
+  }
+
+  popFront() {
+    if (this.head === null) throw new Error("pop from empty list");
+    const node = this.head;
+    this.head = node.next;
+    if (this.head === null) this.tail = null; // list is now empty
+    this.size--;
+    return node.value;
+  }
+
+  remove(value) {
+    let prev = null;
+    let current = this.head;
+    while (current !== null && current.value !== value) {
+      prev = current;
+      current = current.next;
+    }
+    if (current === null) return false;
+    if (prev === null) this.head = current.next; // removing the head
+    else prev.next = current.next;
+    if (current === this.tail) this.tail = prev; // removing the tail
+    this.size--;
+    return true;
+  }
+
+  *[Symbol.iterator]() {
+    for (let node = this.head; node !== null; node = node.next) {
+      yield node.value;
+    }
+  }
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="LinkedList.java"
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+
+public class LinkedList<T> implements Iterable<T> {
+    private static final class Node<T> {
+        T value;
+        Node<T> next;
+
+        Node(T value, Node<T> next) {
+            this.value = value;
+            this.next = next;
+        }
+    }
+
+    private Node<T> head;
+    private Node<T> tail;
+    private int size;
+
+    public void pushFront(T value) {
+        head = new Node<>(value, head);
+        if (tail == null) tail = head; // list was empty
+        size++;
+    }
+
+    public void pushBack(T value) {
+        Node<T> node = new Node<>(value, null);
+        if (tail == null) {
+            head = tail = node;
+        } else {
+            tail.next = node;
+            tail = node;
+        }
+        size++;
+    }
+
+    public T popFront() {
+        if (head == null) throw new NoSuchElementException("pop from empty list");
+        Node<T> node = head;
+        head = node.next;
+        if (head == null) tail = null; // list is now empty
+        size--;
+        return node.value;
+    }
+
+    public boolean remove(T value) {
+        Node<T> prev = null;
+        Node<T> current = head;
+        while (current != null && !Objects.equals(current.value, value)) {
+            prev = current;
+            current = current.next;
+        }
+        if (current == null) return false;
+        if (prev == null) head = current.next; // removing the head
+        else prev.next = current.next;
+        if (current == tail) tail = prev;      // removing the tail
+        size--;
+        return true;
+    }
+
+    public int size() {
+        return size;
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return new Iterator<>() {
+            private Node<T> node = head;
+
+            public boolean hasNext() {
+                return node != null;
+            }
+
+            public T next() {
+                if (node == null) throw new NoSuchElementException();
+                T value = node.value;
+                node = node.next;
+                return value;
+            }
+        };
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+## Classic techniques
+
+Linked lists are an interview favorite because a handful of reusable patterns solve most problems.
+
+### Dummy head node
+
+Many operations need a special case when the head itself changes. A **dummy** (sentinel) node placed before the real head removes that special case: every real node now has a predecessor, so insertions and deletions all look the same. You return `dummy.next` at the end.
+
+### Reversing a list
+
+Reversing in place takes one pass and three pointers. At each step you flip one arrow backwards, then advance:
+
+```python title="reverse.py"
+def reverse(head):
+    prev = None
+    current = head
+    while current is not None:
+        nxt = current.next      # remember the rest of the list
+        current.next = prev     # flip the arrow
+        prev = current          # advance prev
+        current = nxt           # advance current
+    return prev                 # prev is the new head
+```
+
+That's O(n) time and O(1) extra space. A [recursive](/tutorials/algorithms/getting-started/recursion) version is elegant too, but it uses O(n) stack space.
+
+### Fast and slow pointers
+
+Move one pointer one step at a time and another two steps at a time. When the fast pointer reaches the end, the slow one is at the **middle**. If the list contains a **cycle**, the fast pointer eventually laps the slow one and they meet. This is Floyd's cycle detection, and it needs only O(1) extra memory:
+
+```python title="has_cycle.py"
+def has_cycle(head):
+    slow = fast = head
+    while fast is not None and fast.next is not None:
+        slow = slow.next
+        fast = fast.next.next
+        if slow is fast:
+            return True
+    return False
+```
+
+## Complexity
+
+| Operation                     | Singly linked (head + tail) | Doubly linked | Dynamic array    |
+| ----------------------------- | --------------------------- | ------------- | ---------------- |
+| Access k-th element           | O(n)                        | O(n)          | O(1)             |
+| Insert or delete at head      | O(1)                        | O(1)          | O(n)             |
+| Insert at tail                | O(1)                        | O(1)          | O(1) amortized   |
+| Delete at tail                | O(n)                        | O(1)          | O(1)             |
+| Insert after a known node     | O(1)                        | O(1)          | O(n)             |
+| Delete a known node           | O(n) to find predecessor    | O(1)          | O(n)             |
+| Search for a value            | O(n)                        | O(n)          | O(n)             |
+
+Deleting the tail of a singly linked list is O(n) even with a tail pointer, because you have to walk the list to find the new tail. That's one reason doubly linked lists exist.
+
+## When to use linked lists
+
+Linked lists shine when you need frequent insertions and deletions at positions you already hold a reference to, and you rarely need random access. Good examples:
+
+- **Queues and deques**, where items enter at one end and leave at the other.
+- **LRU caches**, which pair a hash map with a doubly linked list so any entry can be moved to the front in O(1).
+- **Chaining** in hash tables, where each bucket is a short list of entries.
+- **Undo histories and playlists**, where you step forward and backward through items.
+
+<Callout type="note" title="Arrays often win in practice">
+
+On modern hardware, a dynamic array often beats a linked list even for workloads that look list-friendly on paper. Arrays are cache-friendly and allocate memory rarely, while every linked-list node is a separate allocation with pointer overhead. Measure before assuming a linked list will be faster.
+
+</Callout>
+
+## Key takeaways
+
+- A linked list is a chain of nodes, each holding a value and a pointer to the next. The nodes can live anywhere in memory.
+- Access by index and search are **O(n)** because you must walk from the head.
+- Inserting or deleting at a node you already hold is **O(1)**: just rewire pointers, with no shifting.
+- Doubly linked lists add a `prev` pointer, which makes deleting any known node, including the tail, O(1).
+- Dummy heads, in-place reversal, and fast/slow pointers solve a large share of linked-list problems.
+
+<Quiz
+  question="Which operation is O(1) on a doubly linked list but O(n) on a singly linked list, even when the singly linked list keeps a tail pointer?"
+  options={["Insert at the head", "Delete the tail node", "Insert at the tail", "Search for a value"]}
+  answer={1}
+  explanation="To delete the tail you must update the second-to-last node. A doubly linked list reaches it instantly through tail.prev, while a singly linked list has to walk from the head to find it."
+/>
+
+<Quiz
+  question="In Floyd's cycle detection, the slow pointer moves one step and the fast pointer moves two. What does it mean if the fast pointer reaches null?"
+  options={["The list has a cycle", "The list has no cycle", "The slow pointer is at the start of the cycle", "The list has an even number of nodes"]}
+  answer={1}
+  explanation="A pointer can only reach null by falling off the end of the list. A list with a cycle has no end, so the fast pointer would loop forever and eventually meet the slow one instead."
+/>

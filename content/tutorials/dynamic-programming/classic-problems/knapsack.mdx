@@ -1,0 +1,408 @@
+---
+title: "0/1 Knapsack"
+description: "Master the 0/1 knapsack problem: why greedy fails, the take-or-skip recurrence, filling the DP table, and shrinking memory to a single row."
+difficulty: advanced
+updated: 2026-10-07
+---
+
+You're packing for a hike. Your backpack holds at most 7 kg, and every item you could bring has a weight and a value. You can't cut an item in half, and you only own one of each, so every item is either **in** the bag (1) or **out** (0). Which items should you pack to carry the most value? That's the **0/1 knapsack problem**.
+
+It shows up far beyond backpacks: choosing projects under a budget, loading cargo, picking features for a release, allocating ad spend. It's also the archetype of "take it or leave it" dynamic programming. Once it clicks, a whole family of subset problems such as subset sum, equal-sum partition and target sum will feel familiar. We'll follow the same framework as [Climbing Stairs](/tutorials/dynamic-programming/classic-problems/climbing-stairs), but this time the state needs **two** dimensions.
+
+## The Problem
+
+**Given `n` items, where item `i` has weight `weight[i]` and value `value[i]`, and a knapsack with capacity `W`, choose a subset of items whose total weight is at most `W` and whose total value is as large as possible. Each item can be used at most once.**
+
+Here's the example we'll use throughout, with `W = 7`:
+
+| Item | Weight (kg) | Value | Value per kg |
+| ---- | ----------: | ----: | -----------: |
+| A    |           1 |     1 |         1.00 |
+| B    |           2 |     6 |         3.00 |
+| C    |           3 |    10 |         3.33 |
+| D    |           5 |    16 |         3.20 |
+
+The best choice is **B + D**: exactly 7 kg, worth **22**.
+
+### Why greedy fails
+
+The natural instinct is to grab the items with the best value per kilogram first. Let's try it:
+
+1. Take **C** (3.33 per kg). Weight 3, value 10.
+2. **D** (3.20 per kg) would bring the weight to 8, so skip it.
+3. Take **B** (3.00 per kg). Weight 5, value 16.
+4. Take **A** (1.00 per kg). Weight 6, value 17.
+
+Greedy ends with 17, well short of 22. Committing early to C crowded out the much better B + D pair, and greedy never looks back to reconsider. To be sure of the optimum, we have to weigh every combination. Dynamic programming lets us do that without literally listing all of them.
+
+<Callout type="note" title="Fractional knapsack is different">
+
+If you're allowed to take *part* of an item (say, half a bag of rice), the greedy strategy is actually optimal: fill up with the best value per kilogram and cut the last item to fit. It's the all-or-nothing "0/1" rule that breaks greedy and calls for DP.
+
+</Callout>
+
+## Brute-Force Recursion
+
+Go through the items one at a time and, for each, make a binary choice: **skip** it or **take** it (if it fits). Let `best(i, w)` be the best value we can get using **only the first `i` items** with `w` kilograms of capacity left. Deciding about item `i - 1`:
+
+- **Skip it:** the answer is `best(i - 1, w)`.
+- **Take it** (only if `weight[i - 1]` is at most `w`): we gain its value and lose its weight, giving `value[i - 1] + best(i - 1, w - weight[i - 1])`.
+
+The answer is whichever is larger, and the original problem is `best(n, W)`.
+
+```python title="knapsack_brute.py"
+def knapsack(weights: list[int], values: list[int], capacity: int) -> int:
+    def best(i: int, w: int) -> int:
+        # Best value using only the first i items with capacity w
+        if i == 0 or w == 0:
+            return 0
+        skip = best(i - 1, w)
+        if weights[i - 1] > w:               # item i-1 doesn't fit
+            return skip
+        take = values[i - 1] + best(i - 1, w - weights[i - 1])
+        return max(skip, take)
+
+    return best(len(weights), capacity)
+```
+
+The "first `i` items" phrasing means the item being decided is item `i - 1`. That off-by-one is the price of a clean base case: `i = 0` simply means "no items left to consider."
+
+### Why it's slow
+
+Each item doubles the number of branches, so `n` items can produce up to 2ⁿ paths. Here's the top of the tree for our example (D is decided first, then C, then B):
+
+```text
+                                     best(4, 7)
+                          skip D /              \ take D
+                    best(3, 7)                       best(3, 2)
+            skip C /           \ take C                   |  C too heavy
+         best(2, 7)            best(2, 4)            best(2, 2)
+         /         \           /         \           /         \
+   best(1, 7) best(1, 5) best(1, 4) best(1, 2) best(1, 2) best(1, 0)
+                                         ↑          ↑
+                                         └── same ──┘
+```
+
+`best(1, 2)` appears twice. One path skipped D and took C and B; the other took D alone. Completely different choices, yet both leave item A to decide with 2 kg of space, so they share the same subproblem. With 40 items, brute force could explore more than a **trillion** subsets. But there are only `(n + 1) × (W + 1)` distinct `(i, w)` pairs, and that gap is exactly what DP exploits.
+
+## State and Recurrence
+
+### Defining the state
+
+Let `dp[i][w]` be **the maximum value achievable using only the first `i` items with a capacity of `w`**, for `i` from 0 to `n` and `w` from 0 to `W`. Two numbers pin down a subproblem: how many items are still in play, and how much room is left.
+
+### The recurrence
+
+```text
+dp[0][w] = 0                   for every w: no items means no value
+
+dp[i][w] = dp[i-1][w]          if weight[i-1] > w   (item i-1 can't fit)
+
+dp[i][w] = max(skip, take)     otherwise, where
+    skip = dp[i-1][w]
+    take = value[i-1] + dp[i-1][w - weight[i-1]]
+
+answer   = dp[n][W]
+```
+
+Notice that the **take** branch also moves to row `i - 1`. Once an item is in the bag, it's out of play, which is precisely what enforces "at most once." In the *unbounded* knapsack, where items can be reused, the take branch stays on row `i` instead.
+
+## Top-Down Solution
+
+Memoize `best(i, w)` and each of the `(n + 1) × (W + 1)` states is computed at most once.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="knapsack_memo.py" {4}
+from functools import cache
+
+def knapsack(weights: list[int], values: list[int], capacity: int) -> int:
+    @cache
+    def best(i: int, w: int) -> int:
+        if i == 0 or w == 0:
+            return 0
+        skip = best(i - 1, w)
+        if weights[i - 1] > w:
+            return skip
+        take = values[i - 1] + best(i - 1, w - weights[i - 1])
+        return max(skip, take)
+
+    return best(len(weights), capacity)
+```
+
+</Tab>
+<Tab>
+
+```javascript title="knapsackMemo.js" {10-13}
+function knapsack(weights, values, capacity) {
+  const n = weights.length;
+  // memo[i][w] === -1 means "not computed yet"
+  const memo = Array.from({ length: n + 1 }, () => new Array(capacity + 1).fill(-1));
+
+  function best(i, w) {
+    if (i === 0 || w === 0) return 0;
+    if (memo[i][w] !== -1) return memo[i][w];
+
+    let result = best(i - 1, w); // skip item i-1
+    if (weights[i - 1] <= w) {
+      result = Math.max(result, values[i - 1] + best(i - 1, w - weights[i - 1])); // take it
+    }
+    memo[i][w] = result;
+    return result;
+  }
+
+  return best(n, capacity);
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="KnapsackMemo.java"
+import java.util.Arrays;
+
+public class KnapsackMemo {
+    public static int knapsack(int[] weights, int[] values, int capacity) {
+        int n = weights.length;
+        int[][] memo = new int[n + 1][capacity + 1];
+        for (int[] row : memo) Arrays.fill(row, -1); // -1 means "not computed yet"
+        return best(n, capacity, weights, values, memo);
+    }
+
+    private static int best(int i, int w, int[] weights, int[] values, int[][] memo) {
+        if (i == 0 || w == 0) return 0;
+        if (memo[i][w] != -1) return memo[i][w];
+
+        int result = best(i - 1, w, weights, values, memo); // skip item i-1
+        if (weights[i - 1] <= w) {
+            int take = values[i - 1] + best(i - 1, w - weights[i - 1], weights, values, memo);
+            result = Math.max(result, take);
+        }
+        memo[i][w] = result;
+        return result;
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+The recursion is only `n` levels deep, so stack overflow is rarely a concern here. A bonus of the top-down version: it only visits the `(i, w)` pairs actually reachable from `(n, W)`, which can be far fewer than the full table when weights are large.
+
+## Bottom-Up Solution
+
+Row `i` reads only from row `i - 1`, so we fill the table one row at a time, starting from the all-zero row 0. Within a row, any order of `w` works, because every value we read comes from the row above.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="knapsack_table.py" {8-10}
+def knapsack(weights: list[int], values: list[int], capacity: int) -> int:
+    n = len(weights)
+    dp = [[0] * (capacity + 1) for _ in range(n + 1)]
+
+    for i in range(1, n + 1):
+        wt, val = weights[i - 1], values[i - 1]
+        for w in range(capacity + 1):
+            dp[i][w] = dp[i - 1][w]                                # skip item i-1
+            if wt <= w:
+                dp[i][w] = max(dp[i][w], val + dp[i - 1][w - wt])  # take it
+
+    return dp[n][capacity]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="knapsackTable.js" {9-12}
+function knapsack(weights, values, capacity) {
+  const n = weights.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(capacity + 1).fill(0));
+
+  for (let i = 1; i <= n; i++) {
+    const wt = weights[i - 1];
+    const val = values[i - 1];
+    for (let w = 0; w <= capacity; w++) {
+      dp[i][w] = dp[i - 1][w]; // skip item i-1
+      if (wt <= w) {
+        dp[i][w] = Math.max(dp[i][w], val + dp[i - 1][w - wt]); // take it
+      }
+    }
+  }
+
+  return dp[n][capacity];
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="KnapsackTable.java" {9-12}
+public class KnapsackTable {
+    public static int knapsack(int[] weights, int[] values, int capacity) {
+        int n = weights.length;
+        int[][] dp = new int[n + 1][capacity + 1];
+
+        for (int i = 1; i <= n; i++) {
+            int wt = weights[i - 1], val = values[i - 1];
+            for (int w = 0; w <= capacity; w++) {
+                dp[i][w] = dp[i - 1][w]; // skip item i-1
+                if (wt <= w) {
+                    dp[i][w] = Math.max(dp[i][w], val + dp[i - 1][w - wt]); // take it
+                }
+            }
+        }
+        return dp[n][capacity];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+### The filled table
+
+Here's the complete table for our example. Rows add one item at a time; columns are capacities from 0 to 7.
+
+```text
+                          capacity w →
+ i   item (wt, val)    0    1    2    3    4    5    6    7
+ 0   none              0    0    0    0    0    0    0    0
+ 1   A (1, 1)          0    1    1    1    1    1    1    1
+ 2   B (2, 6)          0    1    6    7    7    7    7    7
+ 3   C (3, 10)         0    1    6   10   11   16   17   17
+ 4   D (5, 16)         0    1    6   10   11   16   17   22   ← answer
+```
+
+Take the bottom-right cell. Skipping D gives `dp[3][7] = 17`. Taking D gives `16 + dp[3][2] = 16 + 6 = 22`. The larger is 22. Or look at `dp[3][5] = 16`: with A, B and C and 5 kg of room, the best you can do is B + C.
+
+### Recovering the items
+
+The table stores values, not choices, but the choices are easy to recover. Start at `dp[n][W]` and walk upward. If a cell differs from the one directly above it, the item for that row must have been taken, so subtract its weight and continue.
+
+```python title="knapsack_items.py"
+def chosen_items(dp: list[list[int]], weights: list[int], capacity: int) -> list[int]:
+    items, w = [], capacity
+    for i in range(len(weights), 0, -1):
+        if dp[i][w] != dp[i - 1][w]:    # value changed, so item i-1 was taken
+            items.append(i - 1)
+            w -= weights[i - 1]
+    return items[::-1]
+```
+
+On our table: row 4 has 22 versus 17 above, so D was taken (capacity left: 2). Row 3 has 6 versus 6, so C was skipped. Row 2 has 6 versus 1, so B was taken (capacity left: 0). Row 1 has 0 versus 0, so A was skipped. Result: **B and D**.
+
+### Saving space
+
+Each row depends only on the row above it, so a single 1D array of size `W + 1` is enough, **as long as you loop over capacities from right to left**. Here's why, using just item B (2 kg, value 6) and a capacity of 4:
+
+```text
+start:  dp = [0, 0, 0, 0, 0]
+
+left to right (wrong)
+  w = 2: dp[2] = max(0, 6 + dp[0]) = 6
+  w = 3: dp[3] = max(0, 6 + dp[1]) = 6
+  w = 4: dp[4] = max(0, 6 + dp[2]) = 12    dp[2] already includes B, so B is packed twice!
+
+right to left (correct)
+  w = 4: dp[4] = max(0, 6 + dp[2]) = 6     dp[2] still holds the previous row's 0
+  w = 3: dp[3] = max(0, 6 + dp[1]) = 6
+  w = 2: dp[2] = max(0, 6 + dp[0]) = 6
+```
+
+Going right to left means `dp[w - wt]` hasn't been updated yet for the current item, so it still holds the value from the "previous row."
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="knapsack.py" {4}
+def knapsack(weights: list[int], values: list[int], capacity: int) -> int:
+    dp = [0] * (capacity + 1)
+    for wt, val in zip(weights, values):
+        for w in range(capacity, wt - 1, -1):   # right to left!
+            dp[w] = max(dp[w], val + dp[w - wt])
+    return dp[capacity]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="knapsack.js" {4}
+function knapsack(weights, values, capacity) {
+  const dp = new Array(capacity + 1).fill(0);
+  for (let i = 0; i < weights.length; i++) {
+    for (let w = capacity; w >= weights[i]; w--) { // right to left!
+      dp[w] = Math.max(dp[w], values[i] + dp[w - weights[i]]);
+    }
+  }
+  return dp[capacity];
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="Knapsack.java" {5}
+public class Knapsack {
+    public static int knapsack(int[] weights, int[] values, int capacity) {
+        int[] dp = new int[capacity + 1];
+        for (int i = 0; i < weights.length; i++) {
+            for (int w = capacity; w >= weights[i]; w--) { // right to left!
+                dp[w] = Math.max(dp[w], values[i] + dp[w - weights[i]]);
+            }
+        }
+        return dp[capacity];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="warning" title="Loop direction matters">
+
+Iterating capacities upward in the 1D version silently turns 0/1 knapsack into the **unbounded** knapsack, where every item can be packed any number of times. That's a classic bug. If unbounded is the problem you actually want, the upward loop is exactly right. Also note that the 1D version gives up item recovery, since earlier rows are overwritten.
+
+</Callout>
+
+## Complexity
+
+| Approach              | Time     | Space                   |
+| --------------------- | -------- | ----------------------- |
+| Brute-force recursion | O(2ⁿ)    | O(n) for the call stack |
+| Top-down memoization  | O(n · W) | O(n · W)                |
+| Bottom-up tabulation  | O(n · W) | O(n · W)                |
+| Single-row tabulation | O(n · W) | O(W)                    |
+
+Every DP version fills at most `(n + 1) × (W + 1)` states, each in constant time.
+
+### Pseudo-polynomial time
+
+O(n · W) looks polynomial, but there's a catch: `W` is a *number*, not a count of things. Writing down `W` takes only about log₂ W bits, so adding a single decimal digit to the capacity makes the table ten times larger. Running times that are polynomial in the numeric value of the input, but not in its length, are called **pseudo-polynomial**. This fits with a famous result: 0/1 knapsack is NP-hard, and no known algorithm solves it in time polynomial in the input's length.
+
+In practice, the table approach shines when capacities are moderate, up to a few million or so. For huge capacities with few items, memoization over reachable states, branch and bound, or meet-in-the-middle search (about `2^(n/2)` work) are better options. See [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation) for more on how input size shapes complexity.
+
+## Key takeaways
+
+- In 0/1 knapsack, each item is either **taken or skipped**. Greedy by value per kilogram can miss the optimum.
+- The state `dp[i][w]` means "best value using the first `i` items with capacity `w`." The recurrence takes the max of **skip** and **take**.
+- The take branch moves to row `i - 1`, which is what enforces "each item at most once."
+- Time is O(n · W), which is **pseudo-polynomial** because it depends on the numeric size of `W`.
+- One row is enough if you loop **capacities from high to low**. Looping low to high solves the unbounded variant instead.
+- Walk backward through the full table to recover which items were chosen.
+- The same take-or-skip pattern solves subset sum and partition problems. Next, see how two sequences combine into a 2D state in [Longest Common Subsequence](/tutorials/dynamic-programming/classic-problems/longest-common-subsequence).
+
+<Quiz
+  question="In the space-optimized 0/1 knapsack, why must the capacity loop run from W down to the item's weight?"
+  options={["Looping backwards is faster on modern CPUs", "So dp[w - weight] still holds the previous row's value, which keeps each item from being used twice", "Because the base cases are stored at the end of the array", "To turn the algorithm into a greedy one"]}
+  answer={1}
+  explanation="Going right to left reads cells that have not been updated for the current item yet. Going left to right would let an item be added on top of itself, which solves the unbounded knapsack instead."
+/>
+
+<Quiz
+  question="Using the example items (A: 1 kg worth 1, B: 2 kg worth 6, C: 3 kg worth 10, D: 5 kg worth 16), what is dp[3][5], the best value using only A, B and C with 5 kg of capacity?"
+  options={["11", "16", "17", "22"]}
+  answer={1}
+  explanation="B and C together weigh exactly 5 kg and are worth 6 + 10 = 16. Adding A would exceed the capacity, and no other combination of A, B and C within 5 kg does better."
+/>

@@ -1,0 +1,334 @@
+---
+title: "Breadth-First Search"
+description: "Explore a graph layer by layer with a queue, and use BFS to find shortest paths in unweighted graphs in O(V + E) time."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+Drop a pebble into a still pond and the ripples spread outward in rings: first the water right next to the splash, then the next ring out, and so on. **Breadth-first search** (BFS) explores a graph the same way. Starting from a source vertex, it visits all of the source's neighbors, then all of *their* unvisited neighbors, then the next layer out, and it never moves on to distance k + 1 until it has finished everything at distance k.
+
+That simple discipline gives BFS a superpower: in an unweighted graph, the first time BFS reaches a vertex, it has found a **shortest path** to it. That's why BFS powers everything from "degrees of separation" on social networks to the quickest way out of a maze. In this lesson you'll see how it works, trace it by hand, implement it in three languages, and learn the pitfalls that trip people up.
+
+## The big idea
+
+Imagine figuring out how you're connected to someone on a professional network. First you check your direct connections (distance 1). If they're not there, you check your connections' connections (distance 2), then distance 3, and so on. You'd never check a distance-3 contact before finishing distance 2, or you might miss a shorter link.
+
+BFS formalizes exactly this. It splits the graph into **layers** by distance from the source:
+
+```text
+  Layer 0:  the source s
+  Layer 1:  every neighbor of s
+  Layer 2:  every unvisited neighbor of a layer-1 vertex
+  ...
+  Layer k:  every unvisited neighbor of a layer-(k-1) vertex
+```
+
+The mechanism that keeps the layers in order is a [queue](/tutorials/data-structures/linear/queues): first in, first out. Vertices join the back of the queue when they're discovered and are processed from the front, so everything in layer k is processed before anything in layer k + 1.
+
+## How BFS works
+
+### The algorithm
+
+1. Mark the source as visited, record its distance as 0, and add it to the queue.
+2. While the queue isn't empty:
+   1. Remove the vertex u at the front of the queue.
+   2. For each neighbor v of u that hasn't been visited yet: mark v visited, set its distance to one more than u's, remember u as v's **parent**, and add v to the back of the queue.
+3. When the queue is empty, every vertex reachable from the source has been visited, with its shortest distance and a parent pointer recorded.
+
+The parent pointers form a **BFS tree** rooted at the source. Following them backward from any vertex traces a shortest path back to the source.
+
+### The queue is the frontier
+
+At any moment the queue holds the **frontier**: vertices that have been discovered but whose neighbors haven't been explored yet. Because the queue is first-in, first-out, the frontier never spans more than two adjacent layers: some vertices at distance k near the front, and some at distance k + 1 behind them. Try enqueuing and dequeuing a few values to get a feel for the order BFS relies on.
+
+<StackQueueVisualizer mode="queue" />
+
+### Tracing an example
+
+Let's run BFS from A on this graph. Neighbors are listed alphabetically, and we process them in that order.
+
+```text
+    A ─── B ─── E
+    │     │     │
+    C ─── D     F ─── G
+```
+
+```text
+ step   dequeue   newly discovered (distance)   queue after
+ ────   ───────   ───────────────────────────   ───────────
+   0       –      A (0)                         [A]
+   1       A      B (1), C (1)                  [B, C]
+   2       B      D (2), E (2)                  [C, D, E]
+   3       C      none: A and D already seen    [D, E]
+   4       D      none                          [E]
+   5       E      F (3)                         [F]
+   6       F      G (4)                         [G]
+   7       G      none                          []
+```
+
+The visiting order is **A, B, C, D, E, F, G**, and the layers come out as: distance 0 is A, distance 1 is B and C, distance 2 is D and E, distance 3 is F, and distance 4 is G.
+
+Notice step 3. When C is processed, D is already in the queue because B discovered it first, so C doesn't add it again. That's the visited check doing its job: every vertex enters the queue exactly once.
+
+To recover the shortest path from A to G, follow the parent pointers backward: G's parent is F, F's is E, E's is B, and B's is A. Reversed, that's **A → B → E → F → G**, four edges long.
+
+Now watch BFS run on its own, and look for the frontier advancing in rings around the start vertex.
+
+<GraphTraversalVisualizer algorithm="bfs" />
+
+### Why it finds shortest paths
+
+BFS processes vertices in order of distance: the queue always holds layer-k vertices ahead of layer-(k + 1) vertices. Suppose v is first discovered while processing u, which is at distance d. If v were at distance d or less, then the vertex just before v on a shortest path would be at distance d − 1 or less. That vertex would have been processed before u and would have discovered v first. So v's true distance is exactly d + 1, which is what BFS records. Applying this argument layer by layer proves every BFS distance is a true shortest distance.
+
+## Implementation
+
+The implementation below returns two maps: `dist`, the shortest distance from the source to every reachable vertex, and `parent`, the BFS-tree pointers used to rebuild paths. The `dist` map doubles as the visited set, since a vertex is visited exactly when it has a distance.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="bfs.py" {9-15}
+from collections import deque
+
+def bfs(graph, start):
+    """Return (dist, parent) for every vertex reachable from start."""
+    dist = {start: 0}
+    parent = {start: None}
+    queue = deque([start])
+
+    while queue:
+        u = queue.popleft()
+        for v in graph[u]:
+            if v not in dist:              # first time we've seen v
+                dist[v] = dist[u] + 1
+                parent[v] = u
+                queue.append(v)
+    return dist, parent
+
+
+def shortest_path(parent, target):
+    """Walk parent pointers back from target, then reverse."""
+    if target not in parent:
+        return None                        # target is unreachable
+    path = []
+    while target is not None:
+        path.append(target)
+        target = parent[target]
+    return path[::-1]
+
+
+graph = {
+    "A": ["B", "C"],
+    "B": ["A", "D", "E"],
+    "C": ["A", "D"],
+    "D": ["B", "C"],
+    "E": ["B", "F"],
+    "F": ["E", "G"],
+    "G": ["F"],
+}
+dist, parent = bfs(graph, "A")
+print(dist["G"])                    # 4
+print(shortest_path(parent, "G"))   # ['A', 'B', 'E', 'F', 'G']
+```
+
+</Tab>
+<Tab>
+
+```javascript title="bfs.js" {7-16}
+function bfs(graph, start) {
+  const dist = new Map([[start, 0]]);
+  const parent = new Map([[start, null]]);
+  const queue = [start];
+  let head = 0; // index of the front of the queue
+
+  while (head < queue.length) {
+    const u = queue[head++];
+    for (const v of graph[u]) {
+      if (!dist.has(v)) { // first time we've seen v
+        dist.set(v, dist.get(u) + 1);
+        parent.set(v, u);
+        queue.push(v);
+      }
+    }
+  }
+  return { dist, parent };
+}
+
+function shortestPath(parent, target) {
+  if (!parent.has(target)) return null; // target is unreachable
+  const path = [];
+  for (let v = target; v !== null; v = parent.get(v)) path.push(v);
+  return path.reverse();
+}
+
+const graph = {
+  A: ["B", "C"],
+  B: ["A", "D", "E"],
+  C: ["A", "D"],
+  D: ["B", "C"],
+  E: ["B", "F"],
+  F: ["E", "G"],
+  G: ["F"],
+};
+const { dist, parent } = bfs(graph, "A");
+console.log(dist.get("G"));             // 4
+console.log(shortestPath(parent, "G")); // ["A", "B", "E", "F", "G"]
+```
+
+</Tab>
+<Tab>
+
+```java title="BFS.java"
+import java.util.*;
+
+public class BFS {
+    record Result(Map<String, Integer> dist, Map<String, String> parent) {}
+
+    static Result bfs(Map<String, List<String>> graph, String start) {
+        Map<String, Integer> dist = new HashMap<>();
+        Map<String, String> parent = new HashMap<>();
+        Deque<String> queue = new ArrayDeque<>();
+
+        dist.put(start, 0);
+        parent.put(start, null);
+        queue.add(start);
+
+        while (!queue.isEmpty()) {
+            String u = queue.poll();
+            for (String v : graph.getOrDefault(u, List.of())) {
+                if (!dist.containsKey(v)) {    // first time we've seen v
+                    dist.put(v, dist.get(u) + 1);
+                    parent.put(v, u);
+                    queue.add(v);
+                }
+            }
+        }
+        return new Result(dist, parent);
+    }
+
+    static List<String> shortestPath(Map<String, String> parent, String target) {
+        if (!parent.containsKey(target)) return null;   // target is unreachable
+        LinkedList<String> path = new LinkedList<>();
+        for (String v = target; v != null; v = parent.get(v)) path.addFirst(v);
+        return path;
+    }
+
+    public static void main(String[] args) {
+        Map<String, List<String>> graph = Map.of(
+                "A", List.of("B", "C"),
+                "B", List.of("A", "D", "E"),
+                "C", List.of("A", "D"),
+                "D", List.of("B", "C"),
+                "E", List.of("B", "F"),
+                "F", List.of("E", "G"),
+                "G", List.of("F"));
+
+        Result result = bfs(graph, "A");
+        System.out.println(result.dist().get("G"));              // 4
+        System.out.println(shortestPath(result.parent(), "G"));  // [A, B, E, F, G]
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="warning" title="Use a real queue">
+
+Removing from the front of a plain array is O(n) in general, because every remaining element shifts over by one. Python's `list.pop(0)` and JavaScript's `array.shift()` both work this way, and they can silently turn BFS into O(V²). Use `collections.deque` in Python, `ArrayDeque` in Java, and a head index (as above) or a proper queue class in JavaScript.
+
+</Callout>
+
+## Complexity
+
+| Resource    | Adjacency list | Adjacency matrix |
+| ----------- | -------------- | ---------------- |
+| Time        | O(V + E)       | O(V²)            |
+| Extra space | O(V)           | O(V)             |
+
+Every reachable vertex is enqueued and dequeued exactly once, which costs O(V) in total. Each time a vertex is dequeued, BFS scans its neighbors; across the entire run that's the sum of all degrees, 2E for an undirected graph or E for a directed one, so O(E). Together that's O(V + E), linear in the size of the graph, which is as fast as any algorithm that has to look at the whole graph can be.
+
+With an adjacency matrix, listing a vertex's neighbors means scanning a full row of V cells, so the total becomes O(V²). The `dist` map, the `parent` map and the queue each hold at most V entries. For a refresher on reading these bounds, see [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation).
+
+## Where BFS shines
+
+### Shortest paths in grids
+
+Many puzzles and games are BFS on a grid in disguise. Each open cell is a vertex whose neighbors are the adjacent open cells, so you don't need an adjacency list at all:
+
+```python title="grid_bfs.py"
+from collections import deque
+
+def fewest_steps(grid, start, goal):
+    """Fewest moves from start to goal in a grid of '.' (open) and '#' (wall)."""
+    rows, cols = len(grid), len(grid[0])
+    dist = {start: 0}
+    queue = deque([start])
+
+    while queue:
+        r, c = queue.popleft()
+        if (r, c) == goal:
+            return dist[(r, c)]           # first time out of the queue = shortest
+        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nr, nc = r + dr, c + dc
+            in_bounds = 0 <= nr < rows and 0 <= nc < cols
+            if in_bounds and grid[nr][nc] != "#" and (nr, nc) not in dist:
+                dist[(nr, nc)] = dist[(r, c)] + 1
+                queue.append((nr, nc))
+    return -1                             # goal is unreachable
+```
+
+The early exit is safe because a vertex's distance is final as soon as BFS discovers it, so there's no need to explore the rest of the grid once the goal comes up.
+
+### Multi-source BFS
+
+What if you want every cell's distance to its *nearest* exit, hospital or fire station? Instead of running BFS once per source, put **all** of the sources in the queue at distance 0 before you start. The layers then grow outward from every source at once, and each vertex ends up with its distance to whichever source is closest, still in O(V + E) total. This trick solves classic problems like "rotting oranges" and "distance to the nearest zero" in a single pass.
+
+### Components and bipartite checks
+
+A BFS from one vertex marks that vertex's entire connected component. Loop over all vertices, start a new BFS from each one that's still unvisited, and you've counted the components in O(V + E).
+
+BFS can also test whether a graph is [bipartite](/tutorials/graphs/foundations/graph-basics). Color each vertex by whether its layer number is even or odd. Edges only ever join vertices in the same layer or in adjacent layers, and adjacent layers get different colors. So the graph is bipartite exactly when no edge joins two vertices in the same layer, because such an edge would close an odd-length cycle.
+
+### Other uses
+
+- **Social networks:** "people you may know" suggestions and degrees of separation are shallow BFS explorations.
+- **Web crawlers** often explore breadth-first so they reach the pages closest to their starting points first.
+- **Networking:** broadcasting a message to every node, or finding the fewest hops between two routers.
+- **0-1 BFS:** when every edge weight is 0 or 1, a double-ended queue (weight-0 neighbors go to the front, weight-1 neighbors to the back) finds shortest paths in O(V + E). For general weights you'll need [Dijkstra's algorithm](/tutorials/graphs/shortest-paths/dijkstra).
+
+## Common pitfalls
+
+- **Marking visited too late.** Mark a vertex as visited when you *enqueue* it, not when you dequeue it. If you wait, the same vertex can be added to the queue by many different neighbors, wasting time and memory. In a dense graph the queue can swell to O(E) entries.
+- **Using BFS on weighted graphs.** BFS minimizes the *number of edges*, not the total weight. A route with three cheap edges can beat one expensive edge, and BFS will never notice.
+- **Forgetting unreachable vertices.** One BFS only reaches the source's component. If you need to touch every vertex, loop over all of them and start a new BFS from each one that's still unvisited.
+- **Slow dequeues.** As the warning above explains, a plain array used as a queue can quietly turn a linear algorithm into a quadratic one.
+
+<Callout type="tip" title="BFS or DFS?">
+
+Both traverse a graph in O(V + E). Reach for BFS when you need **shortest paths** in an unweighted graph, or anything measured in "fewest steps". Reach for [depth-first search](/tutorials/graphs/traversal/depth-first-search) when you care about structure (cycles, orderings, connectivity), or when the BFS frontier would grow too wide to fit in memory.
+
+</Callout>
+
+## Key takeaways
+
+- BFS explores a graph in **layers** of increasing distance from the source, driven by a first-in, first-out **queue**.
+- In an **unweighted** graph, BFS finds shortest paths: each vertex's BFS distance is its true distance in edges.
+- Store a **parent** pointer for each vertex so you can rebuild the actual path by walking backward.
+- BFS runs in **O(V + E)** time with an adjacency list and uses O(V) extra space.
+- Mark vertices visited **when you enqueue them**, and use a queue with O(1) removal from the front.
+- Variations like **grid BFS**, **multi-source BFS** and **0-1 BFS** solve a huge range of problems.
+
+<Quiz
+  question="In the trace above, why doesn't C add D to the queue when C is processed?"
+  options={["C and D are not adjacent", "B already discovered D and marked it visited", "BFS adds at most one neighbor per step", "D is farther from A than C is, so it must wait"]}
+  answer={1}
+  explanation="B is dequeued before C and discovers D first, marking it visited. When C later looks at D, the visited check skips it, so every vertex enters the queue exactly once."
+/>
+
+<Quiz
+  question="You run BFS on a road network whose edges are weighted by travel time. What goes wrong?"
+  options={["Nothing; BFS always finds the fastest route", "BFS finds the route with the fewest road segments, not the least total time", "BFS cannot run on a graph that has weights", "BFS takes exponential time on weighted graphs"]}
+  answer={1}
+  explanation="BFS treats every edge as length 1, so it minimizes the number of segments. When edges have different non-negative weights, use Dijkstra's algorithm instead."
+/>

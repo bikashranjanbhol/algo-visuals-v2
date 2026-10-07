@@ -1,0 +1,250 @@
+---
+title: "Binary Search"
+description: "Find items in sorted data by halving the search space at every step. Learn binary search, its O(log n) speed, classic bugs, and powerful variations."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+Think of a number between 1 and 100, and I'll guess it. After each guess you tell me "higher" or "lower." If I guess 1, then 2, then 3, I might need 100 tries. But if I always guess the middle of the remaining range (50, then 25 or 75, and so on), each answer eliminates half of the possibilities. I'll find your number in **at most 7 guesses**, guaranteed.
+
+That strategy is **binary search**, and it's one of the most important algorithms in computer science. Given *sorted* data, it finds a target by repeatedly halving the range where the target could be. Where [linear search](/tutorials/algorithms/searching/linear-search) needs up to a million comparisons for a million items, binary search needs about 20. It's simple to describe, surprisingly easy to get subtly wrong, and useful far beyond searching arrays.
+
+## The big idea
+
+Binary search relies on one crucial requirement: **the data must be sorted**. Sorting is what lets a single comparison tell you which half of the range to throw away.
+
+Look at the middle element of the current range and compare it to the target:
+
+- If it **equals** the target, you're done.
+- If it's **smaller** than the target, the target can only be to its right, because everything to its left is even smaller. Discard the left half.
+- If it's **larger** than the target, the target can only be to its left. Discard the right half.
+
+Each comparison cuts the remaining range in half, until either the target is found or the range is empty.
+
+### Step by step
+
+1. Set `lo` to the first index and `hi` to the last index. The target, if present, lies somewhere between them.
+2. While `lo` is not past `hi`, compute the middle index `mid`.
+3. If `arr[mid]` equals the target, return `mid`.
+4. If `arr[mid]` is less than the target, set `lo = mid + 1`.
+5. Otherwise, set `hi = mid - 1`.
+6. If the loop ends because the range is empty, the target is not present: return -1.
+
+## A worked example
+
+Let's search for 23 in this sorted array of ten elements:
+
+```text
+index:   0   1   2   3   4   5   6   7   8   9
+value:   2   5   8  12  16  23  38  56  72  91
+
+step 1:  lo=0  hi=9  mid=4   a[4]=16 < 23  → go right: lo = 5
+step 2:  lo=5  hi=9  mid=7   a[7]=56 > 23  → go left:  hi = 6
+step 3:  lo=5  hi=6  mid=5   a[5]=23 = 23  → found at index 5
+```
+
+Three comparisons instead of the six linear search would need. Now let's search for 40, which isn't in the array:
+
+```text
+step 1:  lo=0  hi=9  mid=4   a[4]=16 < 40  → lo = 5
+step 2:  lo=5  hi=9  mid=7   a[7]=56 > 40  → hi = 6
+step 3:  lo=5  hi=6  mid=5   a[5]=23 < 40  → lo = 6
+step 4:  lo=6  hi=6  mid=6   a[6]=38 < 40  → lo = 7
+         lo=7 is past hi=6   → range is empty, return -1
+```
+
+Notice where `lo` ended up: index 7, exactly where 40 would need to be inserted to keep the array sorted. That's no accident, and it's the basis of the useful variations covered below.
+
+Try it yourself. Pick a target and watch the search range shrink by half with every comparison:
+
+<BinarySearchVisualizer />
+
+## Implementation
+
+The iterative version is the standard choice: it's fast and uses constant extra space. The highlighted lines are where the search range shrinks.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="binary_search.py" {8-11}
+def binary_search(arr, target):
+    """Return an index of target in the sorted list arr, or -1 if absent."""
+    lo, hi = 0, len(arr) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            lo = mid + 1   # target can only be in the right half
+        else:
+            hi = mid - 1   # target can only be in the left half
+    return -1
+
+
+data = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91]
+print(binary_search(data, 23))  # 5
+print(binary_search(data, 40))  # -1
+```
+
+</Tab>
+<Tab>
+
+```javascript title="binarySearch.js" {8-12}
+function binarySearch(arr, target) {
+  let lo = 0;
+  let hi = arr.length - 1;
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (arr[mid] === target) {
+      return mid;
+    } else if (arr[mid] < target) {
+      lo = mid + 1; // target can only be in the right half
+    } else {
+      hi = mid - 1; // target can only be in the left half
+    }
+  }
+  return -1;
+}
+
+const data = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91];
+console.log(binarySearch(data, 23)); // 5
+console.log(binarySearch(data, 40)); // -1
+```
+
+</Tab>
+<Tab>
+
+```java title="BinarySearch.java" {6}
+public class BinarySearch {
+    public static int binarySearch(int[] arr, int target) {
+        int lo = 0;
+        int hi = arr.length - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2; // avoids integer overflow
+            if (arr[mid] == target) {
+                return mid;
+            } else if (arr[mid] < target) {
+                lo = mid + 1; // target can only be in the right half
+            } else {
+                hi = mid - 1; // target can only be in the left half
+            }
+        }
+        return -1;
+    }
+
+    public static void main(String[] args) {
+        int[] data = {2, 5, 8, 12, 16, 23, 38, 56, 72, 91};
+        System.out.println(binarySearch(data, 23)); // 5
+        System.out.println(binarySearch(data, 40)); // -1
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+Binary search also has a natural [recursive](/tutorials/algorithms/getting-started/recursion) form: search the left or right half by calling the function again with new bounds. It's elegant, but it uses O(log n) stack space for no real benefit, so the loop is generally preferred.
+
+## Complexity analysis
+
+| Case    | Time     | When it happens                                     |
+| ------- | -------- | --------------------------------------------------- |
+| Best    | O(1)     | The target happens to be the first middle element   |
+| Average | O(log n) | The target is found after several halvings          |
+| Worst   | O(log n) | The target is found at the last step, or is absent  |
+| Space   | O(1)     | Iterative version; the recursive version uses O(log n) |
+
+Each comparison halves the range, so after `k` steps at most `n / 2ᵏ` candidates remain. The search ends when fewer than one candidate is left, which takes about log₂ n steps. Logarithmic growth is astonishingly slow:
+
+| Sorted items                   | Maximum comparisons |
+| ------------------------------ | ------------------- |
+| 1,000                          | 10                  |
+| 1,000,000                      | 20                  |
+| 1,000,000,000                  | 30                  |
+| 8 billion, one per person alive | 33                  |
+
+Multiplying the data by a thousand adds only about ten comparisons. See [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation) for more on why logarithms grow so slowly.
+
+## Common bugs
+
+Binary search is famously easy to get almost right. When Jon Bentley asked professional programmers to write it, only about one in ten produced a correct version. These are the usual suspects.
+
+### Off-by-one boundaries
+
+Our version treats `lo` and `hi` as an **inclusive** range: both ends are still candidates. That's why it initializes `hi` to `len(arr) - 1` and loops while `lo <= hi`. If you write `lo < hi` instead, the loop exits while one candidate remains unchecked, so you can miss the target. Whatever convention you choose, apply it consistently to the initialization, the loop condition, and both updates.
+
+### Infinite loops
+
+Writing `lo = mid` instead of `lo = mid + 1` looks harmless, but when `lo` and `hi` are neighbors, `mid` equals `lo`, so the range never shrinks and the loop runs forever. Since `arr[mid]` has already been checked, always exclude it: use `mid + 1` and `mid - 1`.
+
+### Integer overflow
+
+<Callout type="warning" title="A bug that hid for years">
+
+In languages with fixed-size integers, such as Java, C, and C++, computing `(lo + hi) / 2` can overflow when both values are large, producing a negative index. This bug lurked in Java's own standard library for years before it was widely publicized and fixed in 2006. Write `lo + (hi - lo) / 2` instead. Python's integers never overflow, and JavaScript's numbers are safe at any realistic array size.
+
+</Callout>
+
+### Unsorted input
+
+Binary search on unsorted data doesn't crash; it just silently returns wrong answers. If your data might not be sorted, sort it first (for example with [merge sort](/tutorials/algorithms/sorting/merge-sort) or [quick sort](/tutorials/algorithms/sorting/quick-sort)) or use linear search.
+
+## Variations
+
+### Finding the first occurrence
+
+If the array contains duplicates, the basic version returns *some* matching index, not necessarily the first. A slightly different loop finds the **lower bound**: the first index whose value is greater than or equal to the target. If the target is absent, that's exactly where it would be inserted.
+
+```python title="lower_bound.py" {5-9}
+def lower_bound(arr, target):
+    """Return the first index i such that arr[i] >= target (len(arr) if none)."""
+    lo, hi = 0, len(arr)          # half-open range: [lo, hi)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if arr[mid] < target:
+            lo = mid + 1          # mid is too small, and so is everything before it
+        else:
+            hi = mid              # mid might be the answer, so keep it
+    return lo
+
+
+print(lower_bound([1, 3, 3, 3, 7], 3))  # 1
+print(lower_bound([1, 3, 3, 3, 7], 5))  # 4
+```
+
+Notice the different convention: `hi` starts at `len(arr)`, the loop runs while `lo < hi`, and `hi = mid` is safe because `mid` is always strictly less than `hi`.
+
+### Built-in binary search
+
+You rarely need to write binary search from scratch in production code:
+
+- **Python**: the `bisect` module. `bisect.bisect_left(arr, x)` is exactly the lower bound above.
+- **Java**: `Arrays.binarySearch(arr, key)` returns the index if found, or a negative number encoding the insertion point if not. `Collections.binarySearch` does the same for lists.
+- **JavaScript**: there's no built-in binary search, so you'll need your own implementation like the one above.
+
+<Callout type="tip" title="Binary search on the answer">
+
+Binary search works on anything with a yes/no question whose answer flips exactly once, not just on arrays. What's the smallest truck capacity that can ship all packages within five days? If a capacity works, every larger one works too, so you can binary search over capacities. Even `git bisect` uses this idea, searching your commit history to find the exact commit that introduced a bug.
+
+</Callout>
+
+## Key takeaways
+
+- Binary search finds a target in **sorted** data by comparing with the middle element and discarding half of the range each step.
+- It runs in O(log n) time and O(1) space: about 30 comparisons for a billion items.
+- Keep your range convention consistent, always exclude `mid` after checking it, and compute `mid` safely in languages with fixed-size integers.
+- The lower-bound variant finds the first occurrence or insertion point, and the same idea extends to searching over answers.
+
+<Quiz
+  question="What is the maximum number of comparisons binary search needs for a sorted array of 1,000,000 elements?"
+  options={["About 20", "About 1,000", "About 500,000", "About 1,000,000"]}
+  answer={0}
+  explanation="Each comparison halves the remaining range, and a million can be halved about 20 times before reaching one element, since 2²⁰ is roughly 1,050,000."
+/>
+
+<Quiz
+  question="Why does binary search update the range with lo = mid + 1 rather than lo = mid?"
+  options={["It makes the search use less memory", "arr[mid] has already been checked, and keeping it in range can cause an infinite loop", "Because arrays are zero-indexed", "It keeps the array sorted"]}
+  answer={1}
+  explanation="The middle element was just compared and ruled out. Leaving it in the range wastes work and, when lo and hi are neighbors, means the range never shrinks, so the loop never ends."
+/>

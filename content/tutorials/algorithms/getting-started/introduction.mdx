@@ -1,0 +1,204 @@
+---
+title: "What Is an Algorithm?"
+description: "Discover what algorithms are, what makes one good, and how to judge any algorithm by its correctness and efficiency."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+Every time you look up a word in a dictionary, follow a recipe, or give someone directions to your house, you are carrying out an algorithm. An **algorithm** is a finite sequence of well-defined steps that takes some input and produces a desired output. Computers are spectacularly fast at following instructions, but they have no common sense: they do exactly what they are told, nothing more and nothing less. Algorithms are how we tell them what to do.
+
+This tutorial is about learning to design, read, and evaluate those instructions. In this first topic you'll build a precise mental model of what an algorithm is, walk through a complete example from idea to working code, and learn the two questions you should ask about every algorithm you meet: *is it correct?* and *is it efficient?*
+
+## Recipes for computers
+
+A cooking recipe is the classic analogy, and it's a good one. A recipe lists **ingredients** (the input), a series of **steps** to follow in order, and a **finished dish** (the output). If the recipe is well written, anyone who follows it carefully gets the same result.
+
+Computer algorithms work the same way, with one important difference: a computer can't fill in the gaps. "Bake until golden" works for a human cook, but a computer needs something like "bake at 180 °C for 25 minutes." Every step must be precise enough that there is no room for interpretation.
+
+### Inputs and outputs
+
+Before thinking about the steps, it helps to describe an algorithm by its *contract*: what goes in and what must come out.
+
+| Problem       | Input                              | Output                                        |
+| ------------- | ---------------------------------- | --------------------------------------------- |
+| Sorting       | A list of numbers                  | The same numbers in ascending order           |
+| Searching     | A list and a target value          | The position of the target, or "not found"    |
+| Shortest path | A road map and two locations       | The shortest route between them               |
+| Maximum       | A non-empty list of numbers        | The largest number in the list                |
+
+Notice that a problem says *what* we want, not *how* to get it. Many different algorithms can solve the same problem, and a big part of computer science is comparing them. You'll see this soon: there are [many ways to sort](/tutorials/algorithms/sorting/bubble-sort) a list, and on large inputs some are thousands of times faster than others.
+
+## What makes an algorithm?
+
+Computer scientists generally agree that a true algorithm has five properties:
+
+1. **Input**: it takes zero or more values to work on.
+2. **Output**: it produces at least one result.
+3. **Definiteness**: every step is precise and unambiguous.
+4. **Finiteness**: it always finishes after a finite number of steps.
+5. **Effectiveness**: each step is basic enough to actually carry out, even by a person with pencil and paper.
+
+<Callout type="note" title="Finiteness is the one people forget">
+
+"Keep adding 1 to a counter" is a perfectly precise instruction, but without a stopping condition it never ends, so it isn't an algorithm. Infinite loops are among the most common bugs you'll ever write, and learning to spot them starts with this property.
+
+</Callout>
+
+## A first example
+
+Let's design an algorithm for a simple problem: given a non-empty list of numbers, find the largest one.
+
+How would you do it by hand with a long list on paper? You'd probably scan from left to right, keeping track of the biggest number you've seen so far. That intuition is already an algorithm. We just need to make it precise:
+
+1. Remember the first number as `largest`.
+2. Look at each number in the list, one at a time.
+3. If the current number is bigger than `largest`, replace `largest` with it.
+4. When there are no numbers left, `largest` is the answer.
+
+### Tracing it by hand
+
+Here is the algorithm running on the list `[3, 7, 2, 9, 4]`:
+
+```text
+start:        largest = 3
+look at 7:    7 > 3 ?  yes → largest = 7
+look at 2:    2 > 7 ?  no  → keep 7
+look at 9:    9 > 7 ?  yes → largest = 9
+look at 4:    4 > 9 ?  no  → keep 9
+done:         answer = 9
+```
+
+Tracing an algorithm by hand on a tiny input is one of the best habits you can build. It reveals misunderstandings and bugs before you write a single line of code.
+
+### Turning it into code
+
+Each version below follows the four steps exactly. The highlighted lines are the heart of the algorithm; everything else is setup and error handling.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="find_max.py" {5-8}
+def find_max(numbers):
+    """Return the largest value in a non-empty list."""
+    if not numbers:
+        raise ValueError("find_max() needs at least one number")
+    largest = numbers[0]
+    for value in numbers:
+        if value > largest:
+            largest = value
+    return largest
+
+
+print(find_max([3, 7, 2, 9, 4]))  # 9
+```
+
+</Tab>
+<Tab>
+
+```javascript title="findMax.js" {5-10}
+function findMax(numbers) {
+  if (numbers.length === 0) {
+    throw new Error("findMax() needs at least one number");
+  }
+  let largest = numbers[0];
+  for (const value of numbers) {
+    if (value > largest) {
+      largest = value;
+    }
+  }
+  return largest;
+}
+
+console.log(findMax([3, 7, 2, 9, 4])); // 9
+```
+
+</Tab>
+<Tab>
+
+```java title="FindMax.java" {6-11}
+public class FindMax {
+    static int findMax(int[] numbers) {
+        if (numbers.length == 0) {
+            throw new IllegalArgumentException("findMax() needs at least one number");
+        }
+        int largest = numbers[0];
+        for (int value : numbers) {
+            if (value > largest) {
+                largest = value;
+            }
+        }
+        return largest;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(findMax(new int[] {3, 7, 2, 9, 4})); // 9
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="tip" title="Think about edge cases">
+
+Notice the guard for an empty list. Asking "what happens with empty input? A single element? Duplicates? Negative numbers?" is called thinking about **edge cases**, and it's what separates robust code from fragile code. Our algorithm handles negatives correctly because it starts from a real element of the list rather than from 0.
+
+</Callout>
+
+## Two questions to ask
+
+Once you have an algorithm, you should be able to answer two questions about it.
+
+### Is it correct?
+
+An algorithm is **correct** if it produces the right output for *every* valid input, not just the ones you happened to try. Testing builds confidence, but reasoning gives certainty. For our maximum finder, we can argue like this:
+
+> After examining each number, `largest` holds the biggest value seen so far.
+
+That statement is true at the start, since `largest` is the first number, which is the only one considered so far. Each step keeps it true, because we only ever replace `largest` with something bigger. So once every number has been examined, `largest` must be the biggest of them all. A statement that stays true on every pass through a loop is called a **loop invariant**, and it's one of the most useful tools for convincing yourself that an algorithm works.
+
+### Is it efficient?
+
+Correct isn't enough. Imagine two correct algorithms for the same problem, where one finishes in a second and the other takes a week. Efficiency matters.
+
+We don't measure efficiency in seconds, because seconds depend on the machine. Instead we count how the number of basic steps grows with the size of the input, usually called `n`. Our maximum finder looks at each number once, so for a list of `n` numbers it does about `n` comparisons. Double the list, double the work. We say it runs in **linear time**, written O(n).
+
+Could any algorithm do better? No: if you skip a number, that number might have been the largest. Every correct algorithm must look at all `n` numbers, so ours is as good as it gets. You'll learn the full vocabulary for this kind of reasoning in [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation).
+
+## Algorithms and data structures
+
+Algorithms rarely work alone. They operate on **data structures**, which are ways of organizing data in memory, such as [arrays](/tutorials/data-structures/linear/arrays), [stacks](/tutorials/data-structures/linear/stacks), and [hash tables](/tutorials/data-structures/non-linear/hash-tables). The choice of data structure often determines which algorithms are possible and how fast they can run. For example, [binary search](/tutorials/algorithms/searching/binary-search) can find an item among a billion values in about 30 steps, but only if the data is sorted and stored somewhere that allows jumping straight to any position.
+
+A handy way to remember the relationship: data structures are the nouns, and algorithms are the verbs.
+
+## What's ahead
+
+This tutorial builds up your core toolkit in three chapters:
+
+- **Getting Started**: [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation) gives you a language for efficiency, and [recursion](/tutorials/algorithms/getting-started/recursion) teaches you to solve problems by breaking them into smaller copies of themselves.
+- **Sorting**: [bubble sort](/tutorials/algorithms/sorting/bubble-sort) and [insertion sort](/tutorials/algorithms/sorting/insertion-sort) show the simple approaches, while [merge sort](/tutorials/algorithms/sorting/merge-sort) and [quick sort](/tutorials/algorithms/sorting/quick-sort) show how divide and conquer gets dramatically faster.
+- **Searching**: [linear search](/tutorials/algorithms/searching/linear-search) checks every item, and [binary search](/tutorials/algorithms/searching/binary-search) uses sorted data to find things almost instantly.
+
+Along the way, interactive visualizers let you watch each algorithm run step by step. Use them! Seeing an algorithm move is often the moment it finally clicks.
+
+## Key takeaways
+
+- An algorithm is a finite sequence of unambiguous steps that turns input into output.
+- Describe a problem by its inputs and outputs first; many different algorithms can solve the same problem.
+- Trace algorithms by hand on small inputs, and always consider edge cases such as empty input.
+- Judge every algorithm by two questions: is it correct for all inputs, and how does its work grow as the input grows?
+- Algorithms and data structures go hand in hand: the right structure makes fast algorithms possible.
+
+<Quiz
+  question="Which of these is NOT a required property of an algorithm?"
+  options={["It must finish after a finite number of steps", "Each step must be unambiguous", "It must be written in a programming language", "It must produce an output"]}
+  answer={2}
+  explanation="Algorithms are ideas, not code. You can express one in plain English, pseudocode, or a flowchart; a programming language is just one way to write it down."
+/>
+
+<Quiz
+  question="The find-the-maximum algorithm examines each element once. If the list grows from 1,000 to 2,000 numbers, roughly how much more work does it do?"
+  options={["The same amount", "About twice as much", "About four times as much", "About 1,000 times as much"]}
+  answer={1}
+  explanation="The work grows in direct proportion to the input size. That is linear time, O(n): doubling the input doubles the work."
+/>

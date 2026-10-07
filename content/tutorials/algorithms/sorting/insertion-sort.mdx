@@ -1,0 +1,205 @@
+---
+title: "Insertion Sort"
+description: "Sort the way you sort playing cards: grow a sorted prefix one element at a time. Learn how insertion sort works, its complexity, and when it shines."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+If you've ever sorted a hand of playing cards, you already know insertion sort. You pick up cards one at a time, and each time you slide the new card into its correct spot among the cards you're already holding. Your hand is always sorted; it just keeps getting bigger.
+
+Like [bubble sort](/tutorials/algorithms/sorting/bubble-sort), insertion sort is a simple O(n²) algorithm. Unlike bubble sort, it's genuinely useful in practice. It's lightning fast on small or nearly sorted arrays, and that's why industrial-strength sorting routines in Python, Java, and C++ use it as a building block. Understanding it well pays off.
+
+## The big idea
+
+Insertion sort divides the array into two parts: a **sorted prefix** on the left and an **unsorted remainder** on the right. At the start, the prefix holds just the first element, and a single element is trivially sorted.
+
+Then, one element at a time, it takes the first unsorted element (call it the **key**) and inserts it into its correct position within the sorted prefix. To make room, every prefix element larger than the key shifts one step to the right. When the unsorted part is empty, the whole array is sorted.
+
+### Step by step
+
+1. Treat the first element as a sorted prefix of length 1.
+2. Take the next element as the `key` and remember its value.
+3. Scan the sorted prefix from right to left. While the element you're looking at is larger than the key, shift it one position to the right.
+4. When you find an element that is not larger than the key, or you run off the front of the array, drop the key into the gap.
+5. Repeat from step 2 until every element has been inserted.
+
+## A worked example
+
+Let's sort `[5, 2, 4, 6, 1, 3]`. The `|` separates the sorted prefix (left) from the unsorted part (right).
+
+```text
+[5 | 2, 4, 6, 1, 3]   key = 2: shift 5             → [2, 5 | 4, 6, 1, 3]
+[2, 5 | 4, 6, 1, 3]   key = 4: shift 5             → [2, 4, 5 | 6, 1, 3]
+[2, 4, 5 | 6, 1, 3]   key = 6: nothing to shift    → [2, 4, 5, 6 | 1, 3]
+[2, 4, 5, 6 | 1, 3]   key = 1: shift 6, 5, 4, 2    → [1, 2, 4, 5, 6 | 3]
+[1, 2, 4, 5, 6 | 3]   key = 3: shift 6, 5, 4       → [1, 2, 3, 4, 5, 6]
+```
+
+Let's zoom in on the fourth step, where the key `1` travels all the way to the front. Think of lifting the card out of your hand, which leaves a gap that moves left as larger elements shift right:
+
+```text
+[2, 4, 5, 6, _, 3]   lift out the 1, leaving a gap
+[2, 4, 5, _, 6, 3]   6 is larger than 1 → shift it right
+[2, 4, _, 5, 6, 3]   5 is larger than 1 → shift it right
+[2, _, 4, 5, 6, 3]   4 is larger than 1 → shift it right
+[_, 2, 4, 5, 6, 3]   2 is larger than 1 → shift it right
+[1, 2, 4, 5, 6, 3]   reached the front → drop the 1 into the gap
+```
+
+Now watch it run. Notice how the sorted region on the left grows by one element at a time, and how each new element slides left only as far as it needs to.
+
+<SortingVisualizer algorithm="insertion" />
+
+## Implementation
+
+The highlighted lines are the heart of the algorithm: the shifting loop and the final placement of the key.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="insertion_sort.py" {7-10}
+def insertion_sort(arr):
+    """Sort arr in place in ascending order and return it."""
+    for i in range(1, len(arr)):
+        key = arr[i]
+        j = i - 1
+        # Shift larger elements of the sorted prefix one step right.
+        while j >= 0 and arr[j] > key:
+            arr[j + 1] = arr[j]
+            j -= 1
+        arr[j + 1] = key  # Drop the key into the gap.
+    return arr
+
+
+print(insertion_sort([5, 2, 4, 6, 1, 3]))  # [1, 2, 3, 4, 5, 6]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="insertionSort.js" {6-10}
+function insertionSort(arr) {
+  for (let i = 1; i < arr.length; i++) {
+    const key = arr[i];
+    let j = i - 1;
+    // Shift larger elements of the sorted prefix one step right.
+    while (j >= 0 && arr[j] > key) {
+      arr[j + 1] = arr[j];
+      j--;
+    }
+    arr[j + 1] = key; // Drop the key into the gap.
+  }
+  return arr;
+}
+
+console.log(insertionSort([5, 2, 4, 6, 1, 3])); // [1, 2, 3, 4, 5, 6]
+```
+
+</Tab>
+<Tab>
+
+```java title="InsertionSort.java" {9-13}
+import java.util.Arrays;
+
+public class InsertionSort {
+    public static void insertionSort(int[] arr) {
+        for (int i = 1; i < arr.length; i++) {
+            int key = arr[i];
+            int j = i - 1;
+            // Shift larger elements of the sorted prefix one step right.
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key; // Drop the key into the gap.
+        }
+    }
+
+    public static void main(String[] args) {
+        int[] data = {5, 2, 4, 6, 1, 3};
+        insertionSort(data);
+        System.out.println(Arrays.toString(data)); // [1, 2, 3, 4, 5, 6]
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+Notice that we **shift** rather than swap. A swap takes three assignments, while a shift takes one. We save the key in a variable first, because the very first shift overwrites its original slot.
+
+<Callout type="warning" title="The order of the loop condition matters">
+
+The condition must check `j >= 0` **before** reading `arr[j]`. Thanks to short-circuit evaluation, `arr[j]` is never read once `j` reaches -1. If you reverse the order, Java throws an `ArrayIndexOutOfBoundsException`. Python is sneakier: `arr[-1]` is the *last* element of the list, so the code quietly reads the wrong value instead of crashing.
+
+</Callout>
+
+## Complexity analysis
+
+| Case    | Time  | When it happens                                              |
+| ------- | ----- | ------------------------------------------------------------ |
+| Best    | O(n)  | Already sorted: each key is compared once and never shifted  |
+| Average | O(n²) | Random order: each key shifts about halfway back             |
+| Worst   | O(n²) | Reverse sorted: every key shifts all the way to the front    |
+| Space   | O(1)  | Sorts in place; only the key needs extra storage             |
+
+In the worst case, the key at index `i` shifts past all `i` elements before it, for a total of `1 + 2 + ... + (n − 1) = n(n − 1) / 2` shifts. On random input, each key moves about halfway, so you get roughly half that, which is still quadratic.
+
+### Inversions explain everything
+
+An **inversion** is a pair of elements that are out of order: an earlier element that is larger than a later one. Each shift in insertion sort fixes exactly one inversion, no more and no less. So the running time is O(n + inversions).
+
+That single fact explains insertion sort's behavior. A sorted array has zero inversions, giving linear time. A reversed array has the maximum possible, `n(n − 1) / 2`, giving quadratic time. And an array where each element is only a few positions away from its final spot has few inversions, so insertion sort handles it in nearly linear time.
+
+<Callout type="tip" title="Online sorting">
+
+Insertion sort is an **online** algorithm: it can sort data as it arrives, one item at a time, without seeing the whole input first. If you're maintaining a sorted list and new values trickle in, inserting each one is exactly an insertion sort step.
+
+</Callout>
+
+## Why it matters in practice
+
+Asymptotically, insertion sort loses badly to [merge sort](/tutorials/algorithms/sorting/merge-sort) and [quick sort](/tutorials/algorithms/sorting/quick-sort). But Big-O hides constant factors, and insertion sort's are tiny: a tight inner loop, no recursion, no extra memory, and memory access that marches sequentially through the array, which modern CPU caches love.
+
+For small arrays, typically up to a few dozen elements, those advantages win. That's why many production sorting algorithms are **hybrids**:
+
+- **Timsort**, behind Python's `sorted()` and Java's sorting of objects, uses insertion sort to build up short sorted runs before merging them.
+- **Introsort**, used by typical implementations of C++'s `std::sort`, switches to insertion sort once partitions get small.
+- Java's quick sort for primitive arrays also falls back to insertion sort for tiny ranges.
+
+### Insertion sort vs. bubble sort
+
+| Property                      | Insertion sort  | Bubble sort     |
+| ----------------------------- | --------------- | --------------- |
+| Worst and average time        | O(n²)           | O(n²)           |
+| Best time (sorted input)      | O(n)            | O(n) with early exit |
+| Average comparisons           | about n² / 4    | about n² / 2    |
+| Stable                        | Yes             | Yes             |
+| Online                        | Yes             | No              |
+
+Both are simple, stable, and in place, but insertion sort does about half the comparisons on average and moves data with cheap shifts instead of swaps. If you need a simple quadratic sort, choose insertion sort.
+
+### A tempting optimization
+
+Since the prefix is sorted, you could find the key's position with [binary search](/tutorials/algorithms/searching/binary-search) instead of scanning. This *binary insertion sort* cuts comparisons to O(n log n) overall, which helps when comparisons are expensive, such as comparing long strings. But the shifting still costs O(n²) in the worst case, so the overall complexity doesn't change.
+
+## Key takeaways
+
+- Insertion sort grows a sorted prefix by inserting each new element into its correct position, shifting larger elements right.
+- It runs in O(n) on sorted input and O(n²) on average and in the worst case, with O(1) extra space.
+- Its running time is proportional to `n` plus the number of inversions, so it excels on nearly sorted data.
+- It's stable, in place, and online, with very low overhead, which is why hybrid sorts use it for small subarrays.
+
+<Quiz
+  question="Which input makes insertion sort run in linear time?"
+  options={["A reverse-sorted array", "An already sorted array", "An array of random values", "An array where the smallest element is last"]}
+  answer={1}
+  explanation="On a sorted array, every key is already larger than everything before it, so the inner loop stops immediately. There are zero inversions, and the total work is about n comparisons."
+/>
+
+<Quiz
+  question="After insertion sort has processed the first k elements, what is guaranteed about them?"
+  options={["They are the k smallest elements in the array", "They are in their final sorted positions", "They are sorted relative to each other, but later elements may still be inserted among them", "Nothing is guaranteed until the algorithm finishes"]}
+  answer={2}
+  explanation="The prefix is sorted, but it only contains the first k elements of the original input. A later, smaller element can still be inserted in the middle of it. This is a key difference from bubble sort, whose sorted region at the end is final."
+/>

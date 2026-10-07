@@ -1,0 +1,302 @@
+---
+title: "Climbing Stairs"
+description: "Solve the classic Climbing Stairs problem step by step, from exponential recursion to memoization, tabulation and a constant-space solution."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+Climbing Stairs is the "hello, world" of dynamic programming. It's small enough to hold in your head, yet it exercises every step of the DP process. If you've read [What Is Dynamic Programming?](/tutorials/dynamic-programming/core-ideas/what-is-dp), the answer may even look familiar.
+
+We'll walk through the complete framework: problem statement, brute-force recursion, state, recurrence, a top-down solution, a bottom-up solution and finally a constant-space version. The [0/1 Knapsack](/tutorials/dynamic-programming/classic-problems/knapsack) and [Longest Common Subsequence](/tutorials/dynamic-programming/classic-problems/longest-common-subsequence) lessons follow exactly the same path, so treat this one as your template.
+
+## The Problem
+
+**You're climbing a staircase with `n` steps. On each move you can climb either 1 step or 2 steps. In how many distinct ways can you reach the top?**
+
+Order matters, so climbing 1 then 2 is different from climbing 2 then 1. For `n = 4` there are five ways:
+
+```text
+1 + 1 + 1 + 1
+1 + 1 + 2
+1 + 2 + 1
+2 + 1 + 1
+2 + 2
+```
+
+Listing them gets out of hand quickly. Here are the counts for the first few staircases:
+
+| Steps (n) | 1   | 2   | 3   | 4   | 5   | 6   |
+| --------- | --- | --- | --- | --- | --- | --- |
+| Ways      | 1   | 2   | 3   | 5   | 8   | 13  |
+
+Spot a pattern? Hold that thought.
+
+## Brute-Force Recursion
+
+Rather than thinking about the first move, think about the **last** one. To stand on step `n`, your final move was either:
+
+- a **1-step** from step `n - 1`, or
+- a **2-step** from step `n - 2`.
+
+Those two groups never overlap, because their last moves differ, and together they cover every possible climb. So the number of ways to reach step `n` is the number of ways to reach `n - 1` plus the number of ways to reach `n - 2`. That translates straight into a recursive function:
+
+```python title="climbing_stairs_brute.py"
+def climb_stairs(n: int) -> int:
+    if n <= 1:                 # 0 or 1 steps left: exactly one way
+        return 1
+    return climb_stairs(n - 1) + climb_stairs(n - 2)
+```
+
+### Why it's slow
+
+Here's the full recursion tree for `n = 5`:
+
+```text
+                            ways(5)
+                   /                       \
+              ways(4)                     ways(3)
+            /         \                  /       \
+       ways(3)       ways(2)        ways(2)     ways(1)
+       /     \       /     \        /     \
+  ways(2) ways(1) ways(1) ways(0) ways(1) ways(0)
+   /    \
+ways(1) ways(0)
+```
+
+That's 15 calls to answer a question with only six distinct subproblems. `ways(3)` is solved twice and `ways(2)` three times. Each extra step roughly multiplies the work by 1.6, so the running time is O(2ⁿ). For `n = 45` the function makes more than **3.6 billion** calls. Classic overlapping subproblems.
+
+## State and Recurrence
+
+### Defining the state
+
+Let `ways(i)` be **the number of distinct ways to reach step `i`** starting from the ground (step 0). One integer describes a subproblem completely, so there are only `n + 1` states: `ways(0)` through `ways(n)`.
+
+### The recurrence
+
+```text
+ways(0) = 1                            the empty climb: make no moves
+ways(1) = 1                            a single 1-step
+ways(i) = ways(i - 1) + ways(i - 2)    for i >= 2
+
+answer  = ways(n)
+```
+
+<Callout type="note" title="Why is ways(0) equal to 1?">
+
+There's exactly one way to climb zero steps: do nothing. That convention also makes the recurrence work for `i = 2`, since `ways(2) = ways(1) + ways(0) = 2`. And notice the sequence 1, 1, 2, 3, 5, 8, 13: it's Fibonacci, shifted by one. In fact `ways(n) = fib(n + 1)`, which is why this problem feels so familiar.
+
+</Callout>
+
+### Generalizing to k steps
+
+What if you could climb anywhere from 1 to `k` steps per move? The same "last move" argument gives:
+
+```text
+ways(0) = 1
+ways(i) = ways(i - 1) + ways(i - 2) + ... + ways(i - k)    ignoring negative indices
+```
+
+The state stays the same; only the recurrence changes. Each state now sums `k` terms, so the total work becomes O(n · k). The same trick handles other twists: if only certain step sizes are allowed, sum over those sizes; if a step is broken and can't be stood on, force its count to 0.
+
+## Top-Down Solution
+
+Add a cache to the brute force and every `ways(i)` is computed exactly once. See [Memoization vs. Tabulation](/tutorials/dynamic-programming/core-ideas/memoization-vs-tabulation) if you'd like a refresher on the pattern.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="climbing_stairs_memo.py" {3}
+from functools import cache
+
+@cache
+def climb_stairs(n: int) -> int:
+    if n <= 1:
+        return 1
+    return climb_stairs(n - 1) + climb_stairs(n - 2)
+```
+
+</Tab>
+<Tab>
+
+```javascript title="climbingStairsMemo.js" {3-6}
+function climbStairs(n, memo = new Map()) {
+  if (n <= 1) return 1;
+  if (memo.has(n)) return memo.get(n);
+  const ways = climbStairs(n - 1, memo) + climbStairs(n - 2, memo);
+  memo.set(n, ways);
+  return ways;
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="ClimbingStairsMemo.java" {9-11}
+public class ClimbingStairsMemo {
+    public static long climbStairs(int n) {
+        long[] memo = new long[n + 1]; // 0 means "not computed yet"
+        return ways(n, memo);
+    }
+
+    private static long ways(int n, long[] memo) {
+        if (n <= 1) return 1;
+        if (memo[n] != 0) return memo[n];
+        memo[n] = ways(n - 1, memo) + ways(n - 2, memo);
+        return memo[n];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+In Python, the single `@cache` line is the entire difference between the exponential version and the linear one.
+
+## Bottom-Up Solution
+
+Since `ways(i)` depends only on the two indices just below it, filling the table from left to right guarantees both are ready when we need them.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="climbing_stairs_table.py"
+def climb_stairs(n: int) -> int:
+    dp = [1] * (n + 1)          # dp[0] = dp[1] = 1; the rest get overwritten
+    for i in range(2, n + 1):
+        dp[i] = dp[i - 1] + dp[i - 2]
+    return dp[n]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="climbingStairsTable.js"
+function climbStairs(n) {
+  const dp = new Array(n + 1).fill(1); // dp[0] = dp[1] = 1
+  for (let i = 2; i <= n; i++) {
+    dp[i] = dp[i - 1] + dp[i - 2];
+  }
+  return dp[n];
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="ClimbingStairsTable.java"
+public class ClimbingStairsTable {
+    public static long climbStairs(int n) {
+        long[] dp = new long[n + 1];
+        dp[0] = 1;
+        if (n >= 1) dp[1] = 1;
+        for (int i = 2; i <= n; i++) {
+            dp[i] = dp[i - 1] + dp[i - 2];
+        }
+        return dp[n];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+### The filled table
+
+For `n = 7`, the table fills in like this. Each entry is the sum of the two before it:
+
+```text
+i         0   1   2   3   4   5   6   7
+ways(i)   1   1   2   3   5   8  13  21
+                              ↑   ↑   ↑
+                              8 + 13 = 21
+```
+
+### Saving space
+
+Look at the loop: computing `dp[i]` only ever touches `dp[i - 1]` and `dp[i - 2]`. Everything further back is never read again. So instead of a whole array, keep just the two most recent values and slide them forward.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="climbing_stairs.py" {2-4}
+def climb_stairs(n: int) -> int:
+    prev, curr = 1, 1                  # ways(i - 1) and ways(i), starting at i = 1
+    for _ in range(2, n + 1):
+        prev, curr = curr, prev + curr
+    return curr
+```
+
+</Tab>
+<Tab>
+
+```javascript title="climbingStairs.js" {2-6}
+function climbStairs(n) {
+  let prev = 1; // ways(i - 1)
+  let curr = 1; // ways(i)
+  for (let i = 2; i <= n; i++) {
+    [prev, curr] = [curr, prev + curr];
+  }
+  return curr;
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="ClimbingStairs.java" {3-8}
+public class ClimbingStairs {
+    public static long climbStairs(int n) {
+        long prev = 1, curr = 1; // ways(i - 1) and ways(i)
+        for (int i = 2; i <= n; i++) {
+            long next = prev + curr;
+            prev = curr;
+            curr = next;
+        }
+        return curr;
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+This works for `n = 0` and `n = 1` too: the loop never runs and the function returns 1.
+
+<Callout type="warning" title="Watch out for overflow">
+
+The answer grows exponentially. `ways(46)` is 2,971,215,073, which no longer fits in a 32-bit signed `int`. That's why the Java code uses `long`, which is safe up to `n = 91`. JavaScript numbers are exact only up to `Number.MAX_SAFE_INTEGER`, so `ways(77)` is the last exact value; use `BigInt` beyond that. Python integers never overflow.
+
+</Callout>
+
+## Complexity
+
+| Approach              | Time  | Space                        |
+| --------------------- | ----- | ---------------------------- |
+| Brute-force recursion | O(2ⁿ) | O(n) for the call stack      |
+| Top-down memoization  | O(n)  | O(n) for the cache and stack |
+| Bottom-up tabulation  | O(n)  | O(n) for the table           |
+| Two variables         | O(n)  | O(1)                         |
+
+Every DP version does a constant amount of work for each of the `n + 1` states, hence O(n) time. Only the bookkeeping differs. As a bonus fact, because `ways(n) = fib(n + 1)`, you could even reach O(log n) time with matrix exponentiation, though that's rarely needed in practice. Brush up on [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation) if these labels feel fuzzy.
+
+## Key takeaways
+
+- **Think about the last move.** Splitting all solutions by their final choice is one of the most useful ways to find a recurrence.
+- The state is a single index, `ways(i)`, giving `n + 1` subproblems and the recurrence `ways(i) = ways(i - 1) + ways(i - 2)`.
+- Brute force is O(2ⁿ). Memoization or tabulation brings it down to O(n).
+- When each state depends only on a fixed number of previous states, a few variables can replace the entire table, cutting space to O(1).
+- Changing the rules (more step sizes, broken steps) usually changes only the recurrence, not the state.
+
+<Quiz
+  question="How many distinct ways are there to climb a staircase of 6 steps, taking 1 or 2 steps at a time?"
+  options={["8", "11", "13", "21"]}
+  answer={2}
+  explanation="Filling the table gives 1, 1, 2, 3, 5, 8, 13 for steps 0 through 6, so ways(6) = ways(5) + ways(4) = 8 + 5 = 13."
+/>
+
+<Quiz
+  question="If you may climb 1, 2 or 3 steps at a time, which recurrence is correct?"
+  options={["ways(i) = ways(i - 1) + ways(i - 2)", "ways(i) = ways(i - 1) + ways(i - 2) + ways(i - 3)", "ways(i) = 3 × ways(i - 1)", "ways(i) = ways(i - 3) + 3"]}
+  answer={1}
+  explanation="Your last move was a 1-step, 2-step or 3-step, so you arrived from step i - 1, i - 2 or i - 3. Add the counts for all three."
+/>

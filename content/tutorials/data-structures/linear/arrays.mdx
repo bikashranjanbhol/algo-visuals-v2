@@ -1,0 +1,379 @@
+---
+title: "Arrays & Dynamic Arrays"
+description: "How arrays store data in contiguous memory, why indexing is O(1), and how dynamic arrays grow while keeping appends fast."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+The array is the most fundamental data structure in computing. Almost every other structure in this tutorial, from stacks and queues to heaps and hash tables, is built on top of one. An array stores a sequence of elements side by side in a single block of memory, and that simple layout gives it a superpower: you can jump straight to any element by its position in constant time.
+
+In this lesson you'll see exactly why that works, what it costs when you insert or delete in the middle, and how **dynamic arrays** (Python's `list`, JavaScript's `Array`, Java's `ArrayList`) grow on demand while keeping appends fast on average.
+
+## The big idea
+
+Picture a row of numbered mailboxes in an apartment lobby. Every box is the same size, they sit in one continuous row, and they're numbered from 0. If someone asks for box 37, you don't open boxes 0 through 36 first. You know where the row starts and how wide each box is, so you walk directly to it.
+
+That's an array:
+
+- **Fixed-size slots.** Every element takes the same number of bytes.
+- **Contiguous.** The slots sit next to each other, with no gaps.
+- **Indexed from zero.** The first element is at index 0 and the last is at index `n - 1`.
+
+The trade-off shows up when you want to squeeze a new mailbox into the middle of the row. Every box after it has to shift one position over to make room.
+
+## Memory layout
+
+Here is an array of five 4-byte integers that starts at memory address 1000:
+
+```text
+index:      0      1      2      3      4
+         +------+------+------+------+------+
+value:   |  42  |  17  |   8  |  99  |  23  |
+         +------+------+------+------+------+
+address:  1000   1004   1008   1012   1016
+```
+
+### Address arithmetic
+
+Because the slots are contiguous and equally sized, the address of any element is one multiplication and one addition away:
+
+```text
+address(i) = base_address + i × element_size
+
+address(3) = 1000 + 3 × 4 = 1012
+```
+
+The computer doesn't care whether `i` is 3 or 3 million. The calculation takes the same time, which is why **access by index is O(1)**. This is also why arrays are zero-indexed in most languages: the index is literally the offset from the start.
+
+### Cache friendliness
+
+Modern CPUs don't fetch one byte at a time. They pull in whole **cache lines** (typically 64 bytes) and prefetch the lines that follow. When you loop over an array, the next elements are usually already sitting in fast cache memory. Structures that scatter their data around the heap, like [linked lists](/tutorials/data-structures/linear/linked-lists), don't get this benefit. That's why a plain array often beats "smarter" structures in practice, even when their Big-O looks the same.
+
+<Callout type="note" title="Arrays of objects">
+
+In Python, JavaScript and Java, an array of objects stores **references** (pointers) side by side, not the objects themselves. Indexing is still O(1), but each element access then follows a pointer somewhere else in memory. Arrays of primitives, such as Java's `int[]`, keep the values themselves contiguous.
+
+</Callout>
+
+## Core operations
+
+### Access and update
+
+Reading or writing `arr[i]` is O(1). Just remember to stay inside the bounds: valid indices run from `0` to `n - 1`. Python and Java raise an error on an out-of-range index, while JavaScript quietly returns `undefined`.
+
+### Insert and delete
+
+To insert at index `i`, every element from `i` to the end must shift one slot right to open a gap. Deleting at index `i` is the mirror image: everything after it shifts one slot left to close the gap.
+
+```text
+Insert 5 at index 1:
+
+before:  [ 42 | 17 |  8 | 99 |    ]
+                ──►  ──►  ──►          shift 17, 8, 99 right
+after:   [ 42 |  5 | 17 |  8 | 99 ]
+```
+
+In the worst case (inserting or deleting at the front) that's `n` moves, so both operations are **O(n)**. At the very end there's nothing to shift, so removing the last element is O(1).
+
+### Search
+
+If the array is unsorted, finding a value means checking elements one by one with [linear search](/tutorials/algorithms/searching/linear-search), which is O(n). If it's sorted, [binary search](/tutorials/algorithms/searching/binary-search) cuts that to O(log n) by repeatedly halving the range. That trick only works because arrays give O(1) access to the middle element.
+
+## Dynamic arrays
+
+A classic array has a fixed capacity chosen when it's created. That's awkward when you don't know in advance how many items you'll store. A **dynamic array** solves this by keeping two numbers:
+
+- **size**: how many elements are actually stored
+- **capacity**: how many slots the underlying block has
+
+When `size` reaches `capacity` and you append again, the dynamic array allocates a bigger block, copies every element over, and frees the old one.
+
+### Growth by doubling
+
+```text
+capacity 4:  [ a | b | c | d ]                  full, append e
+                    │ copy 4 elements
+capacity 8:  [ a | b | c | d | e |   |   |   ]  room to grow
+```
+
+A single resize costs O(n) because every element is copied. So why do we say appends are fast?
+
+### Amortized O(1) appends
+
+The key is that the capacity grows **geometrically** (multiplied by a constant factor) rather than by a fixed amount. If we double each time, then by the time we've appended `n` elements the total copying work is:
+
+```text
+1 + 2 + 4 + 8 + ... + n/2 + n  <  2n
+```
+
+Spread across `n` appends, that's fewer than 2 copies per append on average. Expensive resizes happen, but they get exponentially rarer as the array grows. This is called **amortized O(1)** time: any single append might be slow, but any sequence of `n` appends takes O(n) total.
+
+<Callout type="warning" title="Never grow by a fixed amount">
+
+If you grow the capacity by a constant (say, 10 extra slots each time), you resize every 10 appends and the total copying becomes 10 + 20 + 30 + ... + n, which is O(n²). Any growth factor greater than 1 works: Java's `ArrayList` grows by about 1.5× and CPython's `list` over-allocates by roughly 12.5%. A fixed increment does not.
+
+</Callout>
+
+## Implementation
+
+Here's a dynamic array built from scratch on top of a fixed block of slots. Real languages already provide one, but writing it yourself makes the resize logic and the shifting cost concrete.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="dynamic_array.py" {20-24,47-52}
+class DynamicArray:
+    """A growable array built on top of a fixed-size block of slots."""
+
+    def __init__(self, capacity=4):
+        self._capacity = max(1, capacity)
+        self._size = 0
+        self._data = [None] * self._capacity
+
+    def __len__(self):
+        return self._size
+
+    def get(self, index):
+        self._check(index)
+        return self._data[index]
+
+    def set(self, index, value):
+        self._check(index)
+        self._data[index] = value
+
+    def append(self, value):
+        if self._size == self._capacity:
+            self._resize(2 * self._capacity)
+        self._data[self._size] = value
+        self._size += 1
+
+    def insert(self, index, value):
+        if not 0 <= index <= self._size:
+            raise IndexError("index out of range")
+        if self._size == self._capacity:
+            self._resize(2 * self._capacity)
+        # Shift everything from index onward one slot to the right.
+        for i in range(self._size, index, -1):
+            self._data[i] = self._data[i - 1]
+        self._data[index] = value
+        self._size += 1
+
+    def remove_at(self, index):
+        self._check(index)
+        value = self._data[index]
+        # Shift everything after index one slot to the left.
+        for i in range(index, self._size - 1):
+            self._data[i] = self._data[i + 1]
+        self._size -= 1
+        self._data[self._size] = None  # drop the stale reference
+        return value
+
+    def _resize(self, new_capacity):
+        new_data = [None] * new_capacity
+        for i in range(self._size):
+            new_data[i] = self._data[i]
+        self._data = new_data
+        self._capacity = new_capacity
+
+    def _check(self, index):
+        if not 0 <= index < self._size:
+            raise IndexError("index out of range")
+```
+
+</Tab>
+<Tab>
+
+```javascript title="dynamicArray.js"
+class DynamicArray {
+  #data;
+  #size = 0;
+
+  constructor(capacity = 4) {
+    this.#data = new Array(Math.max(1, capacity));
+  }
+
+  get length() {
+    return this.#size;
+  }
+
+  get(index) {
+    this.#check(index);
+    return this.#data[index];
+  }
+
+  set(index, value) {
+    this.#check(index);
+    this.#data[index] = value;
+  }
+
+  append(value) {
+    if (this.#size === this.#data.length) this.#resize(2 * this.#data.length);
+    this.#data[this.#size++] = value;
+  }
+
+  insert(index, value) {
+    if (index < 0 || index > this.#size) throw new RangeError("index out of range");
+    if (this.#size === this.#data.length) this.#resize(2 * this.#data.length);
+    // Shift everything from index onward one slot to the right.
+    for (let i = this.#size; i > index; i--) {
+      this.#data[i] = this.#data[i - 1];
+    }
+    this.#data[index] = value;
+    this.#size++;
+  }
+
+  removeAt(index) {
+    this.#check(index);
+    const value = this.#data[index];
+    // Shift everything after index one slot to the left.
+    for (let i = index; i < this.#size - 1; i++) {
+      this.#data[i] = this.#data[i + 1];
+    }
+    this.#data[--this.#size] = undefined; // drop the stale reference
+    return value;
+  }
+
+  #resize(newCapacity) {
+    const newData = new Array(newCapacity);
+    for (let i = 0; i < this.#size; i++) newData[i] = this.#data[i];
+    this.#data = newData;
+  }
+
+  #check(index) {
+    if (index < 0 || index >= this.#size) throw new RangeError("index out of range");
+  }
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="DynamicArray.java"
+import java.util.Arrays;
+
+public class DynamicArray<T> {
+    private Object[] data;
+    private int size;
+
+    public DynamicArray() {
+        this(4);
+    }
+
+    public DynamicArray(int capacity) {
+        data = new Object[Math.max(1, capacity)];
+    }
+
+    public int size() {
+        return size;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T get(int index) {
+        checkIndex(index);
+        return (T) data[index];
+    }
+
+    public void set(int index, T value) {
+        checkIndex(index);
+        data[index] = value;
+    }
+
+    public void append(T value) {
+        if (size == data.length) grow();
+        data[size++] = value;
+    }
+
+    public void insert(int index, T value) {
+        if (index < 0 || index > size) throw new IndexOutOfBoundsException(index);
+        if (size == data.length) grow();
+        // Shift data[index..size-1] one slot to the right.
+        System.arraycopy(data, index, data, index + 1, size - index);
+        data[index] = value;
+        size++;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T removeAt(int index) {
+        checkIndex(index);
+        T value = (T) data[index];
+        // Shift data[index+1..size-1] one slot to the left.
+        System.arraycopy(data, index + 1, data, index, size - index - 1);
+        data[--size] = null; // drop the stale reference
+        return value;
+    }
+
+    private void grow() {
+        data = Arrays.copyOf(data, data.length * 2);
+    }
+
+    private void checkIndex(int index) {
+        if (index < 0 || index >= size) throw new IndexOutOfBoundsException(index);
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+Notice that `insert` and `remove_at` contain a loop over the elements after `index`. That loop is the O(n) cost you pay for keeping elements contiguous.
+
+## Complexity
+
+| Operation                 | Static array     | Dynamic array                 |
+| ------------------------- | ---------------- | ----------------------------- |
+| Access or update by index | O(1)             | O(1)                          |
+| Append at end             | not supported    | O(1) amortized, O(n) worst    |
+| Remove from end           | O(1)             | O(1)                          |
+| Insert at index i         | O(n)             | O(n)                          |
+| Delete at index i         | O(n)             | O(n)                          |
+| Search (unsorted)         | O(n)             | O(n)                          |
+| Search (sorted)           | O(log n)         | O(log n)                      |
+| Extra space               | none             | up to O(n) unused capacity    |
+
+If [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation) is new to you, read that lesson first. It explains what these labels mean and why constant factors are dropped.
+
+## When to use arrays
+
+Arrays are the right default for most collections. Reach for one when:
+
+- You need fast random access by position.
+- You mostly append and remove at the end. That's exactly the access pattern of a [stack](/tutorials/data-structures/linear/stacks).
+- You iterate over the elements often and want cache-friendly performance.
+- You want to sort the data or run binary search on it.
+
+Look elsewhere when you constantly insert or remove at the **front** or in the **middle** of a large collection. A [queue](/tutorials/data-structures/linear/queues) built on a circular buffer, a linked list, or a balanced tree may fit better.
+
+### Common pitfalls
+
+- **Off-by-one errors.** The last valid index is `n - 1`, not `n`. Loops written as `i <= n` read one element too far.
+- **Front insertion in a loop.** Calling `list.insert(0, x)` in Python or `unshift` in JavaScript inside a loop turns an O(n) job into O(n²). Use `collections.deque` or build the list in reverse.
+- **Modifying while iterating.** Removing elements from an array while looping forward over it shifts later elements under your feet, so you skip items. Iterate backwards or build a new array.
+- **Confusing size and capacity.** Java's `new ArrayList<>(100)` reserves 100 slots but has size 0, so `get(0)` still throws.
+
+<Callout type="tip" title="Shrinking safely">
+
+Some dynamic arrays also shrink when they get mostly empty. Halve the capacity when the array drops to **one quarter** full, not one half. With a halfway threshold, alternating appends and removals right at the boundary would trigger a resize on every operation.
+
+</Callout>
+
+## Key takeaways
+
+- An array stores equally sized elements in one contiguous block, so `address = base + i × size` gives **O(1) access** by index.
+- Inserting or deleting anywhere except the end shifts the elements after it, which costs **O(n)**.
+- Dynamic arrays track size and capacity separately and grow by a **constant factor** when full, which makes appends **amortized O(1)**.
+- Contiguous memory is cache-friendly. In practice, arrays are often faster than their Big-O suggests compared with pointer-based structures.
+- Prefer arrays by default. Switch structures when your workload is dominated by front or middle insertions.
+
+<Quiz
+  question="An array of 4-byte integers starts at memory address 1000. What is the address of the element at index 5?"
+  options={["1005", "1016", "1020", "1024"]}
+  answer={2}
+  explanation="The address is base + index × size = 1000 + 5 × 4 = 1020. Index 5 is the sixth element, which starts 20 bytes after the base."
+/>
+
+<Quiz
+  question="Why is appending to a dynamic array considered O(1) amortized, even though some appends copy every element?"
+  options={["The language runtime copies elements in parallel", "Capacity grows by a constant factor, so expensive resizes get rarer and the total copying stays proportional to n", "Appends never trigger a copy if you start with a large enough capacity", "Copying is free because elements are stored contiguously"]}
+  answer={1}
+  explanation="With doubling, n appends cause at most 1 + 2 + 4 + ... + n, which is fewer than 2n copies in total. Averaged over all n appends, that's a constant amount of work each."
+/>

@@ -1,0 +1,335 @@
+---
+title: "Memoization vs. Tabulation"
+description: "Compare top-down memoization and bottom-up tabulation side by side: how each works, their trade-offs, and how to convert one into the other."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+Once you've found a recurrence, there are two standard ways to turn it into code. **Top-down memoization** keeps the recursive shape of the brute-force solution and adds a cache. **Bottom-up tabulation** drops recursion entirely and fills a table in a carefully chosen order. Both compute exactly the same values, and they usually have the same Big-O complexity, but they feel very different to write and have different practical strengths.
+
+This lesson walks through both approaches on a single running example. By the end you'll know how each works under the hood, when to prefer one over the other, and how to mechanically convert a memoized solution into a tabulated one. If you haven't read [What Is Dynamic Programming?](/tutorials/dynamic-programming/core-ideas/what-is-dp) yet, start there.
+
+## The Running Example
+
+A robot starts in the top-left corner of a grid with `rows` rows and `cols` columns. It can only move **right** or **down**. How many distinct paths lead to the bottom-right corner?
+
+Here are two of the 15 possible paths through a 3 × 5 grid:
+
+```text
+right ×4, then down ×2          down ×2, then right ×4
+
+  S → → → →                       S . . . .
+  . . . . ↓                       ↓ . . . .
+  . . . . E                       ↓ → → → E
+```
+
+The key observation: to reach cell `(r, c)`, the robot's last move came either from the cell **above**, `(r - 1, c)`, or from the cell to the **left**, `(r, c - 1)`. Every path arrives one way or the other, never both, so we can add the counts. Cells in the top row or left column can only be reached by a straight line, so they have exactly one path.
+
+```text
+paths(r, c) = 1                                   if r == 0 or c == 0
+paths(r, c) = paths(r - 1, c) + paths(r, c - 1)   otherwise
+
+answer = paths(rows - 1, cols - 1)
+```
+
+Plain recursion on this formula is exponential, because the same cell is reached through many different routes. But there are only `rows × cols` distinct states. That's the overlapping-subproblems signature, so DP applies.
+
+## Top-Down: Memoization
+
+Memoization starts from the question you actually want answered, `paths(rows - 1, cols - 1)`, and recurses toward the base cases, caching every result on the way back up. It's **lazy**: it only ever computes the subproblems the original question needs.
+
+### How it works
+
+Every memoized function follows the same three-step pattern:
+
+1. If the state is a **base case**, return its answer directly.
+2. If the state is **already in the cache**, return the cached answer.
+3. Otherwise, **compute** it with the recurrence, **store** it, and return it.
+
+### The code
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="grid_paths_memo.py" {4-8}
+from functools import cache
+
+def unique_paths(rows: int, cols: int) -> int:
+    @cache
+    def paths(r: int, c: int) -> int:
+        if r == 0 or c == 0:      # top row or left column: one straight path
+            return 1
+        return paths(r - 1, c) + paths(r, c - 1)
+
+    return paths(rows - 1, cols - 1)
+```
+
+</Tab>
+<Tab>
+
+```javascript title="gridPathsMemo.js" {6-10}
+function uniquePaths(rows, cols) {
+  const memo = new Map();
+
+  function paths(r, c) {
+    if (r === 0 || c === 0) return 1; // top row or left column
+    const key = `${r},${c}`;
+    if (memo.has(key)) return memo.get(key);
+    const result = paths(r - 1, c) + paths(r, c - 1);
+    memo.set(key, result);
+    return result;
+  }
+
+  return paths(rows - 1, cols - 1);
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="GridPathsMemo.java" {9-11}
+public class GridPathsMemo {
+    public static long uniquePaths(int rows, int cols) {
+        long[][] memo = new long[rows][cols]; // 0 means "not computed yet"
+        return paths(rows - 1, cols - 1, memo);
+    }
+
+    private static long paths(int r, int c, long[][] memo) {
+        if (r == 0 || c == 0) return 1; // top row or left column
+        if (memo[r][c] != 0) return memo[r][c];
+        memo[r][c] = paths(r - 1, c, memo) + paths(r, c - 1, memo);
+        return memo[r][c];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+Notice how little changed compared with brute force. The recurrence is copied almost word for word, and the cache is bolted on. That's memoization's biggest selling point: once you have a correct recursive solution, making it fast takes a few lines.
+
+<Callout type="tip" title="Python shortcut">
+
+In Python, the `@functools.cache` decorator (or `@lru_cache(maxsize=None)` on versions before 3.9) memoizes any function whose arguments are hashable. It's the quickest way to go from a brute-force function to a DP solution.
+
+</Callout>
+
+### The call stack
+
+Memoization still relies on [recursion](/tutorials/algorithms/getting-started/recursion), so every pending call occupies a frame on the call stack until its answer comes back. The visualizer below shows a generic [stack](/tutorials/data-structures/linear/stacks), not grid paths specifically. Think of each push as a call like `paths(2, 6)` waiting on `paths(1, 6)`, and each pop as a call returning its answer.
+
+<StackQueueVisualizer mode="stack" />
+
+For grid paths, the deepest chain of calls is roughly `rows + cols` frames, which is harmless. But a one-dimensional DP over `n = 100,000` items would nest 100,000 calls deep, and that's where trouble starts.
+
+<Callout type="warning" title="Recursion depth limits">
+
+Python's default recursion limit is 1,000 frames. Java and JavaScript typically manage somewhere around ten thousand, depending on frame size and runtime settings. Exceed the limit and you'll get a `RecursionError`, a `StackOverflowError` or a `RangeError: Maximum call stack size exceeded`. Raising the limit is a stopgap; rewriting the solution bottom-up is the real fix.
+
+</Callout>
+
+## Bottom-Up: Tabulation
+
+Tabulation flips the direction. It starts from the base cases and fills a table iteratively, in an order that guarantees every value is ready before anything that depends on it. It's **eager**: it computes every state in the table, whether or not the final answer needs it.
+
+### How it works
+
+1. Allocate a table with **one cell per state**.
+2. Fill in the **base cases**.
+3. Loop over the remaining states in **dependency order**, applying the recurrence.
+4. **Read the answer** from the cell that represents the original problem.
+
+For grid paths, each cell depends on the cell above and the cell to its left. Filling the grid row by row, left to right, guarantees both are always ready.
+
+### The code
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="grid_paths_table.py"
+def unique_paths(rows: int, cols: int) -> int:
+    dp = [[1] * cols for _ in range(rows)]   # row 0 and column 0 are all 1s
+
+    for r in range(1, rows):
+        for c in range(1, cols):
+            dp[r][c] = dp[r - 1][c] + dp[r][c - 1]
+
+    return dp[rows - 1][cols - 1]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="gridPathsTable.js"
+function uniquePaths(rows, cols) {
+  // Row 0 and column 0 are all 1s; the rest get overwritten.
+  const dp = Array.from({ length: rows }, () => new Array(cols).fill(1));
+
+  for (let r = 1; r < rows; r++) {
+    for (let c = 1; c < cols; c++) {
+      dp[r][c] = dp[r - 1][c] + dp[r][c - 1];
+    }
+  }
+
+  return dp[rows - 1][cols - 1];
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="GridPathsTable.java"
+public class GridPathsTable {
+    public static long uniquePaths(int rows, int cols) {
+        long[][] dp = new long[rows][cols];
+        for (int r = 0; r < rows; r++) dp[r][0] = 1; // left column
+        for (int c = 0; c < cols; c++) dp[0][c] = 1; // top row
+
+        for (int r = 1; r < rows; r++) {
+            for (int c = 1; c < cols; c++) {
+                dp[r][c] = dp[r - 1][c] + dp[r][c - 1];
+            }
+        }
+        return dp[rows - 1][cols - 1];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+### The filled table
+
+Here's the finished table for a 3 × 7 grid. Each cell is the sum of the cell above it and the cell to its left. For example, `dp[2][3] = dp[1][3] + dp[2][2] = 4 + 6 = 10`.
+
+```text
+         c=0  c=1  c=2  c=3  c=4  c=5  c=6
+  r=0      1    1    1    1    1    1    1
+  r=1      1    2    3    4    5    6    7
+  r=2      1    3    6   10   15   21   28   ← answer: 28 paths
+```
+
+### Shrinking the table
+
+Look at the loop again: row `r` only ever reads from row `r - 1`. Everything above that is dead weight. So instead of a full grid, keep a single row and update it in place. Just before `row[c]` is overwritten, it still holds the value from the row above, and `row[c - 1]` already holds the new value to the left. Memory drops from O(rows × cols) to O(cols).
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="grid_paths_1d.py"
+def unique_paths(rows: int, cols: int) -> int:
+    row = [1] * cols                # the top row
+    for _ in range(1, rows):
+        for c in range(1, cols):
+            row[c] += row[c - 1]    # above (old row[c]) + left (new row[c - 1])
+    return row[-1]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="gridPaths1d.js"
+function uniquePaths(rows, cols) {
+  const row = new Array(cols).fill(1); // the top row
+  for (let r = 1; r < rows; r++) {
+    for (let c = 1; c < cols; c++) {
+      row[c] += row[c - 1]; // above (old row[c]) + left (new row[c - 1])
+    }
+  }
+  return row[cols - 1];
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="GridPaths1d.java"
+import java.util.Arrays;
+
+public class GridPaths1d {
+    public static long uniquePaths(int rows, int cols) {
+        long[] row = new long[cols];
+        Arrays.fill(row, 1); // the top row
+        for (int r = 1; r < rows; r++) {
+            for (int c = 1; c < cols; c++) {
+                row[c] += row[c - 1]; // above (old row[c]) + left (new row[c - 1])
+            }
+        }
+        return row[cols - 1];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+This "rolling array" trick is one of tabulation's big advantages. It's hard to pull off with memoization, because a cache doesn't know when an entry will never be needed again.
+
+## Head-to-Head
+
+|                       | Memoization (top-down)                  | Tabulation (bottom-up)                     |
+| --------------------- | --------------------------------------- | ------------------------------------------ |
+| Direction             | From the goal down to the base cases    | From the base cases up to the goal         |
+| Code shape            | Recursive function plus a cache         | Nested loops over an array                 |
+| States computed       | Only those reachable from the goal      | Every state in the table                   |
+| Evaluation order      | Automatic; recursion works it out       | You choose it so dependencies come first   |
+| Constant overhead     | Function calls and cache lookups        | Tight loops with cache-friendly access     |
+| Stack overflow risk   | Yes, when recursion runs deep           | None                                       |
+| Space optimization    | Hard                                    | Often easy with rolling arrays             |
+| Ease of derivation    | Mirrors the recurrence directly         | Requires thinking about order and indices  |
+
+In terms of Big-O, both usually cost **number of states × work per state**. For grid paths that's O(rows × cols) time either way. The differences are in constant factors, memory and robustness. If [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation) is new to you, it's worth a quick review.
+
+## Which Should You Use?
+
+Neither approach is universally better. Here's how to decide.
+
+### Reach for memoization when
+
+- **You're still figuring out the recurrence.** Memoizing a brute-force function is the fastest route to a working solution.
+- **Only a fraction of the states is needed.** In [0/1 knapsack](/tutorials/dynamic-programming/classic-problems/knapsack) with a huge capacity and only a few items, top-down visits only the reachable combinations of item and remaining capacity. A table would allocate a cell for every capacity from 0 up to the limit.
+- **The evaluation order is awkward.** When states live on a tree or an irregular graph, letting recursion discover the order saves real headaches.
+
+### Reach for tabulation when
+
+- **You need every state anyway**, so laziness buys you nothing.
+- **Recursion could get deep** enough to overflow the stack.
+- **Memory matters** and a rolling array can shrink the table.
+- **Speed matters.** Loops over [arrays](/tutorials/data-structures/linear/arrays) avoid the overhead of function calls and [hash table](/tutorials/data-structures/non-linear/hash-tables) lookups.
+
+### Converting top-down to bottom-up
+
+A common workflow is to write the memoized version first, then convert it once it's correct:
+
+1. The memo function's **parameters** become the table's **dimensions**.
+2. The **base cases** become the table's **initial values**.
+3. Each **recursive call** becomes a **table read**.
+4. Choose a **loop order** in which every cell a state reads is filled before that state. Since `paths(r, c)` reads `(r - 1, c)` and `(r, c - 1)`, looping `r` and `c` upward works.
+
+<Callout type="note" title="The hidden graph">
+
+The subproblems form a directed acyclic graph, with an edge from each state to every state that uses its answer. Memoization explores that graph with a [depth-first search](/tutorials/graphs/traversal/depth-first-search), starting from the goal and following dependencies backward. A valid tabulation order is simply a [topological sort](/tutorials/graphs/traversal/topological-sort) of it: every state comes after the states it depends on. If the graph had a cycle, neither approach would work, because some state would end up depending on itself.
+
+</Callout>
+
+## Key takeaways
+
+- **Memoization** is top-down: recursion plus a cache. It computes only the states it needs and stays close to the recurrence.
+- **Tabulation** is bottom-up: loops that fill a table in dependency order. It avoids recursion entirely and makes space optimization easy.
+- Both usually have the same time complexity: number of states × work per state.
+- Deep recursion is memoization's main weakness. Choosing a loop order is tabulation's main challenge.
+- A good habit: **memoize first to get it right, then tabulate** if you need speed, memory savings or protection from stack overflow. You'll practice exactly that in [Climbing Stairs](/tutorials/dynamic-programming/classic-problems/climbing-stairs).
+
+<Quiz
+  question="Which statement about memoization and tabulation is true?"
+  options={["Tabulation always has a better Big-O running time than memoization", "Memoization can skip states that are never needed, while tabulation usually computes every state", "Memoization only works when subproblems do not overlap", "Tabulation requires a hash table to store its results"]}
+  answer={1}
+  explanation="Memoization is lazy: it only solves states reachable from the original question. Tabulation fills the whole table. Their Big-O running times are usually the same."
+/>
+
+<Quiz
+  question="Your memoized solution crashes with a stack overflow on large inputs. What is the most robust fix?"
+  options={["Use a larger cache", "Rewrite it as a bottom-up tabulation", "Remove the base cases", "Switch to a greedy algorithm"]}
+  answer={1}
+  explanation="Tabulation computes the same values with plain loops, so it never builds up a deep call stack. Raising the recursion limit only postpones the problem."
+/>

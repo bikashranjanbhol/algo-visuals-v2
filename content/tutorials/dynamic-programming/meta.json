@@ -1,0 +1,22 @@
+{
+  "title": "Dynamic Programming",
+  "description": "Stop solving the same problem twice. Learn to spot overlapping subproblems, turn slow recursion into fast tables, and crack classics like knapsack and LCS.",
+  "order": 4,
+  "level": "Advanced",
+  "icon": "brain",
+  "accent": "amber",
+  "chapters": [
+    {
+      "slug": "core-ideas",
+      "title": "Core Ideas",
+      "description": "What makes a problem a DP problem, and the two ways to implement a solution.",
+      "topics": ["what-is-dp", "memoization-vs-tabulation"]
+    },
+    {
+      "slug": "classic-problems",
+      "title": "Classic Problems",
+      "description": "Apply a repeatable five-step framework to three interview and textbook favorites.",
+      "topics": ["climbing-stairs", "knapsack", "longest-common-subsequence"]
+    }
+  ]
+}

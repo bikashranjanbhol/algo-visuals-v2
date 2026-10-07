@@ -1,0 +1,423 @@
+---
+title: "Binary Search Trees"
+description: "Binary trees with an ordering rule that enables O(log n) search, insert and delete, plus why balance matters and how deletion really works."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+A binary search tree (BST) is a [binary tree](/tutorials/data-structures/non-linear/binary-trees) with one extra rule: for every node, everything in its left subtree is **smaller** and everything in its right subtree is **larger**. That single ordering rule turns a plain tree, where finding a value means checking every node, into a structure you can search the same way you'd search a dictionary: open it in the middle and discard half of what's left at every step.
+
+BSTs give you the fast lookups of [binary search](/tutorials/algorithms/searching/binary-search) on a sorted array, but they also support fast insertions and deletions, because adding a node never requires shifting anything. They underpin ordered maps and sets in many standard libraries, database indexes, and any task that needs data kept in sorted order while it changes.
+
+## The BST property
+
+For **every** node in the tree:
+
+- every key in its left subtree is less than the node's key, and
+- every key in its right subtree is greater than the node's key.
+
+```text
+              50
+            /    \
+          30      70
+         /  \    /  \
+       20   40  60   80
+```
+
+Check it: everything left of 50 (20, 30, 40) is smaller, and everything right of 50 (60, 70, 80) is larger. The same holds at 30 and at 70. A useful consequence is that an **inorder traversal** visits the keys in sorted order: 20, 30, 40, 50, 60, 70, 80.
+
+<Callout type="warning" title="It's about whole subtrees, not just children">
+
+A common mistake is to check only that each node's left child is smaller and its right child is larger. That's not enough. In the tree below, every parent-child pair looks fine, yet 60 sits in the left subtree of 50 even though it's larger than 50, so this is **not** a valid BST.
+
+```text
+        50
+       /  \
+     30    70
+       \
+        60
+```
+
+</Callout>
+
+To validate a BST correctly, pass down the range of keys each subtree is allowed to contain:
+
+```python title="validate_bst.py"
+def is_bst(node, low=float("-inf"), high=float("inf")):
+    if node is None:
+        return True
+    if not low < node.key < high:
+        return False
+    return is_bst(node.left, low, node.key) and is_bst(node.right, node.key, high)
+```
+
+In this lesson duplicate keys are not allowed: inserting a key that already exists does nothing. Real implementations either do the same (like a set) or store a count or a list of values at each node.
+
+## Searching
+
+To find a key, start at the root and compare:
+
+- If the key equals the node's key, you've found it.
+- If it's smaller, go left. It can't be anywhere on the right.
+- If it's larger, go right.
+- If you reach an empty spot, the key isn't in the tree.
+
+Searching for 60 in the tree above takes three comparisons: 60 is larger than 50 so go right, smaller than 70 so go left, and there it is. Each comparison moves you one level down, so search costs **O(h)**, where `h` is the height of the tree.
+
+### Compared with binary search
+
+That process should feel familiar. Binary search on a sorted array also compares against a middle element and discards half the range each step. Try it here and notice how each step narrows the range, just like stepping down one level of a BST:
+
+<BinarySearchVisualizer />
+
+A balanced BST is essentially a binary search with the midpoints decided ahead of time and stored as nodes. The array version is more compact and cache-friendly, but inserting into a sorted array costs O(n) because elements must shift. A BST inserts in O(h) by simply attaching a new leaf.
+
+## Insertion
+
+Insertion is a search that fails on purpose. Walk down exactly as if searching for the new key, and when you fall off the tree, attach a new node at that empty spot. A new key always becomes a **leaf**.
+
+```text
+Insert 65:  65 is larger than 50, go right
+            65 is smaller than 70, go left
+            65 is larger than 60, go right: empty, so place it here
+
+              50
+            /    \
+          30      70
+         /  \    /  \
+       20   40  60   80
+                  \
+                   65
+```
+
+## Deletion
+
+Deletion is the trickiest operation, because removing a node must leave a valid BST behind. There are three cases, depending on how many children the node has.
+
+### A leaf
+
+Just remove it. Deleting 20 from the original tree simply sets 30's left child to empty.
+
+### One child
+
+Splice the node out by connecting its parent directly to its only child. In the tree with 65 inserted, deleting 60 lets 65 move up to take its place. The ordering is preserved, because 65 was already in the correct subtree of every ancestor.
+
+### Two children
+
+You can't splice out a node with two children, because its parent has room for only one of them. Instead, replace the node's key with its **inorder successor**, the smallest key in its right subtree, and then delete the successor from the right subtree.
+
+```text
+Delete 50 (two children). Its successor is 60, the smallest key on the right.
+
+        50                        60
+      /    \                    /    \
+    30      70       ──►      30      70
+   /  \    /  \              /  \       \
+  20  40  60   80           20  40       80
+```
+
+Why does this work? The successor is larger than everything in the left subtree, since it came from the right side, and smaller than everything else in the right subtree, since it's the minimum there. So it fits perfectly in the deleted node's spot. Better still, the successor never has a left child (otherwise that child would be smaller), so removing it is always the easy leaf or one-child case. Using the **inorder predecessor**, the largest key in the left subtree, works equally well.
+
+## Implementation
+
+The recursive helpers return the (possibly new) root of each subtree, which lets the parent re-link its child pointer in one line. Search is written iteratively, since it never needs to back up.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="bst.py" {48-53}
+class Node:
+    def __init__(self, key):
+        self.key = key
+        self.left = None
+        self.right = None
+
+
+class BST:
+    def __init__(self):
+        self.root = None
+
+    def contains(self, key):
+        node = self.root
+        while node is not None:
+            if key == node.key:
+                return True
+            node = node.left if key < node.key else node.right
+        return False
+
+    def insert(self, key):
+        self.root = self._insert(self.root, key)
+
+    def _insert(self, node, key):
+        if node is None:
+            return Node(key)
+        if key < node.key:
+            node.left = self._insert(node.left, key)
+        elif key > node.key:
+            node.right = self._insert(node.right, key)
+        return node                      # duplicates are ignored
+
+    def delete(self, key):
+        self.root = self._delete(self.root, key)
+
+    def _delete(self, node, key):
+        if node is None:
+            return None                  # key not found
+        if key < node.key:
+            node.left = self._delete(node.left, key)
+        elif key > node.key:
+            node.right = self._delete(node.right, key)
+        else:
+            # Zero or one child: splice the node out.
+            if node.left is None:
+                return node.right
+            if node.right is None:
+                return node.left
+            # Two children: copy in the inorder successor, then delete it.
+            successor = node.right
+            while successor.left is not None:
+                successor = successor.left
+            node.key = successor.key
+            node.right = self._delete(node.right, successor.key)
+        return node
+
+    def inorder(self):
+        out = []
+
+        def walk(node):
+            if node is not None:
+                walk(node.left)
+                out.append(node.key)
+                walk(node.right)
+
+        walk(self.root)
+        return out
+```
+
+</Tab>
+<Tab>
+
+```javascript title="bst.js"
+class Node {
+  constructor(key) {
+    this.key = key;
+    this.left = null;
+    this.right = null;
+  }
+}
+
+class BST {
+  root = null;
+
+  contains(key) {
+    let node = this.root;
+    while (node !== null) {
+      if (key === node.key) return true;
+      node = key < node.key ? node.left : node.right;
+    }
+    return false;
+  }
+
+  insert(key) {
+    this.root = this.#insert(this.root, key);
+  }
+
+  #insert(node, key) {
+    if (node === null) return new Node(key);
+    if (key < node.key) node.left = this.#insert(node.left, key);
+    else if (key > node.key) node.right = this.#insert(node.right, key);
+    return node; // duplicates are ignored
+  }
+
+  delete(key) {
+    this.root = this.#delete(this.root, key);
+  }
+
+  #delete(node, key) {
+    if (node === null) return null; // key not found
+    if (key < node.key) {
+      node.left = this.#delete(node.left, key);
+    } else if (key > node.key) {
+      node.right = this.#delete(node.right, key);
+    } else {
+      // Zero or one child: splice the node out.
+      if (node.left === null) return node.right;
+      if (node.right === null) return node.left;
+      // Two children: copy in the inorder successor, then delete it.
+      let successor = node.right;
+      while (successor.left !== null) successor = successor.left;
+      node.key = successor.key;
+      node.right = this.#delete(node.right, successor.key);
+    }
+    return node;
+  }
+
+  inorder() {
+    const out = [];
+    const walk = (node) => {
+      if (node === null) return;
+      walk(node.left);
+      out.push(node.key);
+      walk(node.right);
+    };
+    walk(this.root);
+    return out;
+  }
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="BST.java"
+import java.util.ArrayList;
+import java.util.List;
+
+public class BST<K extends Comparable<K>> {
+    private static final class Node<K> {
+        K key;
+        Node<K> left, right;
+
+        Node(K key) {
+            this.key = key;
+        }
+    }
+
+    private Node<K> root;
+
+    public boolean contains(K key) {
+        Node<K> node = root;
+        while (node != null) {
+            int cmp = key.compareTo(node.key);
+            if (cmp == 0) return true;
+            node = cmp < 0 ? node.left : node.right;
+        }
+        return false;
+    }
+
+    public void insert(K key) {
+        root = insert(root, key);
+    }
+
+    private Node<K> insert(Node<K> node, K key) {
+        if (node == null) return new Node<>(key);
+        int cmp = key.compareTo(node.key);
+        if (cmp < 0) node.left = insert(node.left, key);
+        else if (cmp > 0) node.right = insert(node.right, key);
+        return node; // duplicates are ignored
+    }
+
+    public void delete(K key) {
+        root = delete(root, key);
+    }
+
+    private Node<K> delete(Node<K> node, K key) {
+        if (node == null) return null; // key not found
+        int cmp = key.compareTo(node.key);
+        if (cmp < 0) {
+            node.left = delete(node.left, key);
+        } else if (cmp > 0) {
+            node.right = delete(node.right, key);
+        } else {
+            // Zero or one child: splice the node out.
+            if (node.left == null) return node.right;
+            if (node.right == null) return node.left;
+            // Two children: copy in the inorder successor, then delete it.
+            Node<K> successor = node.right;
+            while (successor.left != null) successor = successor.left;
+            node.key = successor.key;
+            node.right = delete(node.right, successor.key);
+        }
+        return node;
+    }
+
+    public List<K> inorder() {
+        List<K> out = new ArrayList<>();
+        inorder(root, out);
+        return out;
+    }
+
+    private void inorder(Node<K> node, List<K> out) {
+        if (node == null) return;
+        inorder(node.left, out);
+        out.add(node.key);
+        inorder(node.right, out);
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+## Why balance matters
+
+Every operation above costs O(h), so everything depends on the tree's height. If keys arrive in random order, the expected height is O(log n) and the tree stays reasonably bushy. But insert keys that are **already sorted**, say 10, 20, 30, 40, 50, and every new key goes to the right of the last one:
+
+```text
+10
+  \
+   20
+     \
+      30
+        \
+         40
+           \
+            50
+```
+
+That's a [linked list](/tutorials/data-structures/linear/linked-lists) wearing a tree costume. Its height is `n - 1`, and search, insert and delete all degrade to **O(n)**. Sorted or nearly sorted input is extremely common in real data, such as timestamps, auto-incrementing IDs and alphabetized names, so this isn't just a theoretical worry.
+
+### Self-balancing trees
+
+**Self-balancing** BSTs fix this by performing small local restructurings called **rotations** after inserts and deletes, which guarantees the height stays O(log n) no matter what order keys arrive in.
+
+- **AVL trees** keep the heights of every node's two subtrees within 1 of each other. They're strictly balanced, which makes lookups very fast.
+- **Red-black trees** use a looser coloring rule that keeps height under 2 log₂(n + 1). They need fewer rotations on updates. Java's `TreeMap` and C++'s `std::map` are red-black trees.
+- **B-trees** generalize the idea to nodes with many children, which suits disks and is why nearly every database index is a B-tree variant.
+
+| Operation           | Average (random order) | Worst case (degenerate) | Self-balancing BST |
+| ------------------- | ---------------------- | ----------------------- | ------------------ |
+| Search              | O(log n)               | O(n)                    | O(log n)           |
+| Insert              | O(log n)               | O(n)                    | O(log n)           |
+| Delete              | O(log n)               | O(n)                    | O(log n)           |
+| Min or max          | O(log n)               | O(n)                    | O(log n)           |
+| Inorder traversal   | O(n)                   | O(n)                    | O(n)               |
+| Space               | O(n)                   | O(n)                    | O(n)               |
+
+<Callout type="tip" title="Use a library for production">
+
+Implementing a red-black tree correctly is a serious undertaking. In practice, use your language's ordered map: `TreeMap` and `TreeSet` in Java, `std::map` and `std::set` in C++. Python's standard library has no balanced BST, but the popular third-party `sortedcontainers` package fills the gap.
+
+</Callout>
+
+## Ordered operations
+
+If you only need to check whether a key exists, a [hash table](/tutorials/data-structures/non-linear/hash-tables) is usually faster, with O(1) average lookups. The BST's real advantage is that it keeps keys **in order**, which unlocks operations a hash table can't do efficiently:
+
+- **Min and max**: keep going left (or right) from the root.
+- **Successor and predecessor**: find the next larger or smaller key.
+- **Floor and ceiling**: the largest key that is at most `x`, or the smallest key that is at least `x`.
+- **Range queries**: list every key between `a` and `b` in O(log n + k) time on a balanced tree, where `k` is the number of results.
+- **Sorted iteration**: an inorder traversal yields all keys in order in O(n). Inserting `n` items and then walking the tree is a sorting algorithm called **tree sort**, which runs in O(n log n) on a balanced tree, comparable to [merge sort](/tutorials/algorithms/sorting/merge-sort).
+
+## Key takeaways
+
+- A BST requires every key in a node's left subtree to be smaller and every key in its right subtree to be larger. The rule applies to whole subtrees, not just direct children.
+- Search, insert and delete all walk a single root-to-leaf path, so they cost **O(h)**.
+- Deleting a node with two children replaces it with its inorder successor (or predecessor), then removes that node instead.
+- A balanced tree has height O(log n), but sorted input creates a degenerate O(n) tree. Self-balancing trees such as AVL and red-black trees prevent this.
+- Choose a BST over a hash table when you need ordering: min and max, range queries, or sorted iteration.
+
+<Quiz
+  question="Which sequence of insertions into an empty BST produces the tallest tree?"
+  options={["50, 30, 70, 20, 40", "40, 20, 60, 10, 30", "10, 20, 30, 40, 50", "30, 10, 50, 20, 40"]}
+  answer={2}
+  explanation="Inserting keys in sorted order sends each new key to the right of the previous one, producing a degenerate tree of height 4. The other sequences branch in both directions and stay shorter."
+/>
+
+<Quiz
+  question="When deleting a node with two children, which key can replace it while preserving the BST property?"
+  options={["Its parent's key", "The smallest key in its right subtree", "The largest key in its right subtree", "Any leaf's key"]}
+  answer={1}
+  explanation="The inorder successor, the smallest key in the right subtree, is larger than everything on the left and smaller than everything else on the right. The largest key in the left subtree, the inorder predecessor, would also work."
+/>

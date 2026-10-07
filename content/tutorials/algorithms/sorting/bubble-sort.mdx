@@ -1,0 +1,209 @@
+---
+title: "Bubble Sort"
+description: "Learn bubble sort, the simplest sorting algorithm: how adjacent swaps bubble the largest values to the end, plus its code, complexity, and pitfalls."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+Bubble sort is usually the first sorting algorithm anyone learns, and for good reason: it's built from a single, intuitive operation. Walk through the list, compare each pair of neighbors, and swap them if they're in the wrong order. Repeat until nothing needs swapping. That's the whole algorithm.
+
+It's rarely the right choice for real software, since it's one of the slowest sorting algorithms there is. But bubble sort is the perfect place to build intuition for how sorting works, why some algorithms are faster than others, and what properties like *stability* and *adaptiveness* mean. Everything you learn here will carry over to [insertion sort](/tutorials/algorithms/sorting/insertion-sort), [merge sort](/tutorials/algorithms/sorting/merge-sort), and [quick sort](/tutorials/algorithms/sorting/quick-sort).
+
+## The big idea
+
+Picture bubbles in a glass of soda: the biggest ones rise to the top first. Bubble sort works the same way. On each pass through the array, the largest value not yet in place gets carried along by a chain of swaps until it reaches the end, its correct final position.
+
+After the first pass, the largest element is guaranteed to be last. After the second pass, the two largest are in place. After `k` passes, the last `k` elements are sorted and never need to be touched again. So each pass can stop one position earlier than the one before.
+
+### Step by step
+
+1. Start at the beginning of the array.
+2. Compare the current element with the next one. If the current one is larger, swap them.
+3. Move one position to the right and repeat step 2 until you reach the end of the unsorted part.
+4. The largest unsorted element is now in its final place. Shrink the unsorted part by one.
+5. Repeat from step 1. If a full pass makes **no swaps at all**, the array is sorted and you can stop early.
+
+## A worked example
+
+Let's sort `[5, 1, 4, 2, 8]`. The `|` marks the boundary: everything to its right is in its final position.
+
+```text
+Pass 1
+[5, 1, 4, 2, 8]     compare 5 and 1 → swap
+[1, 5, 4, 2, 8]     compare 5 and 4 → swap
+[1, 4, 5, 2, 8]     compare 5 and 2 → swap
+[1, 4, 2, 5, 8]     compare 5 and 8 → in order
+[1, 4, 2, 5 | 8]    8 is in its final place
+
+Pass 2
+[1, 4, 2, 5 | 8]    compare 1 and 4 → in order
+[1, 4, 2, 5 | 8]    compare 4 and 2 → swap
+[1, 2, 4, 5 | 8]    compare 4 and 5 → in order
+[1, 2, 4 | 5, 8]    5 is in its final place
+
+Pass 3
+[1, 2, 4 | 5, 8]    compare 1 and 2 → in order
+[1, 2, 4 | 5, 8]    compare 2 and 4 → in order
+No swaps in this pass → the array is sorted. Stop early!
+```
+
+Notice how, in pass 1, the 5 was carried rightward by three swaps in a row until it bumped into the larger 8. From that point the 8 is the value being carried, and since it's already at the end, the pass is over. Without the early-exit check, the algorithm would have wasted a fourth pass confirming what we already know.
+
+Watch it in action below. Pay attention to how the largest remaining bar travels to the right on every pass, and how the sorted region grows from the right edge.
+
+<SortingVisualizer algorithm="bubble" />
+
+## Implementation
+
+All three versions sort the array **in place** and include the early-exit optimization. The highlighted lines implement the "stop if no swaps" check.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="bubble_sort.py" {5,10-12}
+def bubble_sort(arr):
+    """Sort arr in place in ascending order and return it."""
+    n = len(arr)
+    for i in range(n - 1):
+        swapped = False
+        # The last i elements are already in their final positions.
+        for j in range(n - 1 - i):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                swapped = True
+        if not swapped:
+            break  # No swaps means the array is already sorted.
+    return arr
+
+
+print(bubble_sort([5, 1, 4, 2, 8]))  # [1, 2, 4, 5, 8]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="bubbleSort.js" {4,9,12}
+function bubbleSort(arr) {
+  const n = arr.length;
+  for (let i = 0; i < n - 1; i++) {
+    let swapped = false;
+    // The last i elements are already in their final positions.
+    for (let j = 0; j < n - 1 - i; j++) {
+      if (arr[j] > arr[j + 1]) {
+        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+        swapped = true;
+      }
+    }
+    if (!swapped) break; // No swaps means the array is already sorted.
+  }
+  return arr;
+}
+
+console.log(bubbleSort([5, 1, 4, 2, 8])); // [1, 2, 4, 5, 8]
+```
+
+</Tab>
+<Tab>
+
+```java title="BubbleSort.java" {7,14,17}
+import java.util.Arrays;
+
+public class BubbleSort {
+    public static void bubbleSort(int[] arr) {
+        int n = arr.length;
+        for (int i = 0; i < n - 1; i++) {
+            boolean swapped = false;
+            // The last i elements are already in their final positions.
+            for (int j = 0; j < n - 1 - i; j++) {
+                if (arr[j] > arr[j + 1]) {
+                    int temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                    swapped = true;
+                }
+            }
+            if (!swapped) break; // No swaps means the array is already sorted.
+        }
+    }
+
+    public static void main(String[] args) {
+        int[] data = {5, 1, 4, 2, 8};
+        bubbleSort(data);
+        System.out.println(Arrays.toString(data)); // [1, 2, 4, 5, 8]
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+The inner loop runs up to `n - 1 - i` rather than `n - 1` because, after `i` passes, the last `i` elements are already sorted. The comparison uses `arr[j + 1]`, so the loop must stop one short of the end of the unsorted region to avoid reading past it.
+
+<Callout type="warning" title="Common mistake: off-by-one in the inner loop">
+
+If the inner loop runs all the way to `j = n - 1`, then `arr[j + 1]` reads past the end of the array. In Java that throws `ArrayIndexOutOfBoundsException`; in JavaScript it silently compares against `undefined`. Always ask: what is the largest index this loop touches?
+
+</Callout>
+
+## Complexity analysis
+
+| Case    | Time  | When it happens                                         |
+| ------- | ----- | ------------------------------------------------------- |
+| Best    | O(n)  | Already sorted: one pass, no swaps, early exit          |
+| Average | O(n²) | Elements in random order                                |
+| Worst   | O(n²) | Reverse sorted: every comparison triggers a swap        |
+| Space   | O(1)  | Sorts in place using a single temporary variable        |
+
+In the worst case, the passes make `n − 1`, then `n − 2`, then `n − 3` comparisons, and so on down to 1. That sum is `n(n − 1) / 2`. For 1,000 elements that's 499,500 comparisons; for a million elements it's about 500 billion. Doubling the input roughly quadruples the work, the signature of [quadratic time](/tutorials/algorithms/getting-started/big-o-notation).
+
+### Why the early exit matters
+
+Without the `swapped` flag, bubble sort always performs all `n − 1` passes, even on an array that's already sorted, making its best case O(n²) too. With the flag, a sorted array costs just one pass of `n − 1` comparisons. That makes bubble sort **adaptive**: it does less work on input that's already close to sorted.
+
+### Rabbits and turtles
+
+Large elements near the start move quickly, potentially travelling all the way to the end in a single pass. These are nicknamed *rabbits*. Small elements near the end are *turtles*: they can only move one position to the left per pass. In `[2, 3, 4, 5, 1]`, the 1 needs four full passes to crawl to the front, even though everything else is already sorted. A variant called *cocktail shaker sort* alternates direction on each pass to move turtles faster, but it's still O(n²).
+
+## Properties
+
+- **Stable**: equal elements keep their original relative order, because we only swap when `arr[j] > arr[j + 1]`, never when they are equal. This matters when sorting records by one field, such as sorting people by age while keeping same-age people in alphabetical order.
+- **In place**: it needs only O(1) extra memory.
+- **Adaptive**: with the early exit, it's fast on nearly sorted data.
+- **Simple**: it's easy to write correctly from memory.
+
+<Callout type="tip" title="Keep the comparison strict">
+
+Using `>=` instead of `>` still produces sorted output, but it swaps equal neighbors for no reason, which breaks stability and wastes work.
+
+</Callout>
+
+## When to use it
+
+Honestly? Almost never in production. Even among simple quadratic algorithms, [insertion sort](/tutorials/algorithms/sorting/insertion-sort) is faster in practice: it makes fewer comparisons and writes on average, and it shares all of bubble sort's good properties. For real workloads, use your language's built-in sort, which is an optimized O(n log n) algorithm.
+
+Bubble sort does have a few legitimate niches:
+
+- **Learning**: it's the clearest introduction to comparison-based sorting.
+- **Tiny or nearly sorted inputs**: a handful of elements with one or two out of place.
+- **Checking sortedness**: a single pass with no swaps proves an array is sorted, in O(n) time.
+
+## Key takeaways
+
+- Bubble sort repeatedly swaps adjacent elements that are out of order, bubbling the largest unsorted value to the end on each pass.
+- After `k` passes, the last `k` elements are in their final positions, so each pass can be one step shorter.
+- It runs in O(n²) time in the average and worst cases, and O(n) in the best case with the early-exit check.
+- It's stable, in place, and adaptive, but slow, so prefer insertion sort or a built-in sort in practice.
+
+<Quiz
+  question="With the early-exit optimization, what is bubble sort's time complexity on an already sorted array?"
+  options={["O(1)", "O(n)", "O(n log n)", "O(n²)"]}
+  answer={1}
+  explanation="The first pass makes n − 1 comparisons and no swaps, so the swapped flag stays false and the algorithm stops after a single linear pass."
+/>
+
+<Quiz
+  question="After the first pass of bubble sort on [5, 1, 4, 2, 8], which statement is guaranteed to be true?"
+  options={["The smallest element is at the front", "The largest element is at the end", "The array is fully sorted", "The first half of the array is sorted"]}
+  answer={1}
+  explanation="Each pass carries the largest unsorted element to the end of the unsorted region. Small elements move left only one position per pass, so the front is not guaranteed to be correct yet."
+/>

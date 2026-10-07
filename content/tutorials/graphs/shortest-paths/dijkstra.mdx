@@ -1,0 +1,373 @@
+---
+title: "Dijkstra's Algorithm"
+description: "Find shortest paths in weighted graphs with non-negative edges using a greedy strategy and a priority queue, in O((V + E) log V) time."
+difficulty: advanced
+updated: 2026-10-07
+---
+
+Open a maps app, ask for directions, and within moments you get the fastest route across a network of millions of road segments, each with its own travel time. Modern routing engines are descendants of one elegant idea that Edsger W. Dijkstra published in 1959. He later recalled designing it in about twenty minutes, without pencil or paper, while sitting on a café terrace in Amsterdam.
+
+**Dijkstra's algorithm** finds the shortest paths from one source vertex to every other vertex in a graph whose edges have **non-negative weights**. Think of it as [breadth-first search](/tutorials/graphs/traversal/breadth-first-search) grown up: instead of a plain queue that explores by number of edges, it uses a [priority queue](/tutorials/data-structures/non-linear/heaps) that always explores the closest unfinished vertex by total distance. In this lesson you'll build the intuition, trace the algorithm step by step, implement it in three languages, and learn exactly when it breaks.
+
+## From BFS to weights
+
+BFS finds shortest paths by counting edges, which only works when every edge costs the same. Add weights and that idea breaks immediately:
+
+```text
+           10
+    S ───────────── T
+    │               │
+  1 │               │ 1
+    │               │
+    A ───────────── B
+            1
+```
+
+BFS reaches T directly from S in one hop and reports that edge, which costs 10. But the three-hop route S → A → B → T costs only 1 + 1 + 1 = 3. Once edges have weights, fewer edges no longer means a shorter path. We need an algorithm that grows its explored region in order of **total distance**, not hop count.
+
+Dijkstra's answer is to keep a tentative distance for every vertex, and repeatedly finalize the unfinished vertex with the smallest one. Picture BFS where the ripples travel at the speed of the edge weights: they reach nearby vertices first, no matter how many edges away those vertices are.
+
+## The greedy idea
+
+### Relaxation
+
+Every vertex v carries a tentative distance `dist[v]`, the length of the best path to v found *so far*. Initially the source has distance 0 and every other vertex has distance infinity. The basic operation is **relaxing** an edge from u to v with weight w:
+
+```text
+if dist[u] + w < dist[v]:       # going through u is better
+    dist[v] = dist[u] + w
+    parent[v] = u
+```
+
+Relaxation asks one simple question: "Is the best known route to u, followed by this edge, shorter than the best known route to v?" If so, v gets the better route. Distances only ever go down, and each one always corresponds to a real path in the graph.
+
+### Settling vertices
+
+The algorithm keeps unsettled vertices in a priority queue, ordered by tentative distance:
+
+1. Set the source's distance to 0 and every other distance to infinity. Put the source in the priority queue.
+2. Remove the vertex u with the **smallest** tentative distance. Its distance is now final, and we say u is **settled**.
+3. Relax every edge leaving u, adding or updating neighbors in the priority queue whenever a shorter route is found.
+4. Repeat until the priority queue is empty. If you only care about one target, you can stop as soon as the target is settled.
+
+### Why greedy works
+
+Why is the smallest tentative distance guaranteed to be final? Say u has the smallest tentative distance d among all unsettled vertices, and consider *any* path from the source to u. Let y be the first vertex on that path that isn't settled yet. The part of the path up to y costs at least y's tentative distance, because every edge leaving the settled vertices has already been relaxed. And y's tentative distance is at least d, because u was the minimum. The rest of the path, from y to u, can only add **non-negative** weight. So no path to u costs less than d, and d is final.
+
+That argument leans entirely on edge weights being non-negative. Keep that in mind for later.
+
+## Tracing an example
+
+Let's find shortest paths from A in this undirected weighted graph. It's the same shape as the running example from [Representing Graphs](/tutorials/graphs/foundations/representations), with letters instead of numbers.
+
+```text
+          A
+        ╱   ╲
+     1 ╱     ╲ 4
+      ╱       ╲
+     C ── 2 ── B
+      ╲       ╱
+     5 ╲     ╱ 1
+        ╲   ╱
+          D ── 3 ── E
+```
+
+Each row below is one pop from the priority queue. Our implementation uses **lazy deletion**: rather than updating a vertex's existing entry in the heap, it pushes a new, smaller entry and ignores the old one when it eventually surfaces. Those leftovers are called *stale* entries.
+
+```text
+ pop        action                              A   B   C   D   E
+ ───────    ─────────────────────────────────   ─   ─   ─   ─   ─
+ (start)    dist[A] = 0                         0   ∞   ∞   ∞   ∞
+ (0, A)     settle A; relax B→4, C→1            0   4   1   ∞   ∞
+ (1, C)     settle C; relax B→3, D→6            0   3   1   6   ∞
+ (3, B)     settle B; relax D→4                 0   3   1   4   ∞
+ (4, B)     stale: B already settled at 3       0   3   1   4   ∞
+ (4, D)     settle D; relax E→7                 0   3   1   4   7
+ (6, D)     stale: D already settled at 4       0   3   1   4   7
+ (7, E)     settle E                            0   3   1   4   7
+```
+
+Three moments are worth pausing on:
+
+- **C is settled before B.** The direct edge from A to B costs 4, but C is closer at 1, so it's settled first. Going through C improves B's distance to 1 + 2 = 3.
+- **D improves twice.** First C offers 6, then B offers 3 + 1 = 4. D's distance only becomes final when D is the closest unsettled vertex.
+- **Stale entries get skipped.** The old (4, B) and (6, D) entries are still in the heap, but by the time they're popped, their vertices have already been settled with smaller distances.
+
+Following parent pointers back from E gives E, D, B, C, A. Reversed, the shortest route is **A → C → B → D → E**, with total weight 1 + 2 + 1 + 3 = 7.
+
+## Implementation
+
+The graph is an adjacency list of (neighbor, weight) pairs, and the heap stores (distance, vertex) pairs so the smallest distance is always on top.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="dijkstra.py" {11-12}
+import heapq
+
+def dijkstra(graph, source):
+    """graph[u] is a list of (v, weight) pairs with non-negative weights."""
+    dist = {source: 0}
+    parent = {source: None}
+    heap = [(0, source)]                  # (distance, vertex)
+
+    while heap:
+        d, u = heapq.heappop(heap)
+        if d > dist[u]:
+            continue                      # stale entry: u is already settled
+        for v, w in graph[u]:
+            new_dist = d + w
+            if new_dist < dist.get(v, float("inf")):
+                dist[v] = new_dist        # relax the edge u → v
+                parent[v] = u
+                heapq.heappush(heap, (new_dist, v))
+    return dist, parent
+
+
+graph = {
+    "A": [("B", 4), ("C", 1)],
+    "B": [("A", 4), ("C", 2), ("D", 1)],
+    "C": [("A", 1), ("B", 2), ("D", 5)],
+    "D": [("B", 1), ("C", 5), ("E", 3)],
+    "E": [("D", 3)],
+}
+dist, parent = dijkstra(graph, "A")
+print(dist)   # {'A': 0, 'B': 3, 'C': 1, 'D': 4, 'E': 7}
+```
+
+</Tab>
+<Tab>
+
+```javascript title="dijkstra.js" {53}
+// A minimal binary min-heap of [priority, value] pairs.
+class MinHeap {
+  constructor() {
+    this.items = [];
+  }
+
+  get size() {
+    return this.items.length;
+  }
+
+  push(item) {
+    const a = this.items;
+    a.push(item);
+    let i = a.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (a[p][0] <= a[i][0]) break;
+      [a[p], a[i]] = [a[i], a[p]];
+      i = p;
+    }
+  }
+
+  pop() {
+    const a = this.items;
+    const top = a[0];
+    const last = a.pop();
+    if (a.length > 0) {
+      a[0] = last;
+      let i = 0;
+      while (true) {
+        const l = 2 * i + 1;
+        const r = l + 1;
+        let m = i;
+        if (l < a.length && a[l][0] < a[m][0]) m = l;
+        if (r < a.length && a[r][0] < a[m][0]) m = r;
+        if (m === i) break;
+        [a[m], a[i]] = [a[i], a[m]];
+        i = m;
+      }
+    }
+    return top;
+  }
+}
+
+function dijkstra(graph, source) {
+  const dist = new Map([[source, 0]]);
+  const parent = new Map([[source, null]]);
+  const heap = new MinHeap();
+  heap.push([0, source]);
+
+  while (heap.size > 0) {
+    const [d, u] = heap.pop();
+    if (d > dist.get(u)) continue; // stale entry: u is already settled
+    for (const [v, w] of graph[u]) {
+      const newDist = d + w;
+      if (newDist < (dist.get(v) ?? Infinity)) {
+        dist.set(v, newDist); // relax the edge u → v
+        parent.set(v, u);
+        heap.push([newDist, v]);
+      }
+    }
+  }
+  return { dist, parent };
+}
+
+const graph = {
+  A: [["B", 4], ["C", 1]],
+  B: [["A", 4], ["C", 2], ["D", 1]],
+  C: [["A", 1], ["B", 2], ["D", 5]],
+  D: [["B", 1], ["C", 5], ["E", 3]],
+  E: [["D", 3]],
+};
+const { dist, parent } = dijkstra(graph, "A");
+console.log(Object.fromEntries(dist)); // { A: 0, B: 3, C: 1, D: 4, E: 7 }
+```
+
+</Tab>
+<Tab>
+
+```java title="Dijkstra.java"
+import java.util.*;
+
+public class Dijkstra {
+    record Edge(String to, int weight) {}
+    record Entry(int dist, String vertex) {}
+    record Result(Map<String, Integer> dist, Map<String, String> parent) {}
+
+    static Result dijkstra(Map<String, List<Edge>> graph, String source) {
+        Map<String, Integer> dist = new HashMap<>();
+        Map<String, String> parent = new HashMap<>();
+        PriorityQueue<Entry> heap = new PriorityQueue<>(Comparator.comparingInt(Entry::dist));
+
+        dist.put(source, 0);
+        parent.put(source, null);
+        heap.add(new Entry(0, source));
+
+        while (!heap.isEmpty()) {
+            Entry top = heap.poll();
+            String u = top.vertex();
+            if (top.dist() > dist.get(u)) continue;     // stale entry: u is already settled
+            for (Edge edge : graph.getOrDefault(u, List.of())) {
+                int newDist = top.dist() + edge.weight();
+                if (newDist < dist.getOrDefault(edge.to(), Integer.MAX_VALUE)) {
+                    dist.put(edge.to(), newDist);       // relax the edge u → v
+                    parent.put(edge.to(), u);
+                    heap.add(new Entry(newDist, edge.to()));
+                }
+            }
+        }
+        return new Result(dist, parent);
+    }
+
+    static void addUndirected(Map<String, List<Edge>> graph, String u, String v, int w) {
+        graph.computeIfAbsent(u, k -> new ArrayList<>()).add(new Edge(v, w));
+        graph.computeIfAbsent(v, k -> new ArrayList<>()).add(new Edge(u, w));
+    }
+
+    public static void main(String[] args) {
+        Map<String, List<Edge>> graph = new HashMap<>();
+        addUndirected(graph, "A", "B", 4);
+        addUndirected(graph, "A", "C", 1);
+        addUndirected(graph, "B", "C", 2);
+        addUndirected(graph, "B", "D", 1);
+        addUndirected(graph, "C", "D", 5);
+        addUndirected(graph, "D", "E", 3);
+
+        Result result = dijkstra(graph, "A");
+        System.out.println(new TreeMap<>(result.dist()));  // {A=0, B=3, C=1, D=4, E=7}
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="tip" title="Lazy deletion vs. decrease-key">
+
+Textbook Dijkstra uses a "decrease-key" operation to lower a vertex's priority in place. Most standard-library heaps, including Python's `heapq` and Java's `PriorityQueue`, don't support that efficiently, so the common practical approach is the one above: push a duplicate entry and skip stale ones with a check like `if d > dist[u]: continue`. The heap can grow to E entries instead of V, but since log E is at most 2 log V, the time bound doesn't change.
+
+</Callout>
+
+### Rebuilding the path
+
+The `parent` map works exactly as it does in BFS: start at the target, follow parents back to the source, then reverse.
+
+```python title="path.py"
+def shortest_path(parent, target):
+    if target not in parent:
+        return None                    # target is unreachable
+    path = []
+    while target is not None:
+        path.append(target)
+        target = parent[target]
+    return path[::-1]
+
+print(shortest_path(parent, "E"))      # ['A', 'C', 'B', 'D', 'E']
+```
+
+## Complexity
+
+The running time depends on how the priority queue is built:
+
+| Priority queue                     | Time             | Best for                             |
+| ---------------------------------- | ---------------- | ------------------------------------ |
+| Binary heap                        | O((V + E) log V) | Sparse graphs; the standard choice   |
+| Unsorted array, scan for minimum   | O(V²)            | Dense graphs, with E close to V²     |
+| Fibonacci heap                     | O(E + V log V)   | Theory; rarely faster in practice    |
+
+With a binary heap, each vertex is popped and each edge relaxation may push an entry, and every heap operation costs O(log V). That gives O((V + E) log V), often written O(E log V) for connected graphs. The array version scans all V vertices to find the minimum, V times over, for O(V²) total, which actually wins when the graph is dense. Space is O(V) for the distances and parents, plus up to O(E) for a lazy heap.
+
+If every edge has weight 1, the priority queue settles vertices layer by layer, exactly as BFS's queue would, and Dijkstra's algorithm computes the same distances BFS does. That's why BFS is the better choice for unweighted graphs: the same answers in O(V + E), with no heap.
+
+## Beyond the basics
+
+### Negative weights
+
+The correctness argument assumed that extending a path can never make it shorter. A single negative edge breaks that:
+
+```text
+           1
+    A ──────────► B
+    │             ▲
+  3 │             │ -3
+    ▼             │
+    C ────────────┘
+```
+
+Textbook Dijkstra settles B first with distance 1, since it's closer than C at 3, and declares it final. Later, C reveals the route A → C → B with cost 3 + (−3) = 0. But B is already settled, so the wrong answer stands, and any vertices reached through B inherit the error.
+
+<Callout type="warning" title="No negative edges">
+
+Dijkstra's algorithm requires **non-negative** edge weights. Lazy implementations like the one above can sometimes recover by re-processing vertices whose distance improves, but they lose the efficiency guarantee (the work can blow up exponentially) and loop forever if there's a negative cycle. For graphs with negative weights, use the **Bellman–Ford** algorithm, which runs in O(V × E) and detects negative cycles. If the graph is a DAG, relaxing edges in [topological order](/tutorials/graphs/traversal/topological-sort) is even faster.
+
+</Callout>
+
+### Variations
+
+- **Early exit.** If you only need the distance to one target, stop as soon as the target is popped from the heap. Its distance is already final.
+- **A\* search.** Add a heuristic estimate of the remaining distance, such as straight-line distance on a map, to each vertex's priority. With a heuristic that never overestimates (and is consistent), A\* still finds optimal paths while exploring far fewer vertices. It's the workhorse of game pathfinding.
+- **Bidirectional search.** Run one search forward from the source and another backward from the target, and stop when they meet. On road networks this explores far fewer vertices than a single search.
+- **Multiple sources.** Push several sources at distance 0 to find each vertex's distance to its nearest source, the weighted version of multi-source BFS.
+- **0-1 BFS.** When every weight is 0 or 1, a double-ended queue can replace the heap, for O(V + E) time.
+
+### Real-world uses
+
+- **Maps and navigation:** route planners build on Dijkstra and A\*, adding preprocessing techniques such as contraction hierarchies to answer continent-scale queries in milliseconds.
+- **Network routing:** in link-state protocols like OSPF and IS-IS, each router runs Dijkstra on the network topology to build its forwarding table.
+- **Games and robotics:** pathfinding for characters and robots on grids and navigation meshes.
+- **Anything with additive costs:** cheapest flight itineraries, lowest-latency network paths, or any problem where "distance" is a sum of non-negative costs along a path.
+
+## Key takeaways
+
+- Dijkstra's algorithm finds single-source shortest paths in graphs with **non-negative** edge weights.
+- It's greedy: repeatedly **settle** the unsettled vertex with the smallest tentative distance, then **relax** its outgoing edges.
+- With a binary heap it runs in **O((V + E) log V)**. A simple array version runs in O(V²), which is better for dense graphs.
+- **Lazy deletion**, pushing duplicates and skipping stale entries, is the practical way to use standard-library heaps.
+- Track **parent** pointers to rebuild the actual route, not just its length.
+- With **negative** edges, use Bellman–Ford instead. With unit weights, plain BFS is simpler and faster.
+
+<Quiz
+  question="In the trace above, why is C settled before B, even though B is a direct neighbor of A?"
+  options={["C has more neighbors than B", "C's tentative distance (1) is smaller than B's (4)", "Dijkstra settles vertices in the order they were discovered", "B can only be reached through C"]}
+  answer={1}
+  explanation="Dijkstra always settles the unsettled vertex with the smallest tentative distance. After relaxing A's edges, C has distance 1 and B has 4, so C goes first, and going through C improves B's distance to 3."
+/>
+
+<Quiz
+  question="What is the time complexity of Dijkstra's algorithm using a binary heap?"
+  options={["O(V + E)", "O((V + E) log V)", "O(V × E)", "O(V³)"]}
+  answer={1}
+  explanation="Each vertex is popped and each edge relaxation may push an entry, and every heap operation costs O(log V). Linear O(V + E) time is only possible in special cases, such as unit weights (BFS) or 0-1 weights (0-1 BFS)."
+/>

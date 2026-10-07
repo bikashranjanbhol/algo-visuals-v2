@@ -1,0 +1,282 @@
+---
+title: "Thinking Recursively"
+description: "Solve problems by breaking them into smaller copies of themselves. Learn base cases, the call stack, the leap of faith, and common recursion pitfalls."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+Imagine you're standing in a long line and want to know your position, but you can't see the front. So you tap the person ahead of you and ask, "What's your position?" They don't know either, so they ask the person ahead of *them*, and so on, until the question reaches the person at the very front, who simply says "1." The answers then flow back down the line, each person adding one, until the answer reaches you.
+
+That's **recursion**: solving a problem by reducing it to a smaller version of the same problem, again and again, until you reach a version so small that the answer is obvious. It's one of the most elegant ideas in computer science and the engine behind [merge sort](/tutorials/algorithms/sorting/merge-sort), [quick sort](/tutorials/algorithms/sorting/quick-sort), [tree traversals](/tutorials/data-structures/non-linear/binary-trees), and many [graph algorithms](/tutorials/graphs). It can feel strange at first, but once it clicks you'll start seeing recursive structure everywhere.
+
+## The two essential parts
+
+Every recursive function needs exactly two ingredients:
+
+1. **A base case**: the smallest version of the problem, solved directly without any further recursion. This is the person at the front of the line.
+2. **A recursive case**: a way to express the problem in terms of a *smaller* version of itself, so that every call moves one step closer to the base case.
+
+### Example: factorial
+
+The factorial of `n`, written n!, is the product of all whole numbers from `n` down to 1. For example, `5! = 5 × 4 × 3 × 2 × 1 = 120`. Look closely and you'll notice that `5! = 5 × 4!`. The factorial of 5 is defined in terms of the factorial of 4. That gives us a recursive definition:
+
+- **Base case**: `0! = 1`
+- **Recursive case**: `n! = n × (n − 1)!` for any `n ≥ 1`
+
+That definition translates almost word for word into code:
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="factorial.py" {3-5}
+def factorial(n):
+    """Return n! for a non-negative integer n."""
+    if n == 0:                    # base case
+        return 1
+    return n * factorial(n - 1)   # recursive case
+
+
+print(factorial(5))  # 120
+```
+
+</Tab>
+<Tab>
+
+```javascript title="factorial.js" {2-3}
+function factorial(n) {
+  if (n === 0) return 1;         // base case
+  return n * factorial(n - 1);   // recursive case
+}
+
+console.log(factorial(5)); // 120
+```
+
+</Tab>
+<Tab>
+
+```java title="Factorial.java" {3-4}
+public class Factorial {
+    static long factorial(int n) {
+        if (n == 0) return 1;          // base case
+        return n * factorial(n - 1);   // recursive case
+    }
+
+    public static void main(String[] args) {
+        System.out.println(factorial(5)); // 120
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+## How the call stack works
+
+When a function calls another function, the computer has to remember where it left off so it can resume later. It does this with the **call stack**. Each call gets a *stack frame* that holds its parameters and local variables. The frame is pushed onto the stack when the call begins and popped off when the call returns.
+
+A recursive function is no different from any other function here. It simply pushes many frames of the *same* function. Here is what happens when you call `factorial(4)`:
+
+```text
+factorial(4) = 4 * factorial(3)          ← paused, waiting
+  factorial(3) = 3 * factorial(2)        ← paused, waiting
+    factorial(2) = 2 * factorial(1)      ← paused, waiting
+      factorial(1) = 1 * factorial(0)    ← paused, waiting
+        factorial(0) = 1                 ← base case: returns first
+      factorial(1) = 1 * 1 = 1
+    factorial(2) = 2 * 1 = 2
+  factorial(3) = 3 * 2 = 6
+factorial(4) = 4 * 6 = 24                ← returns last
+```
+
+There are two phases. On the way down (*winding*), each call pauses mid-calculation and pushes a new frame. When the base case is reached, the way back up (*unwinding*) begins: frames pop off one by one, and each paused multiplication finally completes. Notice that no multiplication happens until the base case returns.
+
+The visualizer below shows a generic stack rather than factorial specifically, but the mechanics are identical. **Push** adds an item to the top, and **pop** removes the most recently added one. Try pushing four items and then popping them all: they come off in reverse order, exactly like the returning calls above.
+
+<StackQueueVisualizer mode="stack" />
+
+<Callout type="note" title="Last in, first out">
+
+The call stack is a real [stack](/tutorials/data-structures/linear/stacks): the most recent call is always the first to finish. That's why `factorial(0)` returns before `factorial(4)`, even though it was called last.
+
+</Callout>
+
+## Thinking recursively
+
+The biggest mistake beginners make is trying to trace every single call in their head. For anything beyond a few levels, that's overwhelming. Instead, use the **recursive leap of faith**: when you write the recursive case, *assume* the function already works correctly for smaller inputs, and focus only on how to use that answer.
+
+A three-step recipe works for most problems:
+
+1. **Find the base case.** What's the simplest possible input, and what's its answer?
+2. **Shrink the problem.** How can you make the input smaller: one fewer element, half the size, a smaller number?
+3. **Combine.** Assuming the recursive call returns the right answer for the smaller input, how do you build the answer for the current input?
+
+### Example: sum of a list
+
+Let's apply the recipe to summing a list of numbers.
+
+1. **Base case**: an empty list sums to 0.
+2. **Shrink**: take the list without its first element.
+3. **Combine**: the sum is the first element plus the sum of the rest.
+
+```python title="list_sum.py"
+def list_sum(items):
+    if not items:                            # base case
+        return 0
+    return items[0] + list_sum(items[1:])    # first + sum of the rest
+```
+
+We never had to think about how `list_sum(items[1:])` computes its answer. We trusted it, and the base case guarantees the chain of calls eventually ends. (In production code, you'd pass an index instead of slicing, because each slice copies the list.)
+
+### Example: fast exponentiation
+
+Recursion doesn't have to shrink a problem by just one. Computing `base` raised to the power `exp` can halve the problem each time, because `x¹⁰ = x⁵ × x⁵`:
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="power.py" {5}
+def power(base, exp):
+    """Compute base ** exp for a non-negative integer exp."""
+    if exp == 0:                    # base case
+        return 1
+    half = power(base, exp // 2)    # a problem half the size
+    if exp % 2 == 0:
+        return half * half
+    return half * half * base       # odd exponent: one extra factor
+
+
+print(power(2, 10))  # 1024
+```
+
+</Tab>
+<Tab>
+
+```javascript title="power.js" {3}
+function power(base, exp) {
+  if (exp === 0) return 1;                        // base case
+  const half = power(base, Math.floor(exp / 2));  // half-size problem
+  return exp % 2 === 0 ? half * half : half * half * base;
+}
+
+console.log(power(2, 10)); // 1024
+```
+
+</Tab>
+<Tab>
+
+```java title="Power.java" {4}
+public class Power {
+    static long power(long base, int exp) {
+        if (exp == 0) return 1;              // base case
+        long half = power(base, exp / 2);    // half-size problem
+        return (exp % 2 == 0) ? half * half : half * half * base;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(power(2, 10)); // 1024
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+Computing 2¹⁰ takes only five calls (exponents 10, 5, 2, 1, 0) instead of ten multiplications. Because the exponent halves each time, the number of calls grows like log₂ n. This divide-and-conquer pattern is exactly what powers [merge sort](/tutorials/algorithms/sorting/merge-sort).
+
+## Common pitfalls
+
+### Missing base case
+
+What happens if you call `factorial(-1)`? It calls `factorial(-2)`, which calls `factorial(-3)`, and so on forever: the base case `n == 0` is never reached. Each call pushes another frame, and eventually the call stack runs out of space.
+
+<Callout type="warning" title="Stack overflow">
+
+Every runtime limits how deep recursion can go. Python raises `RecursionError` after about 1,000 nested calls by default, Java throws `StackOverflowError`, and JavaScript throws `RangeError: Maximum call stack size exceeded`. If you see one of these, check that every recursive call truly moves toward a base case, and that the base case covers every way the input can shrink.
+
+</Callout>
+
+### Repeated work
+
+The Fibonacci sequence (0, 1, 1, 2, 3, 5, 8, ...) has a beautifully simple recursive definition: each number is the sum of the two before it. The direct translation is correct but disastrously slow:
+
+```python title="fib_naive.py"
+def fib(n):
+    if n < 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+```
+
+The problem is that it solves the same subproblems over and over. Even for `fib(5)`, look how often the same calls repeat:
+
+```text
+fib(5)
+├── fib(4)
+│   ├── fib(3)
+│   │   ├── fib(2)
+│   │   │   ├── fib(1)
+│   │   │   └── fib(0)
+│   │   └── fib(1)
+│   └── fib(2)            ← computed again
+│       ├── fib(1)
+│       └── fib(0)
+└── fib(3)                ← computed again, with its whole subtree
+    ├── fib(2)
+    │   ├── fib(1)
+    │   └── fib(0)
+    └── fib(1)
+```
+
+The number of calls grows exponentially: `fib(40)` makes more than 300 million calls. The fix is to remember answers you've already computed, a technique called *memoization*. It's the core idea of [dynamic programming](/tutorials/dynamic-programming).
+
+## Recursion vs. iteration
+
+Anything you can write recursively, you can also write with a loop (sometimes with the help of an explicit stack), and vice versa. Which should you choose?
+
+| Aspect      | Recursion                                              | Iteration                          |
+| ----------- | ------------------------------------------------------ | ---------------------------------- |
+| Best for    | Trees, divide and conquer, backtracking                | Simple repetition over a sequence  |
+| Memory      | One stack frame per active call                        | Usually O(1) extra                 |
+| Main risk   | Stack overflow on very deep inputs                     | Infinite loops, tricky bookkeeping |
+| Readability | Often shorter and closer to the mathematical definition | More explicit about every step     |
+
+Factorial and list sums are easy to write either way, and loops avoid the stack overhead. But for problems with naturally branching structure, such as exploring a tree or splitting an array in half, recursion is usually much clearer.
+
+<Callout type="tip">
+
+Some languages optimize *tail calls* (a recursive call that is the very last thing a function does) so they use no extra stack space. Python and Java don't, and most JavaScript engines don't either, so in those languages prefer a loop when recursion would go thousands of levels deep.
+
+</Callout>
+
+## Analyzing recursive functions
+
+To estimate the cost of a recursive function, ask two questions. **Time**: how many calls are made in total, and how much work does each one do? **Space**: how deep does the call stack get at its deepest point?
+
+| Function        | Total calls      | Time      | Space (stack depth) |
+| --------------- | ---------------- | --------- | ------------------- |
+| `factorial(n)`  | n + 1            | O(n)      | O(n)                |
+| `power(b, n)`   | about log₂ n     | O(log n)  | O(log n)            |
+| naive `fib(n)`  | exponential      | O(2ⁿ)     | O(n)                |
+
+Notice that naive Fibonacci makes an exponential number of calls but only uses O(n) stack space, since at any moment only one path from the root of the call tree is active. See [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation) for a refresher on these classes.
+
+## Key takeaways
+
+- A recursive function solves a problem by calling itself on a smaller version of the same problem.
+- Every recursive function needs a base case and a recursive case that makes progress toward it.
+- The call stack stores one frame per active call; calls return in last-in, first-out order.
+- Use the leap of faith: trust the recursive call to solve the smaller problem, and focus on combining.
+- Watch out for missing base cases (stack overflow) and repeated subproblems (exponential time).
+
+<Quiz
+  question="What happens when a recursive function never reaches its base case?"
+  options={["It returns 0 automatically", "It runs forever without using extra memory", "It keeps adding stack frames until the program crashes with a stack overflow", "The compiler adds a base case for you"]}
+  answer={2}
+  explanation="Every call pushes a new frame onto the call stack. Without a base case to stop the chain, the stack eventually runs out of space and the program crashes."
+/>
+
+<Quiz
+  question="When computing factorial(4) recursively, which call returns first?"
+  options={["factorial(4)", "factorial(2)", "factorial(0)", "They all return at the same time"]}
+  answer={2}
+  explanation="The call stack is last in, first out. factorial(0) is called last, hits the base case, and returns first; factorial(4) waits for all the others and returns last."
+/>

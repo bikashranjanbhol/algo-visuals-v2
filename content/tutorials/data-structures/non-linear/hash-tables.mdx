@@ -1,0 +1,376 @@
+---
+title: "Hash Tables"
+description: "How hash tables map keys to values in O(1) average time: hash functions, collision handling, load factor and resizing, plus the pitfalls to avoid."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+A hash table stores key-value pairs and can find, insert or delete any key in **constant time on average**, no matter how many entries it holds. It's arguably the most useful data structure in everyday programming. Python's `dict` and `set`, JavaScript's `Map` and `Set`, and Java's `HashMap` and `HashSet` are all hash tables, and they power everything from counting words to caching web pages to database joins.
+
+The trick is a **hash function** that turns any key into an array index, so instead of searching for a key you compute where it lives. In this lesson you'll learn how that works, what happens when two keys land in the same spot, why tables resize themselves, and the subtle bugs that bite people who use them carelessly.
+
+## The coat check
+
+Picture the coat check at a theater. You hand over your coat and get a ticket with a hook number. When you come back, the attendant doesn't search every hook. They read the number and walk straight to it.
+
+A hash table works the same way, except it computes the ticket number from the key itself. Give it the key `"alice"`, and the hash function deterministically produces, say, hook 5. Every time you ask for `"alice"`, the same calculation leads back to hook 5. No searching required.
+
+## How hashing works
+
+A hash table is built on an [array](/tutorials/data-structures/linear/arrays) of `m` slots, usually called **buckets**. Storing or finding a key takes two steps:
+
+```text
+  key            hash function          hash code         mod m        bucket
+"alice"  ──────►  hash("alice")  ──────►  2,903,117  ──────►  % 8  ──────►  5
+```
+
+1. The **hash function** turns the key into a large integer called the hash code.
+2. The hash code is reduced to a valid index, typically with `hash % m`. Some implementations, including Java's `HashMap`, keep `m` a power of two and use a fast bit mask instead.
+
+Then the table goes straight to that bucket, an O(1) array access.
+
+### What makes a good hash function
+
+- **Deterministic**: the same key must always produce the same hash code.
+- **Consistent with equality**: if two keys are equal, their hash codes must be equal. The reverse doesn't have to hold, since different keys may share a hash code.
+- **Uniform**: keys should spread evenly across buckets, even when the keys themselves are similar, like `"user1"` and `"user2"`.
+- **Fast**: hashing happens on every single operation.
+
+For example, Java's `String.hashCode` treats a string's characters as digits of a base-31 number: `s[0]×31^(n-1) + s[1]×31^(n-2) + ... + s[n-1]`. Every character affects the result, so similar strings land in different buckets.
+
+## Collisions
+
+There are infinitely many possible keys but only `m` buckets, so sooner or later two different keys will hash to the same bucket. That's a **collision**, and it happens sooner than intuition suggests. By the **birthday paradox**, a room of just 23 people has a better than even chance that two share a birthday, and similarly a table with `m` buckets is likely to see its first collision after only about √m keys. Collisions aren't a corner case. Every hash table must handle them.
+
+### Separate chaining
+
+The simplest strategy makes each bucket a small list of entries. Colliding keys just share a bucket's list:
+
+```text
+buckets
+  ┌───┐
+0 │ ∅ │
+  ├───┤
+1 │ ●─┼──► ("apple", 3) ──► ("grape", 7) ──► ∅
+  ├───┤
+2 │ ∅ │
+  ├───┤
+3 │ ●─┼──► ("kiwi", 5) ──► ∅
+  └───┘
+```
+
+To look up `"grape"`, hash it to bucket 1, then scan that bucket's short list comparing keys. As long as the lists stay short, every operation is effectively O(1). Java's `HashMap` uses chaining.
+
+### Open addressing
+
+The alternative stores every entry directly in the array. When a key's bucket is taken, the table **probes** for another slot following a fixed sequence. The simplest is **linear probing**: try the next slot, then the next, wrapping around at the end.
+
+```text
+insert "cat"  → hashes to 3          slot 3 is free, store it
+insert "dog"  → hashes to 5          slot 5 is free, store it
+insert "emu"  → hashes to 3          slot 3 is taken, probe 4: free, store it
+
+index:   0     1     2     3      4      5      6     7
+       [   ] [   ] [   ] [cat] [emu]  [dog]  [   ] [   ]
+```
+
+A lookup follows the same probe sequence until it finds the key or hits an empty slot. Open addressing avoids per-entry list nodes, which makes it compact and cache-friendly. Python's `dict` uses it, with a smarter probe sequence than plain linear probing.
+
+<Callout type="warning" title="Deleting with open addressing">
+
+You can't simply empty a slot when deleting. If you removed `"cat"` from slot 3 above, a later search for `"emu"` would start at slot 3, see an empty slot and wrongly conclude that `"emu"` isn't there. Instead, deletions leave a **tombstone** marker that lookups skip over and inserts may reuse.
+
+</Callout>
+
+## Load factor and resizing
+
+The **load factor** is the average number of entries per bucket:
+
+```text
+load factor α = n / m        (n = entries stored, m = buckets)
+```
+
+As α grows, chains get longer or probe sequences get slower, and the O(1) promise fades. So hash tables watch their load factor and **resize** when it crosses a threshold: Java's `HashMap` resizes at 0.75 by default, and Python's `dict` resizes when it's about two-thirds full.
+
+Resizing allocates a bucket array (typically twice as large) and **rehashes** every entry, because each key's index `hash % m` changes when `m` changes. A single resize is O(n), but since capacity doubles, resizes become exponentially rarer. That's the same argument that makes [dynamic array](/tutorials/data-structures/linear/arrays) appends amortized O(1), and it makes hash table inserts **amortized O(1)** too.
+
+## Implementation
+
+This hash map uses separate chaining and doubles its bucket count when the load factor exceeds 0.75.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="hash_map.py" {12-13,23-24}
+class HashMap:
+    """Hash map using separate chaining: each bucket is a list of [key, value] pairs."""
+
+    def __init__(self, capacity=8, max_load=0.75):
+        self._buckets = [[] for _ in range(max(1, capacity))]
+        self._size = 0
+        self._max_load = max_load
+
+    def __len__(self):
+        return self._size
+
+    def _bucket(self, key):
+        return self._buckets[hash(key) % len(self._buckets)]
+
+    def put(self, key, value):
+        bucket = self._bucket(key)
+        for pair in bucket:
+            if pair[0] == key:
+                pair[1] = value          # key exists: overwrite
+                return
+        bucket.append([key, value])
+        self._size += 1
+        if self._size / len(self._buckets) > self._max_load:
+            self._resize(2 * len(self._buckets))
+
+    def get(self, key, default=None):
+        for k, v in self._bucket(key):
+            if k == key:
+                return v
+        return default
+
+    def remove(self, key):
+        bucket = self._bucket(key)
+        for i, (k, _) in enumerate(bucket):
+            if k == key:
+                bucket.pop(i)
+                self._size -= 1
+                return True
+        return False
+
+    def _resize(self, new_capacity):
+        old = self._buckets
+        self._buckets = [[] for _ in range(new_capacity)]
+        for bucket in old:
+            for pair in bucket:
+                self._bucket(pair[0]).append(pair)   # rehash into the new array
+```
+
+</Tab>
+<Tab>
+
+```javascript title="hashMap.js"
+function hashString(str) {
+  // FNV-1a style hash: simple, fast and well spread for short strings.
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0; // force an unsigned 32-bit integer
+}
+
+class HashMap {
+  #buckets;
+  #size = 0;
+
+  constructor(capacity = 8) {
+    this.#buckets = Array.from({ length: Math.max(1, capacity) }, () => []);
+  }
+
+  get size() {
+    return this.#size;
+  }
+
+  #bucketFor(key) {
+    // Demo only: hashes the key's string form. Equality below still uses ===.
+    return this.#buckets[hashString(String(key)) % this.#buckets.length];
+  }
+
+  set(key, value) {
+    const bucket = this.#bucketFor(key);
+    for (const entry of bucket) {
+      if (entry[0] === key) {
+        entry[1] = value; // key exists: overwrite
+        return;
+      }
+    }
+    bucket.push([key, value]);
+    this.#size++;
+    if (this.#size / this.#buckets.length > 0.75) {
+      this.#resize(this.#buckets.length * 2);
+    }
+  }
+
+  get(key) {
+    for (const [k, v] of this.#bucketFor(key)) {
+      if (k === key) return v;
+    }
+    return undefined;
+  }
+
+  delete(key) {
+    const bucket = this.#bucketFor(key);
+    const i = bucket.findIndex(([k]) => k === key);
+    if (i === -1) return false;
+    bucket.splice(i, 1);
+    this.#size--;
+    return true;
+  }
+
+  #resize(newCapacity) {
+    const old = this.#buckets;
+    this.#buckets = Array.from({ length: newCapacity }, () => []);
+    for (const bucket of old) {
+      for (const entry of bucket) this.#bucketFor(entry[0]).push(entry); // rehash
+    }
+  }
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="ChainedHashMap.java" {54-55}
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+public class ChainedHashMap<K, V> {
+    private static final double MAX_LOAD = 0.75;
+
+    private static final class Entry<K, V> {
+        final K key;
+        V value;
+
+        Entry(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+    }
+
+    private List<List<Entry<K, V>>> buckets = newBuckets(8);
+    private int size;
+
+    public int size() {
+        return size;
+    }
+
+    public void put(K key, V value) {
+        List<Entry<K, V>> bucket = bucketFor(key);
+        for (Entry<K, V> e : bucket) {
+            if (Objects.equals(e.key, key)) {
+                e.value = value; // key exists: overwrite
+                return;
+            }
+        }
+        bucket.add(new Entry<>(key, value));
+        size++;
+        if ((double) size / buckets.size() > MAX_LOAD) {
+            resize(buckets.size() * 2);
+        }
+    }
+
+    public V get(K key) {
+        for (Entry<K, V> e : bucketFor(key)) {
+            if (Objects.equals(e.key, key)) return e.value;
+        }
+        return null;
+    }
+
+    public boolean remove(K key) {
+        boolean removed = bucketFor(key).removeIf(e -> Objects.equals(e.key, key));
+        if (removed) size--;
+        return removed;
+    }
+
+    private List<Entry<K, V>> bucketFor(K key) {
+        // hashCode() can be negative, so use floorMod instead of %.
+        int index = Math.floorMod(Objects.hashCode(key), buckets.size());
+        return buckets.get(index);
+    }
+
+    private void resize(int newCapacity) {
+        List<List<Entry<K, V>>> old = buckets;
+        buckets = newBuckets(newCapacity);
+        for (List<Entry<K, V>> bucket : old) {
+            for (Entry<K, V> e : bucket) {
+                bucketFor(e.key).add(e); // rehash into the new array
+            }
+        }
+    }
+
+    private static <K, V> List<List<Entry<K, V>>> newBuckets(int capacity) {
+        List<List<Entry<K, V>>> list = new ArrayList<>(capacity);
+        for (int i = 0; i < capacity; i++) list.add(new ArrayList<>());
+        return list;
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+## Complexity
+
+Here `n` is the number of entries and `m` is the number of buckets.
+
+| Operation                  | Average          | Worst case |
+| -------------------------- | ---------------- | ---------- |
+| Insert                     | O(1) amortized   | O(n)       |
+| Lookup                     | O(1)             | O(n)       |
+| Delete                     | O(1)             | O(n)       |
+| Iterate over all entries   | O(n + m)         | O(n + m)   |
+| Find min, max or a range   | O(n)             | O(n)       |
+
+The worst case happens when many keys collide into the same bucket, which turns that bucket into a list you have to scan. A decent hash function and a bounded load factor make this vanishingly rare for ordinary data. Computing the hash itself takes time proportional to the key's size, so hashing a long string costs more than hashing an integer.
+
+## Pitfalls and trade-offs
+
+### Mutable keys
+
+A key's hash must not change while it's stored in the table. If you insert an object and then mutate a field that feeds its hash, the entry stays in the old bucket while lookups go to the new one, and the entry becomes unreachable. That's why Python refuses to use lists as dictionary keys (use a tuple instead) and why mutable objects make dangerous keys in Java.
+
+### Equality and hashing must agree
+
+Equal keys must produce equal hash codes. In Java, if you override `equals` you **must** override `hashCode` too, or a `HashMap` won't find keys that are logically equal. In Python, defining `__eq__` on a class sets `__hash__` to `None` unless you also define `__hash__`, which makes instances unusable as keys.
+
+<Callout type="note" title="Objects as keys in JavaScript">
+
+Plain JavaScript objects convert every key to a string, so using objects as keys gives you `"[object Object]"` for all of them, and they overwrite each other. Use a `Map` instead. It accepts any value as a key and compares object keys by identity.
+
+</Callout>
+
+### Adversarial inputs
+
+If attackers can choose your keys and know your hash function, they can send thousands of keys that all collide, forcing every operation into the O(n) worst case. This **hash flooding** attack has taken down real web servers. Modern runtimes defend against it: Python randomizes string hashing with a keyed hash function (SipHash) seeded fresh for each process, Rust's `HashMap` uses random keys by default, and Java's `HashMap` converts unusually long chains into balanced trees so a bad bucket costs O(log n) instead of O(n).
+
+### No ordering
+
+Hash tables scatter keys by design, so they can't efficiently answer "what's the smallest key?" or "which keys fall between 100 and 200?". Some implementations remember insertion order (Python's `dict`, JavaScript's `Map`, Java's `LinkedHashMap`), but none keep keys sorted. When you need ordering, use a [binary search tree](/tutorials/data-structures/non-linear/binary-search-trees):
+
+| Feature               | Hash table        | Balanced BST           |
+| --------------------- | ----------------- | ---------------------- |
+| Lookup, insert, delete| O(1) average      | O(log n) guaranteed    |
+| Worst case            | O(n)              | O(log n)               |
+| Sorted iteration      | Not supported     | O(n)                   |
+| Range query           | O(n)              | O(log n + k)           |
+| Key requirement       | Hashable          | Comparable             |
+
+When you don't need ordering, hash tables are hard to beat. Use them for counting frequencies, removing duplicates, checking membership, grouping records, and **memoization**, the caching technique at the heart of [dynamic programming](/tutorials/dynamic-programming).
+
+## Key takeaways
+
+- A hash table maps keys to buckets with a hash function, giving **O(1) average** insert, lookup and delete.
+- Collisions are inevitable. **Separate chaining** keeps a list per bucket, while **open addressing** probes for another free slot.
+- The **load factor** n / m controls performance. Tables resize and rehash when it gets too high, which keeps inserts amortized O(1).
+- Keys must have stable hashes, and equal keys must hash equally. Mutable keys and mismatched equality cause silent bugs.
+- Hash tables have no ordering. Use a balanced BST when you need sorted order or range queries.
+
+<Quiz
+  question="A hash table that uses separate chaining has 16 buckets and holds 12 entries. What is its load factor?"
+  options={["0.75", "1.33", "12", "4"]}
+  answer={0}
+  explanation="The load factor is entries divided by buckets: 12 / 16 = 0.75. That's exactly the default threshold at which Java's HashMap resizes."
+/>
+
+<Quiz
+  question="Which task is a hash table poorly suited for?"
+  options={["Counting how often each word appears in a book", "Checking whether a username is already taken", "Listing all keys between 100 and 200 in sorted order", "Caching the results of expensive function calls"]}
+  answer={2}
+  explanation="Hash tables scatter keys across buckets with no ordering, so a range query must scan every entry. A balanced binary search tree answers it in O(log n + k) time."
+/>

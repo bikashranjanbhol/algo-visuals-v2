@@ -1,0 +1,314 @@
+---
+title: "Stacks"
+description: "The last-in, first-out structure behind undo buttons, function calls and bracket matching. Learn push, pop and peek, and build one yourself."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+A stack is a collection where the **last item you put in is the first one you take out**. That rule is called LIFO, for "last in, first out". You can only touch the item on top: add a new one, remove the top one, or peek at it. Everything underneath waits its turn.
+
+That restriction sounds limiting, but it's exactly what makes stacks so useful. Whenever a problem involves undoing, backtracking, or matching things that nest inside each other, a stack is usually the answer. Your programming language even uses one to keep track of function calls while your code runs.
+
+## Last in, first out
+
+Think of a stack of plates in a cafeteria. Clean plates go on top, and diners take plates from the top. Nobody pulls a plate from the middle. The plate that went on most recently is the next one to come off.
+
+You use stacks every day without noticing:
+
+- **Undo** in a text editor pops your most recent change.
+- The **back button** in a browser returns to the page you visited most recently.
+- **Nested function calls** finish in reverse order: the innermost call returns first.
+
+## Core operations
+
+A stack supports a tiny interface, and every operation works on the top:
+
+| Operation  | What it does                                    |
+| ---------- | ----------------------------------------------- |
+| `push(x)`  | Place `x` on top of the stack                   |
+| `pop()`    | Remove and return the top item                  |
+| `peek()`   | Return the top item without removing it         |
+| `isEmpty()`| Report whether the stack has no items           |
+| `size()`   | Report how many items are on the stack          |
+
+Here's what happens to a stack as you push three values and then pop one:
+
+```text
+push(1)     push(2)     push(3)     pop() → 3
+
+                        │  3  │ ◄ top
+            │  2  │ ◄   │  2  │     │  2  │ ◄ top
+│  1  │ ◄   │  1  │     │  1  │     │  1  │
+└─────┘     └─────┘     └─────┘     └─────┘
+```
+
+Popping or peeking at an empty stack is called **underflow**. Your implementation should handle it explicitly, usually by raising an error.
+
+## Try it
+
+Push a few values and pop them off. Notice that items always leave in the reverse of the order they arrived.
+
+<StackQueueVisualizer mode="stack" />
+
+## Implementation
+
+The simplest way to build a stack is on top of a [dynamic array](/tutorials/data-structures/linear/arrays). The end of the array is the top of the stack, so `push` is an append and `pop` removes the last element. Both are O(1), with push being amortized O(1) because of occasional resizes.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="stack.py"
+class Stack:
+    def __init__(self):
+        self._items = []
+
+    def push(self, item):
+        self._items.append(item)
+
+    def pop(self):
+        if not self._items:
+            raise IndexError("pop from empty stack")
+        return self._items.pop()
+
+    def peek(self):
+        if not self._items:
+            raise IndexError("peek at empty stack")
+        return self._items[-1]
+
+    def is_empty(self):
+        return not self._items
+
+    def __len__(self):
+        return len(self._items)
+```
+
+</Tab>
+<Tab>
+
+```javascript title="stack.js"
+class Stack {
+  #items = [];
+
+  push(item) {
+    this.#items.push(item);
+  }
+
+  pop() {
+    if (this.#items.length === 0) throw new Error("pop from empty stack");
+    return this.#items.pop();
+  }
+
+  peek() {
+    if (this.#items.length === 0) throw new Error("peek at empty stack");
+    return this.#items[this.#items.length - 1];
+  }
+
+  isEmpty() {
+    return this.#items.length === 0;
+  }
+
+  get size() {
+    return this.#items.length;
+  }
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="Stack.java"
+import java.util.ArrayList;
+import java.util.EmptyStackException;
+
+public class Stack<T> {
+    private final ArrayList<T> items = new ArrayList<>();
+
+    public void push(T item) {
+        items.add(item);
+    }
+
+    public T pop() {
+        if (items.isEmpty()) throw new EmptyStackException();
+        return items.remove(items.size() - 1);
+    }
+
+    public T peek() {
+        if (items.isEmpty()) throw new EmptyStackException();
+        return items.get(items.size() - 1);
+    }
+
+    public boolean isEmpty() {
+        return items.isEmpty();
+    }
+
+    public int size() {
+        return items.size();
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+You can also build a stack from a [linked list](/tutorials/data-structures/linear/linked-lists) by pushing and popping at the head. Every operation is then O(1) in the worst case, not just amortized, at the cost of one allocation per item.
+
+<Callout type="tip" title="Use the right built-in">
+
+In Python a plain `list` with `append` and `pop` is the idiomatic stack. In JavaScript, use an array with `push` and `pop`. In Java, prefer `ArrayDeque` with `push`, `pop` and `peek` over the legacy `java.util.Stack` class, which is synchronized and extends `Vector`.
+
+</Callout>
+
+## Complexity
+
+| Operation     | Array-backed     | Linked-list-backed |
+| ------------- | ---------------- | ------------------ |
+| push          | O(1) amortized   | O(1)               |
+| pop           | O(1)             | O(1)               |
+| peek          | O(1)             | O(1)               |
+| isEmpty, size | O(1)             | O(1)               |
+| search        | O(n)             | O(n)               |
+| Space         | O(n)             | O(n)               |
+
+## Classic applications
+
+### Balanced brackets
+
+Is `{[()()]}` properly nested? What about `([)]`? Scan the string left to right. Push every opening bracket. When you see a closing bracket, the top of the stack must be its matching opener, so pop and compare. At the end, the stack must be empty.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="brackets.py" {7-9}
+def is_balanced(s):
+    pairs = {")": "(", "]": "[", "}": "{"}
+    stack = []
+    for ch in s:
+        if ch in "([{":
+            stack.append(ch)
+        elif ch in pairs:
+            if not stack or stack.pop() != pairs[ch]:
+                return False
+    return not stack
+
+
+print(is_balanced("{[()()]}"))  # True
+print(is_balanced("([)]"))      # False
+```
+
+</Tab>
+<Tab>
+
+```javascript title="brackets.js" {7-8}
+function isBalanced(s) {
+  const pairs = { ")": "(", "]": "[", "}": "{" };
+  const stack = [];
+  for (const ch of s) {
+    if ("([{".includes(ch)) {
+      stack.push(ch);
+    } else if (ch in pairs) {
+      if (stack.length === 0 || stack.pop() !== pairs[ch]) return false;
+    }
+  }
+  return stack.length === 0;
+}
+
+console.log(isBalanced("{[()()]}")); // true
+console.log(isBalanced("([)]"));     // false
+```
+
+</Tab>
+<Tab>
+
+```java title="Brackets.java"
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Map;
+
+public class Brackets {
+    private static final Map<Character, Character> PAIRS =
+        Map.of(')', '(', ']', '[', '}', '{');
+
+    public static boolean isBalanced(String s) {
+        Deque<Character> stack = new ArrayDeque<>();
+        for (char ch : s.toCharArray()) {
+            if (ch == '(' || ch == '[' || ch == '{') {
+                stack.push(ch);
+            } else if (PAIRS.containsKey(ch)) {
+                if (stack.isEmpty()) return false;
+                char open = stack.pop();
+                if (open != PAIRS.get(ch)) return false;
+            }
+        }
+        return stack.isEmpty();
+    }
+
+    public static void main(String[] args) {
+        System.out.println(isBalanced("{[()()]}")); // true
+        System.out.println(isBalanced("([)]"));     // false
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+Here's the trace for `([)]`:
+
+```text
+char   action                 stack
+ (     push                   (
+ [     push                   ( [
+ )     pop [ , expected (     mismatch → not balanced
+```
+
+The algorithm runs in O(n) time and uses up to O(n) space for the stack.
+
+### The call stack
+
+Every time a function is called, the runtime pushes a **stack frame** holding its arguments, local variables and return address. When the function returns, its frame is popped and execution resumes in the caller. That's why [recursion](/tutorials/algorithms/getting-started/recursion) works: each recursive call gets its own frame on top of the previous one.
+
+```text
+factorial(3)
+  └─ factorial(2)
+       └─ factorial(1)       ◄ top of the call stack, returns first
+```
+
+If recursion goes too deep, the call stack runs out of room and you get a **stack overflow**. Any recursive algorithm can be rewritten with an explicit stack to avoid that limit.
+
+### Backtracking and depth-first search
+
+[Depth-first search](/tutorials/graphs/traversal/depth-first-search) explores as far as possible down one path before backing up, and "backing up" means popping. Maze solvers, Sudoku solvers and puzzle searches all use a stack, either explicitly or through recursion, to remember where to return when a path dead-ends.
+
+### Expression evaluation
+
+Compilers and calculators use stacks to evaluate expressions like `3 + 4 × 2` while respecting operator precedence. Dijkstra's shunting-yard algorithm converts infix notation to postfix (`3 4 2 × +`), and a second stack evaluates the postfix form in a single pass.
+
+<Callout type="warning" title="Common mistakes">
+
+- **Forgetting the empty check.** Calling `pop` or `peek` on an empty stack is a frequent source of crashes. In the bracket problem, a closing bracket with nothing on the stack is an immediate failure.
+- **Forgetting the final check.** After the loop, leftover openers mean the input is unbalanced. Returning `True` unconditionally is a classic bug.
+- **Using the wrong end.** If you push and pop at the **front** of an array, every operation shifts all elements and becomes O(n).
+
+</Callout>
+
+## Key takeaways
+
+- A stack is **LIFO**: the most recently pushed item is the first to be popped.
+- `push`, `pop` and `peek` all run in **O(1)** time on an array-backed or linked-list-backed stack.
+- Stacks are the natural fit for undo, backtracking, nested structures such as brackets and HTML tags, and depth-first exploration.
+- Your program's **call stack** is a real stack, which is why deep recursion can overflow.
+- Always handle the empty-stack case explicitly.
+
+<Quiz
+  question="Starting with an empty stack, you push 1, push 2, push 3, pop, pop, then push 4. What does the stack contain, from bottom to top?"
+  options={["1, 4", "3, 4", "1, 2, 4", "4, 1"]}
+  answer={0}
+  explanation="After the three pushes the stack is 1, 2, 3. The two pops remove 3 and then 2, leaving 1. Pushing 4 puts it on top, so the stack is 1, 4."
+/>
+
+<Quiz
+  question="Which problem is the most natural fit for a stack?"
+  options={["Serving print jobs in the order they arrive", "Checking whether brackets in an expression are balanced", "Finding the median of a stream of numbers", "Looking up a phone number by name"]}
+  answer={1}
+  explanation="Brackets nest, so the most recently opened bracket must be closed first. That is exactly the last-in, first-out behavior of a stack. Print jobs need a queue, medians need heaps, and lookups need a hash table."
+/>

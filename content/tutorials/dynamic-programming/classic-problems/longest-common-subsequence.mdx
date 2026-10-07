@@ -1,0 +1,407 @@
+---
+title: "Longest Common Subsequence"
+description: "Find the longest common subsequence of two strings with DP: the recurrence, a fully filled table, recovering the sequence, and a two-row space trick."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+How does a `diff` tool figure out which lines changed between two versions of a file? How do biologists measure how similar two DNA strands are? Both questions build on the **longest common subsequence** (LCS): the longest sequence of characters that appears, in the same order, in both inputs.
+
+LCS is also your gateway to **two-sequence DP**, where the state indexes into two strings at once. The same pattern powers edit distance, sequence alignment and a long list of string problems. As in [Climbing Stairs](/tutorials/dynamic-programming/classic-problems/climbing-stairs) and [0/1 Knapsack](/tutorials/dynamic-programming/classic-problems/knapsack), we'll go from brute force to a polished, space-efficient solution.
+
+## The Problem
+
+**Given two strings `a` and `b`, return the length of their longest common subsequence. If they have no characters in common, return 0.**
+
+### Subsequence vs. substring
+
+A **subsequence** keeps characters in their original order but may skip some. A **substring** must be contiguous. Using the word `LONGEST`:
+
+| Candidate | Subsequence of LONGEST? | Substring of LONGEST? |
+| --------- | ----------------------- | --------------------- |
+| `ONG`     | Yes                     | Yes                   |
+| `LOG`     | Yes (skip the N)        | No                    |
+| `GOT`     | No (O comes before G)   | No                    |
+
+For our running example, take `a = "STONE"` and `b = "LONGEST"`. Their longest common subsequence is `"ONE"`, so the answer is **3**:
+
+```text
+a  =  S  T [O][N][E]
+b  =  L [O][N] G [E] S  T
+
+LCS = "ONE"   (length 3)
+```
+
+Other common subsequences exist, such as `"ST"` or `"NE"`, but none is longer than three characters.
+
+## Brute-Force Recursion
+
+Work from the **end** of both strings. Let `solve(i, j)` be the LCS length of the prefixes `a[:i]` and `b[:j]`, and compare their last characters, `a[i - 1]` and `b[j - 1]`:
+
+- **They match.** Use that character as the last one of the LCS and solve what's left: `1 + solve(i - 1, j - 1)`.
+- **They differ.** At least one of them can't be the final character of a common subsequence. So drop the last character of `a` *or* of `b`, try both, and keep the better result: `max(solve(i - 1, j), solve(i, j - 1))`.
+
+```python title="lcs_brute.py"
+def lcs(a: str, b: str) -> int:
+    def solve(i: int, j: int) -> int:
+        # LCS length of the prefixes a[:i] and b[:j]
+        if i == 0 or j == 0:
+            return 0
+        if a[i - 1] == b[j - 1]:
+            return 1 + solve(i - 1, j - 1)
+        return max(solve(i - 1, j), solve(i, j - 1))
+
+    return solve(len(a), len(b))
+```
+
+### Why it's slow
+
+Every mismatch splits into two calls, and each call shortens only one string. Here's the top of the tree for our example:
+
+```text
+                              solve(5, 7)  E vs T: differ
+                    /                           \
+            solve(4, 7)                         solve(5, 6)
+         N vs T: differ                       E vs S: differ
+          /           \                       /           \
+   solve(3, 7)   solve(4, 6)             solve(4, 6)   solve(5, 5)
+                      ↑                       ↑        E vs E: match!
+                      └────────── same ───────┘
+```
+
+`solve(4, 6)` is reached twice after just two levels, and the duplication compounds all the way down. In the worst case, when the strings share no characters, the tree is up to `m + n` levels deep with two branches per node, giving `O(2^(m+n))` time. Two 20-character strings with nothing in common would need more than **275 billion** calls, even though there are only 21 × 21 = 441 distinct `(i, j)` pairs.
+
+## State and Recurrence
+
+### Defining the state
+
+Let `dp[i][j]` be **the length of the LCS of the first `i` characters of `a` and the first `j` characters of `b`**. With `m = len(a)` and `n = len(b)`, there are `(m + 1) × (n + 1)` states, including the empty prefixes.
+
+### The recurrence
+
+```text
+dp[i][0] = 0                                 b is empty: nothing in common
+dp[0][j] = 0                                 a is empty: nothing in common
+
+dp[i][j] = dp[i-1][j-1] + 1                  if a[i-1] == b[j-1]
+dp[i][j] = max(dp[i-1][j], dp[i][j-1])       otherwise
+
+answer   = dp[m][n]
+```
+
+### Why the recurrence works
+
+**Match case.** When the last characters are equal, pairing them never hurts. Take any longest common subsequence of the two prefixes. If it doesn't already end by pairing these two characters, you can swap its final character for this matched pair without making it any shorter. So we can safely lock in the match and recurse on what remains, with no need to explore alternatives.
+
+**Mismatch case.** When the last characters differ, they can't *both* be the final character of a common subsequence, since that character would have to equal each of them. So any LCS fits entirely inside either "`a` without its last character, plus all of `b`" or "all of `a`, plus `b` without its last character." Trying both and taking the max covers every possibility.
+
+<Callout type="warning" title="Subsequence, not substring">
+
+A common mistake is mixing up LCS with the **longest common substring** problem. For substrings, a mismatch breaks the run, so the recurrence becomes `dp[i][j] = dp[i-1][j-1] + 1` on a match and `0` otherwise, and the answer is the largest value anywhere in the table rather than the bottom-right cell.
+
+</Callout>
+
+## Top-Down Solution
+
+Memoizing `solve(i, j)` means each of the `(m + 1) × (n + 1)` states is computed once.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="lcs_memo.py" {4}
+from functools import cache
+
+def lcs(a: str, b: str) -> int:
+    @cache
+    def solve(i: int, j: int) -> int:
+        if i == 0 or j == 0:
+            return 0
+        if a[i - 1] == b[j - 1]:
+            return 1 + solve(i - 1, j - 1)
+        return max(solve(i - 1, j), solve(i, j - 1))
+
+    return solve(len(a), len(b))
+```
+
+</Tab>
+<Tab>
+
+```javascript title="lcsMemo.js" {8-11}
+function lcs(a, b) {
+  // memo[i][j] === -1 means "not computed yet"
+  const memo = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(-1));
+
+  function solve(i, j) {
+    if (i === 0 || j === 0) return 0;
+    if (memo[i][j] !== -1) return memo[i][j];
+    memo[i][j] =
+      a[i - 1] === b[j - 1]
+        ? 1 + solve(i - 1, j - 1)
+        : Math.max(solve(i - 1, j), solve(i, j - 1));
+    return memo[i][j];
+  }
+
+  return solve(a.length, b.length);
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="LcsMemo.java"
+import java.util.Arrays;
+
+public class LcsMemo {
+    public static int lcs(String a, String b) {
+        int[][] memo = new int[a.length() + 1][b.length() + 1];
+        for (int[] row : memo) Arrays.fill(row, -1); // -1 means "not computed yet"
+        return solve(a, b, a.length(), b.length(), memo);
+    }
+
+    private static int solve(String a, String b, int i, int j, int[][] memo) {
+        if (i == 0 || j == 0) return 0;
+        if (memo[i][j] != -1) return memo[i][j];
+
+        if (a.charAt(i - 1) == b.charAt(j - 1)) {
+            memo[i][j] = 1 + solve(a, b, i - 1, j - 1, memo);
+        } else {
+            memo[i][j] = Math.max(solve(a, b, i - 1, j, memo), solve(a, b, i, j - 1, memo));
+        }
+        return memo[i][j];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+The recursion can nest up to `m + n` calls deep. That's fine for short strings, but comparing two documents with thousands of characters will blow past Python's default recursion limit. For long inputs, go bottom-up, as described in [Memoization vs. Tabulation](/tutorials/dynamic-programming/core-ideas/memoization-vs-tabulation).
+
+## Bottom-Up Solution
+
+Each cell depends on three neighbors: the cell above, the cell to the left and the cell diagonally up-left. Filling the table row by row, left to right, guarantees all three are ready.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="lcs_table.py" {7-10}
+def lcs(a: str, b: str) -> int:
+    m, n = len(a), len(b)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if a[i - 1] == b[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1] + 1               # extend the diagonal
+            else:
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])    # best of up or left
+
+    return dp[m][n]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="lcsTable.js" {8-12}
+function lcs(a, b) {
+  const m = a.length;
+  const n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1; // extend the diagonal
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]); // best of up or left
+      }
+    }
+  }
+
+  return dp[m][n];
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="LcsTable.java" {8-12}
+public class LcsTable {
+    public static int lcs(String a, String b) {
+        int m = a.length(), n = b.length();
+        int[][] dp = new int[m + 1][n + 1];
+
+        for (int i = 1; i <= m; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (a.charAt(i - 1) == b.charAt(j - 1)) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1; // extend the diagonal
+                } else {
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]); // best of up or left
+                }
+            }
+        }
+        return dp[m][n];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+### The filled table
+
+Here's the complete table for `a = "STONE"` (rows) and `b = "LONGEST"` (columns). Bracketed cells mark the matches that make up the LCS we'll recover in a moment.
+
+```text
+               ""    L    O    N    G    E    S    T
+   i=0  ""      0    0    0    0    0    0    0    0
+   i=1  S       0    0    0    0    0    0    1    1
+   i=2  T       0    0    0    0    0    0    1    2
+   i=3  O       0    0   [1]   1    1    1    1    2
+   i=4  N       0    0    1   [2]   2    2    2    2
+   i=5  E       0    0    1    2    2   [3]   3    3    ← answer: 3
+```
+
+A few cells to check by hand:
+
+- `dp[2][7]`: T matches T, so take the diagonal plus one, `dp[1][6] + 1 = 2`. Indeed, `"ST"` is common to `"ST"` and `"LONGEST"`.
+- `dp[4][4]`: N differs from G, so take the larger of up (`dp[3][4] = 1`) and left (`dp[4][3] = 2`), giving 2.
+- `dp[5][5]`: E matches E, so `dp[4][4] + 1 = 3`. That value flows right to the answer cell.
+
+### Recovering the sequence
+
+To get the actual subsequence, start at the bottom-right corner and retrace the decisions. If the characters match, that character is part of the LCS, so move diagonally. Otherwise, move toward whichever neighbor (up or left) holds the larger value. Stop at row 0 or column 0, then reverse what you collected.
+
+```python title="lcs_string.py" {11-20}
+def lcs_string(a: str, b: str) -> str:
+    m, n = len(a), len(b)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if a[i - 1] == b[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1] + 1
+            else:
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+
+    chars, i, j = [], m, n
+    while i > 0 and j > 0:
+        if a[i - 1] == b[j - 1]:
+            chars.append(a[i - 1])      # part of the LCS: move diagonally
+            i, j = i - 1, j - 1
+        elif dp[i - 1][j] >= dp[i][j - 1]:
+            i -= 1                      # the value came from above
+        else:
+            j -= 1                      # the value came from the left
+    return "".join(reversed(chars))
+```
+
+On our table, the walk goes left from `(5, 7)` to `(5, 5)`, picks up **E**, moves diagonally to `(4, 4)`, steps left to `(4, 3)` and picks up **N**, then moves diagonally to `(3, 2)` and picks up **O**. Reversed, that spells `"ONE"`. When up and left tie, either direction is valid. Different tie-breaking can produce a different LCS of the same length, because many pairs of strings have more than one.
+
+### Saving space
+
+Each row reads only from the row above it, so two rows are enough. Put the shorter string along the columns and memory drops to O(min(m, n)).
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="lcs.py"
+def lcs(a: str, b: str) -> int:
+    if len(b) > len(a):
+        a, b = b, a                       # make b the shorter string
+    prev = [0] * (len(b) + 1)
+    for i in range(1, len(a) + 1):
+        curr = [0] * (len(b) + 1)
+        for j in range(1, len(b) + 1):
+            if a[i - 1] == b[j - 1]:
+                curr[j] = prev[j - 1] + 1
+            else:
+                curr[j] = max(prev[j], curr[j - 1])
+        prev = curr
+    return prev[-1]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="lcs.js"
+function lcs(a, b) {
+  if (b.length > a.length) [a, b] = [b, a]; // make b the shorter string
+  let prev = new Array(b.length + 1).fill(0);
+  for (let i = 1; i <= a.length; i++) {
+    const curr = new Array(b.length + 1).fill(0);
+    for (let j = 1; j <= b.length; j++) {
+      curr[j] = a[i - 1] === b[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], curr[j - 1]);
+    }
+    prev = curr;
+  }
+  return prev[b.length];
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="Lcs.java" {14-15}
+public class Lcs {
+    public static int lcs(String a, String b) {
+        if (b.length() > a.length()) { String t = a; a = b; b = t; } // make b the shorter string
+        int[] prev = new int[b.length() + 1];
+        int[] curr = new int[b.length() + 1];
+        for (int i = 1; i <= a.length(); i++) {
+            for (int j = 1; j <= b.length(); j++) {
+                if (a.charAt(i - 1) == b.charAt(j - 1)) {
+                    curr[j] = prev[j - 1] + 1;
+                } else {
+                    curr[j] = Math.max(prev[j], curr[j - 1]);
+                }
+            }
+            int[] tmp = prev;
+            prev = curr; curr = tmp; // swap rows instead of allocating new ones
+        }
+        return prev[b.length()];
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="note" title="Space vs. reconstruction">
+
+The two-row version only returns the length, because the rows needed to retrace the path are gone. If you need the sequence itself in linear space, look up **Hirschberg's algorithm**, which combines this two-row trick with divide and conquer. Real `diff` tools go further still: they use algorithms such as Myers' diff, which are built on the same idea but run much faster when the two inputs are mostly identical.
+
+</Callout>
+
+## Complexity
+
+| Approach              | Time          | Space                       |
+| --------------------- | ------------- | --------------------------- |
+| Brute-force recursion | `O(2^(m+n))`  | O(m + n) for the call stack |
+| Top-down memoization  | O(m · n)      | O(m · n)                    |
+| Bottom-up tabulation  | O(m · n)      | O(m · n)                    |
+| Two rows              | O(m · n)      | O(min(m, n))                |
+
+Every DP version fills `(m + 1) × (n + 1)` cells with constant work each. Recovering the sequence from a full table adds only O(m + n), since each step of the walk moves up, left or diagonally. For a refresher on reading these bounds, see [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation).
+
+## Key takeaways
+
+- A **subsequence** keeps order but can skip characters; a **substring** must be contiguous.
+- The state `dp[i][j]` is the LCS length of the first `i` characters of `a` and the first `j` characters of `b`.
+- On a **match**, extend the diagonal: `dp[i-1][j-1] + 1`. On a **mismatch**, take the better of dropping a character from either string: `max(dp[i-1][j], dp[i][j-1])`.
+- DP turns `O(2^(m+n))` brute force into O(m · n) time, and two rolling rows cut memory to O(min(m, n)).
+- Walk back from the bottom-right corner to recover the subsequence itself.
+- The same two-index pattern solves edit distance, shortest common supersequence and sequence alignment. You're now ready to recognize it in the wild.
+
+<Quiz
+  question="What is the length of the longest common subsequence of 'ABCBDAB' and 'BDCABA'?"
+  options={["3", "4", "5", "6"]}
+  answer={1}
+  explanation="Several LCSs of length 4 exist, such as BCBA, BDAB and BCAB. Filling the 8 × 7 table confirms that no common subsequence of length 5 exists."
+/>
+
+<Quiz
+  question="When a[i - 1] and b[j - 1] are different characters, what does dp[i][j] equal?"
+  options={["dp[i-1][j-1] + 1", "max(dp[i-1][j], dp[i][j-1])", "0", "dp[i-1][j-1]"]}
+  answer={1}
+  explanation="On a mismatch, at least one of the two last characters is not the end of the LCS, so drop one or the other and keep the better result. Resetting to 0 is the rule for longest common substring."
+/>

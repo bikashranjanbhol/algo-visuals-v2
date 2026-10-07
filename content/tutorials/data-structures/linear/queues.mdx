@@ -1,0 +1,327 @@
+---
+title: "Queues"
+description: "The first-in, first-out structure behind task scheduling, buffering and breadth-first search, built efficiently with a circular buffer."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+A queue is a collection where items leave in the **same order they arrived**. New items join at the back, and items are removed from the front. That rule is called FIFO, for "first in, first out", and it's the fairest way to handle anything that has to wait its turn.
+
+Queues are everywhere in software: print jobs waiting for a printer, requests waiting for a web server, keystrokes waiting to be processed, and nodes waiting to be explored in [breadth-first search](/tutorials/graphs/traversal/breadth-first-search). In this lesson you'll learn the operations, see why the obvious array implementation is a trap, and build a fast queue on a **circular buffer**.
+
+## First in, first out
+
+Picture the line at a coffee shop. New customers join at the back, the barista serves whoever is at the front, and nobody cuts in line. The person who has waited longest is always served next.
+
+Compare that with a [stack](/tutorials/data-structures/linear/stacks), which is like a pile of plates: the newest item leaves first. Same kind of interface, opposite order.
+
+```text
+            ┌────┬────┬────┬────┐
+dequeue ◄── │ A  │ B  │ C  │ D  │ ◄── enqueue
+            └────┴────┴────┴────┘
+             front           rear
+```
+
+## Core operations
+
+| Operation      | What it does                                   |
+| -------------- | ---------------------------------------------- |
+| `enqueue(x)`   | Add `x` to the rear of the queue               |
+| `dequeue()`    | Remove and return the item at the front        |
+| `peek()`       | Return the front item without removing it      |
+| `isEmpty()`    | Report whether the queue has no items          |
+| `size()`       | Report how many items are waiting              |
+
+Here's a short sequence of operations:
+
+```text
+enqueue(A)   front → [A]
+enqueue(B)   front → [A, B]
+enqueue(C)   front → [A, B, C]
+dequeue()    front → [B, C]       returns A
+enqueue(D)   front → [B, C, D]
+dequeue()    front → [C, D]       returns B
+```
+
+### Try it
+
+Enqueue a few values and dequeue them. Unlike a stack, items leave in exactly the order they entered.
+
+<StackQueueVisualizer mode="queue" />
+
+## Building a queue
+
+### The naive array trap
+
+The obvious approach is a [dynamic array](/tutorials/data-structures/linear/arrays): append to the end to enqueue, and remove index 0 to dequeue. Enqueue is fast, but removing the first element forces every remaining element to shift one slot left:
+
+```text
+dequeue from [A, B, C, D, E]:
+
+  remove A  →  [ _ | B | C | D | E ]
+  shift     →  [ B | C | D | E ]       4 moves for 4 remaining items
+```
+
+That makes every dequeue **O(n)**, and processing `n` items costs O(n²) in total.
+
+<Callout type="warning" title="Don't dequeue with pop(0) or shift()">
+
+In Python, `list.pop(0)` shifts every remaining element. JavaScript's `array.shift()` is O(n) per call too, at least in the general case. They're fine for tiny lists, but they quietly turn a linear algorithm into a quadratic one. Use `collections.deque` in Python and `ArrayDeque` in Java instead.
+
+</Callout>
+
+### Circular buffer
+
+The fix is to stop moving the elements and move the **front index** instead. Keep a fixed block of slots, an index `head` pointing at the front item, and a count `size`. The rear is computed from those two. When an index runs off the end of the block, it wraps around to 0 using the modulo operator. That's why this layout is also called a **ring buffer**.
+
+```text
+capacity = 8, head = 5, size = 5
+
+index:   0    1    2    3    4    5    6    7
+       ┌────┬────┬────┬────┬────┬────┬────┬────┐
+       │ D  │ E  │    │    │    │ A  │ B  │ C  │
+       └────┴────┴────┴────┴────┴────┴────┴────┘
+                   ▲                   ▲
+                 tail                head (front)
+
+tail = (head + size) % capacity = (5 + 5) % 8 = 2
+```
+
+The queue holds A, B, C, D, E in order, even though D and E have wrapped around to the start of the block. Dequeue reads `data[head]` and advances `head` by one, modulo the capacity. Enqueue writes to the `tail` slot and increments `size`. Both are O(1), and nothing ever shifts.
+
+When the buffer fills up, allocate one twice as large and copy the items over in queue order, so the front lands at index 0 again. Just as with dynamic arrays, doubling makes enqueue **amortized O(1)**.
+
+### Linked list
+
+A [linked list](/tutorials/data-structures/linear/linked-lists) with `head` and `tail` pointers also works naturally: enqueue at the tail, dequeue at the head. Both operations are O(1) in the worst case, though each item costs a separate allocation and the nodes are scattered in memory.
+
+## Implementation
+
+This queue uses a circular buffer that doubles in size when full.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="circular_queue.py" {18-19,27}
+class Queue:
+    """FIFO queue backed by a circular buffer that grows when full."""
+
+    def __init__(self, capacity=8):
+        self._data = [None] * max(1, capacity)
+        self._head = 0      # index of the front element
+        self._size = 0
+
+    def __len__(self):
+        return self._size
+
+    def is_empty(self):
+        return self._size == 0
+
+    def enqueue(self, value):
+        if self._size == len(self._data):
+            self._grow()
+        tail = (self._head + self._size) % len(self._data)
+        self._data[tail] = value
+        self._size += 1
+
+    def dequeue(self):
+        if self.is_empty():
+            raise IndexError("dequeue from empty queue")
+        value = self._data[self._head]
+        self._data[self._head] = None   # release the reference
+        self._head = (self._head + 1) % len(self._data)
+        self._size -= 1
+        return value
+
+    def peek(self):
+        if self.is_empty():
+            raise IndexError("peek at empty queue")
+        return self._data[self._head]
+
+    def _grow(self):
+        old = self._data
+        self._data = [None] * (2 * len(old))
+        # Unroll the ring so the front lands at index 0.
+        for i in range(self._size):
+            self._data[i] = old[(self._head + i) % len(old)]
+        self._head = 0
+```
+
+</Tab>
+<Tab>
+
+```javascript title="circularQueue.js"
+class Queue {
+  #data;
+  #head = 0; // index of the front element
+  #size = 0;
+
+  constructor(capacity = 8) {
+    this.#data = new Array(Math.max(1, capacity));
+  }
+
+  get size() {
+    return this.#size;
+  }
+
+  isEmpty() {
+    return this.#size === 0;
+  }
+
+  enqueue(value) {
+    if (this.#size === this.#data.length) this.#grow();
+    const tail = (this.#head + this.#size) % this.#data.length;
+    this.#data[tail] = value;
+    this.#size++;
+  }
+
+  dequeue() {
+    if (this.#size === 0) throw new Error("dequeue from empty queue");
+    const value = this.#data[this.#head];
+    this.#data[this.#head] = undefined; // release the reference
+    this.#head = (this.#head + 1) % this.#data.length;
+    this.#size--;
+    return value;
+  }
+
+  peek() {
+    if (this.#size === 0) throw new Error("peek at empty queue");
+    return this.#data[this.#head];
+  }
+
+  #grow() {
+    const old = this.#data;
+    this.#data = new Array(old.length * 2);
+    // Unroll the ring so the front lands at index 0.
+    for (let i = 0; i < this.#size; i++) {
+      this.#data[i] = old[(this.#head + i) % old.length];
+    }
+    this.#head = 0;
+  }
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="CircularQueue.java"
+import java.util.NoSuchElementException;
+
+public class CircularQueue<T> {
+    private Object[] data;
+    private int head; // index of the front element
+    private int size;
+
+    public CircularQueue() {
+        this(8);
+    }
+
+    public CircularQueue(int capacity) {
+        data = new Object[Math.max(1, capacity)];
+    }
+
+    public int size() {
+        return size;
+    }
+
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    public void enqueue(T value) {
+        if (size == data.length) grow();
+        int tail = (head + size) % data.length;
+        data[tail] = value;
+        size++;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T dequeue() {
+        if (size == 0) throw new NoSuchElementException("dequeue from empty queue");
+        T value = (T) data[head];
+        data[head] = null; // release the reference
+        head = (head + 1) % data.length;
+        size--;
+        return value;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T peek() {
+        if (size == 0) throw new NoSuchElementException("peek at empty queue");
+        return (T) data[head];
+    }
+
+    private void grow() {
+        Object[] bigger = new Object[data.length * 2];
+        // Unroll the ring so the front lands at index 0.
+        for (int i = 0; i < size; i++) {
+            bigger[i] = data[(head + i) % data.length];
+        }
+        data = bigger;
+        head = 0;
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="tip" title="In real code, use the standard library">
+
+Python's `collections.deque` gives O(1) `append` and `popleft`. Java's `ArrayDeque` implements the `Queue` interface with `offer`, `poll` and `peek`, and it's a circular buffer under the hood. JavaScript has no built-in queue, so a small class like the one above, or a library, is the way to go for large workloads.
+
+</Callout>
+
+## Complexity
+
+| Operation          | Array with shifting | Circular buffer  | Linked list |
+| ------------------ | ------------------- | ---------------- | ----------- |
+| enqueue            | O(1) amortized      | O(1) amortized   | O(1)        |
+| dequeue            | O(n)                | O(1)             | O(1)        |
+| peek               | O(1)                | O(1)             | O(1)        |
+| isEmpty, size      | O(1)                | O(1)             | O(1)        |
+| Space for n items  | O(n)                | O(n)             | O(n)        |
+
+## Variations
+
+### Deque
+
+A **double-ended queue** (deque, pronounced "deck") allows adding and removing at both ends in O(1). It can act as a stack, a queue, or both at once. Circular buffers and doubly linked lists both make good deques, and sliding-window algorithms rely on them heavily.
+
+### Priority queue
+
+A **priority queue** doesn't follow arrival order at all. Each item has a priority, and the highest-priority item is always served next, like patients in an emergency room. It's usually built with a [heap](/tutorials/data-structures/non-linear/heaps), which supports insert and remove-min in O(log n).
+
+### Bounded and blocking queues
+
+A **bounded** queue has a fixed capacity. When it's full, it either rejects new items or overwrites the oldest ones, which is common for audio buffers and logs. A **blocking** queue makes producers wait when it's full and consumers wait when it's empty. It's the backbone of producer-consumer pipelines in concurrent programs.
+
+## Where queues show up
+
+- **Breadth-first search.** [BFS](/tutorials/graphs/traversal/breadth-first-search) visits nodes in order of distance from the start by keeping a queue of discovered-but-unvisited nodes. Level-order traversal of a [binary tree](/tutorials/data-structures/non-linear/binary-trees) works the same way.
+- **Scheduling.** Operating systems queue processes waiting for the CPU, and printers queue jobs.
+- **Buffering.** Network packets, keyboard input and video frames are queued so a fast producer and a slow consumer can work at different speeds.
+- **Message queues.** Systems like RabbitMQ and Amazon SQS let separate services communicate by passing messages through durable queues.
+- **Rate limiting.** A queue of recent request timestamps tells you how many requests arrived in the last minute: drop old timestamps from the front, add new ones at the back.
+
+## Key takeaways
+
+- A queue is **FIFO**: items are dequeued in the same order they were enqueued.
+- Dequeuing from the front of a plain array is O(n) because everything shifts. Avoid `pop(0)` and `shift()` on large queues.
+- A **circular buffer** moves the front index instead of the data, giving O(1) dequeue and amortized O(1) enqueue.
+- A linked list with head and tail pointers is the other classic O(1) implementation.
+- Deques, priority queues and blocking queues are variations on the same idea, and BFS is the queue's signature algorithm.
+
+<Quiz
+  question="Starting from an empty queue, you run enqueue(A), enqueue(B), dequeue(), enqueue(C), dequeue(). Which item is at the front now?"
+  options={["A", "B", "C", "The queue is empty"]}
+  answer={2}
+  explanation="After the two enqueues the queue is A, B. The first dequeue removes A, then C joins the rear, giving B, C. The second dequeue removes B, leaving C at the front."
+/>
+
+<Quiz
+  question="A circular buffer has capacity 8, head = 6 and size = 4. At which index will the next enqueued item be stored?"
+  options={["10", "2", "4", "7"]}
+  answer={1}
+  explanation="The tail index is (head + size) mod capacity = (6 + 4) mod 8 = 2. The occupied slots are 6, 7, 0 and 1, so the next item wraps around to index 2."
+/>

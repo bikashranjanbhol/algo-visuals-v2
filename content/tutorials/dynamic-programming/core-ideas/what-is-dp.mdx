@@ -1,0 +1,292 @@
+---
+title: "What Is Dynamic Programming?"
+description: "Learn what dynamic programming really is, the two properties every DP problem shares, and how remembering answers turns exponential work into linear."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+Dynamic programming (DP) has a reputation as the scariest topic in algorithms. It shows up in coding interviews, programming contests and real software: spell checkers, `diff` tools, DNA analysis and route planners all rely on it. Yet the core idea fits in one sentence: **never solve the same subproblem twice.** Solve each smaller piece once, write the answer down, and look it up the next time you need it.
+
+In this lesson you'll see why straightforward recursion can be shockingly slow, learn the two properties that make a problem a good fit for DP, and watch a tiny cache turn an exponential algorithm into a linear one. Every other lesson in this tutorial builds on these ideas, so take your time here.
+
+## The Big Idea
+
+Ask a friend to work out `1 + 1 + 1 + 1 + 1 + 1 + 1 + 1`. They'll count and say 8. Now write another `+ 1` on the end and ask again. They'll answer 9 instantly. They didn't recount from scratch: they **remembered** the previous answer and did one more step of work.
+
+That's dynamic programming in a nutshell. More precisely, a DP algorithm:
+
+1. **Breaks** a problem into smaller subproblems that have the same shape as the original.
+2. **Solves** each distinct subproblem exactly once and stores its answer.
+3. **Combines** stored answers to solve bigger and bigger subproblems until the original problem is solved.
+
+### Where the name comes from
+
+The mathematician Richard Bellman coined the term in the 1950s. Back then, "programming" meant *planning*, as in filling out a schedule or table, the same sense as "linear programming." It had nothing to do with writing code. Bellman later admitted he picked "dynamic" partly because it sounded impressive. So don't read too much into the name. A more honest label would be "solving problems with a table of remembered answers."
+
+## Fibonacci, the Slow Way
+
+The Fibonacci sequence starts 0, 1, 1, 2, 3, 5, 8, 13, … where each number is the sum of the two before it. Written as a recurrence:
+
+```text
+fib(0) = 0
+fib(1) = 1
+fib(n) = fib(n - 1) + fib(n - 2)    for n >= 2
+```
+
+That definition translates directly into [recursion](/tutorials/algorithms/getting-started/recursion):
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="fib_naive.py"
+def fib(n: int) -> int:
+    if n < 2:          # base cases: fib(0) = 0, fib(1) = 1
+        return n
+    return fib(n - 1) + fib(n - 2)
+```
+
+</Tab>
+<Tab>
+
+```javascript title="fibNaive.js"
+function fib(n) {
+  if (n < 2) return n; // base cases: fib(0) = 0, fib(1) = 1
+  return fib(n - 1) + fib(n - 2);
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="FibNaive.java"
+public class FibNaive {
+    public static long fib(int n) {
+        if (n < 2) return n; // base cases: fib(0) = 0, fib(1) = 1
+        return fib(n - 1) + fib(n - 2);
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+It's short, readable and obviously correct. It's also painfully slow. Try `fib(50)` and you'll be waiting a long time.
+
+### The recursion tree
+
+To see why, draw every call that `fib(5)` makes. Each node calls the two nodes below it:
+
+```text
+                              fib(5)
+                  /                          \
+              fib(4)                        fib(3)
+           /          \                    /      \
+       fib(3)        fib(2)            fib(2)    fib(1)
+       /    \        /    \            /    \
+   fib(2) fib(1) fib(1) fib(0)     fib(1) fib(0)
+   /    \
+fib(1) fib(0)
+```
+
+Look closely and you'll spot the problem: `fib(3)` is computed twice, `fib(2)` three times and `fib(1)` five times. The function has no memory, so it re-derives the same answers over and over.
+
+### Counting the waste
+
+Computing `fib(5)` takes 15 calls. Each time `n` grows by one, the number of calls grows by a factor of about 1.6, so the running time is exponential: roughly O(1.618ⁿ), usually bounded as O(2ⁿ) in [Big-O notation](/tutorials/algorithms/getting-started/big-o-notation). Computing `fib(50)` this way makes more than **40 billion** calls.
+
+Here's the absurd part: there are only 51 *different* questions in that entire computation, `fib(0)` through `fib(50)`. Everything else is repeated work.
+
+Recursion runs on the **call stack**. The visualizer below shows a generic [stack](/tutorials/data-structures/linear/stacks) rather than Fibonacci itself, but you can use it to trace `fib(3)` by hand: push `fib(3)`, push `fib(2)`, push `fib(1)`, then pop it (it returns 1), push `fib(0)`, pop it, and so on. Every push is a function call and every pop is a return.
+
+<StackQueueVisualizer mode="stack" />
+
+Notice that the stack never gets deeper than about `n` frames. Naive Fibonacci doesn't run out of memory. It runs out of *time*, because of the sheer number of pushes and pops.
+
+## The Two Ingredients
+
+Dynamic programming works when a problem has two properties.
+
+### Overlapping subproblems
+
+The same subproblems come up again and again, exactly as `fib(3)` and `fib(2)` did above. If they didn't repeat, storing answers would buy you nothing.
+
+Compare this with [merge sort](/tutorials/algorithms/sorting/merge-sort). It splits an array into two halves that never overlap, so every subarray is sorted exactly once. A cache wouldn't help at all. That's plain **divide and conquer**, not DP.
+
+### Optimal substructure
+
+An optimal solution to the whole problem can be built from optimal solutions to its subproblems.
+
+Shortest paths are the classic example. If the shortest route from A to C passes through B, then the A-to-B part must itself be a shortest route from A to B. If it weren't, you could swap in a shorter A-to-B route and improve the whole trip. That property is what algorithms like [Dijkstra](/tutorials/graphs/shortest-paths/dijkstra) rely on.
+
+Now consider the *longest simple path* (no repeated vertices). The longest path from A to C through B does not necessarily contain the longest path from A to B, because that longer detour might use up vertices the B-to-C leg needs. The pieces don't combine cleanly, so there's no straightforward DP. In fact, nobody knows an efficient algorithm for it at all.
+
+<Callout type="note" title="DP vs. divide and conquer vs. greedy">
+
+**Divide and conquer** splits a problem into *independent* subproblems ([merge sort](/tutorials/algorithms/sorting/merge-sort), [quick sort](/tutorials/algorithms/sorting/quick-sort)). **Dynamic programming** handles subproblems that *overlap*. **Greedy** algorithms commit to the choice that looks best right now and never reconsider. DP weighs every choice and keeps the best one, which makes it slower but correct in cases where greedy fails, as you'll see in the [0/1 knapsack](/tutorials/dynamic-programming/classic-problems/knapsack) lesson.
+
+</Callout>
+
+## Fixing Fibonacci
+
+The fix is almost embarrassingly simple: before computing `fib(k)`, check whether you already know the answer. If you do, return it. If not, compute it and save it. A [hash table](/tutorials/data-structures/non-linear/hash-tables) (a `dict`, `Map` or `HashMap`) makes a perfect notebook.
+
+### Remember results
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="fib_memo.py" {7-10}
+def fib(n: int) -> int:
+    memo: dict[int, int] = {}
+
+    def solve(k: int) -> int:
+        if k < 2:
+            return k
+        if k in memo:                          # solved before? reuse it
+            return memo[k]
+        memo[k] = solve(k - 1) + solve(k - 2)  # solve once, store
+        return memo[k]
+
+    return solve(n)
+```
+
+</Tab>
+<Tab>
+
+```javascript title="fibMemo.js" {6-9}
+function fib(n) {
+  const memo = new Map();
+
+  function solve(k) {
+    if (k < 2) return k;
+    if (memo.has(k)) return memo.get(k); // solved before? reuse it
+    const result = solve(k - 1) + solve(k - 2);
+    memo.set(k, result); // solve once, store
+    return result;
+  }
+
+  return solve(n);
+}
+```
+
+</Tab>
+<Tab>
+
+```java title="FibMemo.java" {9-12}
+import java.util.HashMap;
+import java.util.Map;
+
+public class FibMemo {
+    private final Map<Integer, Long> memo = new HashMap<>();
+
+    public long fib(int n) {
+        if (n < 2) return n;
+        if (memo.containsKey(n)) return memo.get(n); // solved before? reuse it
+        long result = fib(n - 1) + fib(n - 2);
+        memo.put(n, result); // solve once, store
+        return result;
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+Now each `fib(k)` is computed once. Any later request for it is a constant-time lookup, and the sprawling tree collapses into a single chain:
+
+```text
+fib(5)
+├── fib(4)
+│   ├── fib(3)
+│   │   ├── fib(2)
+│   │   │   ├── fib(1)  → 1   base case
+│   │   │   └── fib(0)  → 0   base case
+│   │   └── fib(1)      → 1   base case
+│   └── fib(2)          → 1   cached!
+└── fib(3)              → 2   cached!
+```
+
+This technique is called **memoization**. The word comes from "memo," a note to your future self, not from "memorization."
+
+### Build from the bottom
+
+You can also skip recursion entirely. Since every value depends only on smaller ones, start at the bottom and fill a table from left to right:
+
+```text
+i        0   1   2   3   4   5   6   7
+fib(i)   0   1   1   2   3   5   8  13
+```
+
+```python title="fib_table.py"
+def fib(n: int) -> int:
+    if n < 2:
+        return n
+    dp = [0] * (n + 1)
+    dp[1] = 1
+    for i in range(2, n + 1):
+        dp[i] = dp[i - 1] + dp[i - 2]
+    return dp[n]
+```
+
+This style is called **tabulation**. The [next lesson](/tutorials/dynamic-programming/core-ideas/memoization-vs-tabulation) compares the two approaches in depth.
+
+### How much faster?
+
+Counting function calls tells the story:
+
+| n   | Calls without memo | Calls with memo |
+| --- | -----------------: | --------------: |
+| 10  |                177 |              19 |
+| 30  |          2,692,537 |              59 |
+| 50  |     40,730,022,147 |              99 |
+
+The naive version makes `2 · fib(n + 1) − 1` calls. The memoized one makes `2n − 1`. Going from O(2ⁿ) to O(n) is the difference between a program that runs for a very long time and one that answers before you can blink.
+
+## Spotting DP Problems
+
+DP problems rarely announce themselves. These clues should make you suspicious.
+
+### Telltale signs
+
+- The problem asks you to **count the ways** to do something, find a **minimum or maximum** (cost, profit, length), or decide **whether something is possible**.
+- You make a **sequence of choices**, and each choice changes what's possible later.
+- A brute-force solution would try **every combination, subset or path**.
+- When you sketch the brute force, the **same smaller question** shows up in different branches.
+
+### A five-step recipe
+
+Every problem in this tutorial is solved with the same framework:
+
+1. **Define the state.** What parameters identify a subproblem? For Fibonacci it's just the index `i`.
+2. **Write the recurrence.** How does a state's answer depend on smaller states?
+3. **Pin down the base cases.** Which states can you answer directly?
+4. **Pick an evaluation order.** Use memoized recursion, or fill a table so every dependency is ready before it's needed.
+5. **Find the answer.** Which state holds the solution to the original problem?
+
+<Callout type="tip" title="Start with brute force">
+
+Almost every DP solution starts life as a slow recursive function. Write that first and test it on small inputs. Then add a cache. The function's parameters become your **state**, and its recursive calls become your **recurrence**. You've done most of the hard thinking before you write a single table.
+
+</Callout>
+
+## Key takeaways
+
+- Dynamic programming means **solving each subproblem once** and reusing the stored answer.
+- A problem needs **overlapping subproblems** and **optimal substructure** for DP to apply.
+- Naive recursive Fibonacci is O(2ⁿ) because it recomputes the same values. Adding a cache makes it O(n).
+- **Memoization** caches results of a recursive function (top-down). **Tabulation** fills a table from the base cases up (bottom-up).
+- Use the five-step recipe: state, recurrence, base cases, evaluation order, answer. You'll apply it to [Climbing Stairs](/tutorials/dynamic-programming/classic-problems/climbing-stairs), [0/1 Knapsack](/tutorials/dynamic-programming/classic-problems/knapsack) and [Longest Common Subsequence](/tutorials/dynamic-programming/classic-problems/longest-common-subsequence).
+
+<Quiz
+  question="Which pair of properties makes a problem a good fit for dynamic programming?"
+  options={["Sorted input and a unique answer", "Overlapping subproblems and optimal substructure", "Independent subproblems and a greedy choice", "Small input size and a recursive definition"]}
+  answer={1}
+  explanation="DP pays off when the same subproblems repeat (so caching saves work) and when optimal answers to subproblems combine into an optimal answer for the whole problem."
+/>
+
+<Quiz
+  question="Naive recursive Fibonacci runs in exponential time. What is its time complexity once you add memoization?"
+  options={["O(log n)", "O(n)", "O(n log n)", "O(2ⁿ)"]}
+  answer={1}
+  explanation="Each of the n + 1 subproblems, fib(0) through fib(n), is computed once and does a constant amount of work besides its cached lookups, so the total is linear."
+/>

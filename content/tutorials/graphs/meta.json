@@ -1,0 +1,28 @@
+{
+  "title": "Graph Algorithms",
+  "description": "Model roads, networks and dependencies as graphs, then explore them with BFS and DFS, order tasks with topological sort, and find the fastest route with Dijkstra's algorithm.",
+  "order": 3,
+  "level": "Intermediate",
+  "icon": "network",
+  "accent": "emerald",
+  "chapters": [
+    {
+      "slug": "foundations",
+      "title": "Foundations",
+      "description": "The vocabulary of vertices and edges, and the data structures that store a graph in memory.",
+      "topics": ["graph-basics", "representations"]
+    },
+    {
+      "slug": "traversal",
+      "title": "Traversal",
+      "description": "Visit every vertex systematically, layer by layer or branch by branch, and put dependencies in order.",
+      "topics": ["breadth-first-search", "depth-first-search", "topological-sort"]
+    },
+    {
+      "slug": "shortest-paths",
+      "title": "Shortest Paths",
+      "description": "Find the cheapest route through a weighted graph with a greedy strategy and a priority queue.",
+      "topics": ["dijkstra"]
+    }
+  ]
+}

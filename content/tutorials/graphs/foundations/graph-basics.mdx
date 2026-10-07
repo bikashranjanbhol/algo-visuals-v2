@@ -1,0 +1,274 @@
+---
+title: "Graph Basics"
+description: "Learn what graphs are, the vocabulary used to describe them, and how to spot the graph problems hiding inside everyday tasks."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+Look at a subway map, a family tree, or your friends list on a social network, and you're looking at the same underlying idea: a collection of *things* and the *connections* between them. In computer science that idea is called a **graph**, and it's one of the most versatile tools you'll ever learn. Once you can see graphs, you find them everywhere: in road networks, web links, package dependencies, chess positions, and even in puzzles that don't look like graphs at all.
+
+This page lays the foundation for the rest of the tutorial. You'll learn the vocabulary (vertices, edges, degree, paths, cycles), the main flavors of graphs, and how to turn a messy real-world problem into a clean graph that algorithms like breadth-first search and Dijkstra's algorithm can work on.
+
+## Why graphs matter
+
+Arrays and linked lists model data in a line. Trees model hierarchies. But many relationships are neither linear nor hierarchical: two cities can be joined by several different routes, two people can share dozens of mutual friends, and a chain of dependencies can loop back on itself. Graphs handle all of these with one simple model.
+
+| Domain           | Vertices      | Edges                                              |
+| ---------------- | ------------- | -------------------------------------------------- |
+| Road maps        | Intersections | Road segments, weighted by distance or travel time |
+| Social networks  | People        | Friendships (two-way) or follows (one-way)         |
+| The web          | Pages         | Hyperlinks from one page to another                |
+| Package managers | Libraries     | "Depends on" relationships                         |
+| Airline routes   | Airports      | Flights, weighted by price or duration             |
+| Puzzles          | Game states   | Legal moves                                        |
+
+The payoff of modeling a problem as a graph is reuse. The same handful of algorithms answers questions across all of these domains. "What's the fastest route home?" and "What's the cheapest flight to Tokyo?" are both shortest-path questions. "Which libraries must be built first?" is a topological sort. Learn the algorithms once and apply them everywhere.
+
+## Core vocabulary
+
+### Vertices and edges
+
+A graph G = (V, E) consists of a set of **vertices** V (also called nodes) and a set of **edges** E, where each edge connects a pair of vertices. Throughout this tutorial we'll also use V and E to mean the *number* of vertices and edges, which is how running times are expressed: O(V + E), for example.
+
+Two vertices joined by an edge are **adjacent**, and we call them **neighbors**. Here's a small graph we'll keep coming back to:
+
+```text
+    A ─── B
+    │     │
+    C ─── D ─── E
+```
+
+It has five vertices, A through E, and five edges: A–B, A–C, B–D, C–D and D–E.
+
+### Directed or undirected
+
+In an **undirected** graph, edges are two-way streets: if A is connected to B, then B is connected to A. Friendships on most social networks work like this.
+
+In a **directed** graph (or *digraph*), every edge has a direction, drawn as an arrow from a source to a target. Following someone online, a hyperlink, and "course X is a prerequisite for course Y" are all one-way relationships.
+
+```text
+  Undirected             Directed
+
+  A ─── B                A ──► B
+  │     │                ▲     │
+  │     │                │     ▼
+  C ─── D                C ◄── D
+```
+
+In the directed version you can travel A → B → D → C → A, but never the other way around.
+
+### Weighted or unweighted
+
+Sometimes each edge carries a number called its **weight** or **cost**: a distance in kilometers, a ticket price, a network latency. A graph with such numbers is **weighted**. In an **unweighted** graph every edge counts the same, as if each had weight 1.
+
+This distinction decides which algorithms you can use. [Breadth-first search](/tutorials/graphs/traversal/breadth-first-search) finds shortest paths in unweighted graphs, while [Dijkstra's algorithm](/tutorials/graphs/shortest-paths/dijkstra) is needed once edges have different (non-negative) weights.
+
+### Degree
+
+The **degree** of a vertex is the number of edges touching it. In our example graph, D has degree 3 (its neighbors are B, C and E), E has degree 1, and every other vertex has degree 2.
+
+Directed graphs split this in two. The **in-degree** counts arrows coming in, and the **out-degree** counts arrows going out. In-degree turns out to be the key ingredient of [topological sorting](/tutorials/graphs/traversal/topological-sort).
+
+<Callout type="tip" title="The handshake lemma">
+
+Add up the degrees of every vertex in an undirected graph and you always get exactly **2E**, because each edge adds one to the degree of *both* of its endpoints. In our example: 2 + 2 + 2 + 3 + 1 = 10 = 2 × 5. A neat consequence is that the number of odd-degree vertices is always even.
+
+</Callout>
+
+## Paths, cycles, and connectivity
+
+### Paths
+
+A **path** is a sequence of vertices where each consecutive pair is joined by an edge, such as A → B → D → E. In an unweighted graph its **length** is the number of edges (3 here); in a weighted graph it's the sum of the edge weights. A **simple path** never repeats a vertex. The **shortest path** between two vertices is the one with the smallest length, and finding it efficiently is one of the central problems of this tutorial.
+
+### Cycles
+
+A **cycle** is a path that returns to where it started without reusing any edge or revisiting any other vertex, like A → B → D → C → A in our example. A graph with no cycles is **acyclic**.
+
+Cycles are what make graph traversal tricky: without care, an algorithm can walk in circles forever. That's why every traversal in this tutorial keeps track of the vertices it has already **visited**.
+
+### Connectivity
+
+An undirected graph is **connected** if there's a path between every pair of vertices. If not, it falls apart into **connected components**: islands of vertices that can reach each other but nothing outside their island.
+
+```text
+  Three connected components
+
+  A ─── B      D ─── E      G
+  │                  │
+  C                  F
+```
+
+Directed graphs have a stronger notion. A digraph is **strongly connected** if every vertex can reach every other vertex *while following the arrows*. The directed square above is strongly connected; flip any single arrow and it no longer is.
+
+## Families of graphs
+
+Some shapes show up so often that they have their own names. Recognizing them tells you which algorithms apply, and which shortcuts you can take.
+
+### Trees
+
+A **tree** is a connected, acyclic, undirected graph. A tree with V vertices always has exactly V − 1 edges, and there is exactly one simple path between any two of its vertices. The [binary trees](/tutorials/data-structures/non-linear/binary-trees) you may already know are *rooted* trees in which each node has at most two children. When BFS or DFS explores a connected graph, the edges it uses to discover new vertices form a **spanning tree** of that graph.
+
+### DAGs
+
+A **directed acyclic graph** (DAG) is a directed graph with no directed cycles. DAGs model anything with dependencies or a sense of "before and after": build steps, course prerequisites, spreadsheet formulas, version-control histories. The vertices of a DAG can always be lined up so that every arrow points forward, which is exactly what a [topological sort](/tutorials/graphs/traversal/topological-sort) computes.
+
+### Bipartite graphs
+
+A graph is **bipartite** if its vertices can be split into two groups so that every edge runs *between* the groups and never inside one: applicants and jobs, students and classes, users and the movies they've rated. A graph is bipartite exactly when it contains no odd-length cycle, and BFS can test this in linear time.
+
+### Dense and sparse
+
+A **complete** graph has an edge between every pair of vertices, the most a graph can have without self-loops or duplicate edges. That gives a sense of scale:
+
+| Graph                   | Number of edges        |
+| ----------------------- | ---------------------- |
+| Undirected, at most     | V(V − 1) / 2           |
+| Directed, at most       | V(V − 1)               |
+| Tree                    | exactly V − 1          |
+| Connected, at least     | V − 1                  |
+
+So E can range from 0 all the way up to roughly V². A graph whose edge count is close to V² is **dense**; one whose edge count is closer to V is **sparse**. Most real-world graphs are extremely sparse (you have hundreds of friends, not billions), and that single fact drives how we store graphs in memory, as you'll see in [Representing Graphs](/tutorials/graphs/foundations/representations).
+
+<Callout type="note" title="Simple graphs">
+
+Unless stated otherwise, this tutorial assumes **simple graphs**: no self-loops (edges from a vertex to itself) and no parallel edges (two edges joining the same pair of vertices). The algorithms still work on these "multigraphs" with small tweaks, but simple graphs keep the reasoning clean.
+
+</Callout>
+
+## Your first graph in code
+
+How does a graph actually live inside a program? The next lesson compares the options in depth, but here's the most common one, the **adjacency list**: a map from each vertex to the list of its neighbors. This snippet builds one from a list of edges, prints each vertex's degree, and checks the handshake lemma.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="degrees.py"
+def build_graph(edges, directed=False):
+    """Turn a list of (u, v) pairs into an adjacency list."""
+    graph = {}
+    for u, v in edges:
+        graph.setdefault(u, []).append(v)
+        graph.setdefault(v, [])          # make sure v exists even if directed
+        if not directed:
+            graph[v].append(u)
+    return graph
+
+
+edges = [("A", "B"), ("A", "C"), ("B", "D"), ("C", "D"), ("D", "E")]
+graph = build_graph(edges)
+
+for vertex, neighbors in graph.items():
+    print(f"{vertex}: degree {len(neighbors)}, neighbors {neighbors}")
+
+# Handshake lemma: the degrees always sum to twice the number of edges
+degree_sum = sum(len(neighbors) for neighbors in graph.values())
+print(degree_sum == 2 * len(edges))      # True
+```
+
+</Tab>
+<Tab>
+
+```javascript title="degrees.js"
+function buildGraph(edges, directed = false) {
+  const graph = new Map();
+  for (const [u, v] of edges) {
+    if (!graph.has(u)) graph.set(u, []);
+    if (!graph.has(v)) graph.set(v, []); // make sure v exists even if directed
+    graph.get(u).push(v);
+    if (!directed) graph.get(v).push(u);
+  }
+  return graph;
+}
+
+const edges = [["A", "B"], ["A", "C"], ["B", "D"], ["C", "D"], ["D", "E"]];
+const graph = buildGraph(edges);
+
+for (const [vertex, neighbors] of graph) {
+  console.log(`${vertex}: degree ${neighbors.length}, neighbors ${neighbors.join(", ")}`);
+}
+
+// Handshake lemma: the degrees always sum to twice the number of edges
+const degreeSum = [...graph.values()].reduce((sum, n) => sum + n.length, 0);
+console.log(degreeSum === 2 * edges.length); // true
+```
+
+</Tab>
+<Tab>
+
+```java title="Degrees.java"
+import java.util.*;
+
+public class Degrees {
+    static Map<String, List<String>> buildGraph(String[][] edges, boolean directed) {
+        Map<String, List<String>> graph = new LinkedHashMap<>();
+        for (String[] edge : edges) {
+            String u = edge[0], v = edge[1];
+            graph.computeIfAbsent(u, k -> new ArrayList<>()).add(v);
+            graph.computeIfAbsent(v, k -> new ArrayList<>()); // v exists even if directed
+            if (!directed) graph.get(v).add(u);
+        }
+        return graph;
+    }
+
+    public static void main(String[] args) {
+        String[][] edges = {{"A", "B"}, {"A", "C"}, {"B", "D"}, {"C", "D"}, {"D", "E"}};
+        Map<String, List<String>> graph = buildGraph(edges, false);
+
+        int degreeSum = 0;
+        for (Map.Entry<String, List<String>> entry : graph.entrySet()) {
+            List<String> neighbors = entry.getValue();
+            System.out.println(entry.getKey() + ": degree " + neighbors.size()
+                    + ", neighbors " + neighbors);
+            degreeSum += neighbors.size();
+        }
+
+        // Handshake lemma: the degrees always sum to twice the number of edges
+        System.out.println(degreeSum == 2 * edges.length); // true
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+Running it on our five-vertex example reports D with degree 3 and E with degree 1, and confirms that the degrees add up to 2E = 10.
+
+## Thinking in graphs
+
+The hardest part of many graph problems is noticing that they *are* graph problems. Ask two questions: **what are the things?** Those become vertices. **What connects them?** Those become edges. Here are a few graphs in disguise:
+
+- **Mazes and grids.** Each open cell is a vertex, with edges to the neighboring open cells above, below, left and right. "Find the shortest way out" becomes BFS on this graph.
+- **Word ladders.** Turn COLD into WARM one letter at a time: COLD → CORD → CARD → WARD → WARM. Each word is a vertex, and two words are adjacent if they differ in exactly one letter.
+- **Puzzle states.** In a sliding-tile puzzle or a Rubik's cube, each configuration is a vertex and each legal move is an edge. Solving the puzzle in the fewest moves is a shortest-path search.
+- **Scheduling.** Tasks are vertices, and an arrow from X to Y means "X must finish before Y starts". A valid schedule is a topological order.
+
+In several of these, you never build the graph at all. You generate a vertex's neighbors on the fly whenever the algorithm asks for them. These **implicit graphs** let search algorithms handle graphs far too large to store, like the roughly 43 quintillion states of a Rubik's cube.
+
+Here's a sneak peek at what's next. The visualizer below runs breadth-first search, which explores a graph outward from a starting vertex one layer at a time. As you step through it, notice the vocabulary from this page in action: vertices, edges, neighbors, and a growing set of visited vertices.
+
+<GraphTraversalVisualizer algorithm="bfs" />
+
+## Key takeaways
+
+- A graph G = (V, E) is a set of vertices joined by edges. It models any data made of "things plus connections".
+- Edges can be **directed** or **undirected**, and **weighted** or **unweighted**. These choices determine which algorithms apply.
+- The **degree** of a vertex counts its edges, and in an undirected graph the degrees always sum to 2E.
+- **Paths**, **cycles** and **connected components** describe a graph's structure. Traversals track visited vertices so cycles can't trap them.
+- **Trees**, **DAGs** and **bipartite graphs** are special families with useful properties.
+- E ranges from 0 to roughly V², and most real-world graphs are **sparse**.
+- To spot a graph problem, ask: what are the vertices, and what are the edges?
+
+<Quiz
+  question="An undirected simple graph has 6 vertices whose degrees are 3, 3, 2, 2, 1 and 1. How many edges does it have?"
+  options={["6", "12", "4", "It depends on how the graph is drawn"]}
+  answer={0}
+  explanation="By the handshake lemma, the degrees sum to twice the number of edges. 3 + 3 + 2 + 2 + 1 + 1 = 12, so E = 12 / 2 = 6."
+/>
+
+<Quiz
+  question="You want to model follows on a social network, where Alice can follow Bob without Bob following Alice back. Which kind of graph fits best?"
+  options={["An undirected graph", "A directed graph", "A tree", "A complete graph"]}
+  answer={1}
+  explanation="A follow is a one-way relationship, so each edge needs a direction: an arrow from the follower to the account being followed."
+/>

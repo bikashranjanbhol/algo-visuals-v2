@@ -1,0 +1,22 @@
+{
+  "title": "Data Structures",
+  "description": "Learn how the building blocks of every program store and organize data, from arrays and linked lists to trees, heaps and hash tables. Build each one from scratch and learn exactly when to reach for it.",
+  "order": 2,
+  "level": "Beginner",
+  "icon": "layers",
+  "accent": "sky",
+  "chapters": [
+    {
+      "slug": "linear",
+      "title": "Linear Structures",
+      "description": "Sequential containers and the trade-off between contiguous memory and linked nodes.",
+      "topics": ["arrays", "linked-lists", "stacks", "queues"]
+    },
+    {
+      "slug": "non-linear",
+      "title": "Trees & Hashing",
+      "description": "Hierarchical and hashed structures that unlock logarithmic and constant-time lookups.",
+      "topics": ["binary-trees", "binary-search-trees", "heaps", "hash-tables"]
+    }
+  ]
+}

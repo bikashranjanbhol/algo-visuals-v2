@@ -1,0 +1,266 @@
+---
+title: "Merge Sort"
+description: "Master merge sort, the classic divide-and-conquer algorithm: split the array, sort each half, and merge them, in guaranteed O(n log n) time."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+Suppose two friends each hand you a stack of exam papers already sorted by score, and you need to combine them into one sorted stack. That's easy: look at the top paper of each stack, take whichever has the lower score, and repeat. You never need to look deeper than the top of each pile.
+
+Merge sort is built entirely on that one easy operation. It splits the array in half, sorts each half (recursively, using merge sort itself), and then merges the two sorted halves together. It's the textbook example of **divide and conquer**, and unlike the quadratic sorts you've seen so far, it runs in O(n log n) time, guaranteed, on every input. If you haven't yet, read [Thinking Recursively](/tutorials/algorithms/getting-started/recursion) first; merge sort is recursion at its most elegant.
+
+## Divide and conquer
+
+Divide and conquer is a strategy for solving problems in three steps:
+
+1. **Divide** the problem into smaller subproblems of the same kind.
+2. **Conquer** each subproblem by solving it recursively. Subproblems that are small enough are solved directly.
+3. **Combine** the solutions to the subproblems into a solution for the whole problem.
+
+For merge sort, that becomes:
+
+1. **Divide**: split the array into two halves at the midpoint.
+2. **Conquer**: recursively sort each half. An array with zero or one element is already sorted, which is the base case.
+3. **Combine**: merge the two sorted halves into one sorted array.
+
+All the real work happens in the merge step. The splitting is trivial, since it's just picking a midpoint.
+
+## The merge step
+
+Merging takes two sorted arrays and produces one sorted array containing all their elements. Keep a pointer at the front of each array. Repeatedly compare the two front elements, copy the smaller one to the output, and advance that pointer. When one array runs out, copy whatever is left of the other.
+
+Here's what merging `[3, 27, 38, 43]` and `[1, 9, 10, 82]` looks like:
+
+```text
+left: [3, 27, 38, 43]    right: [1, 9, 10, 82]
+
+compare  3 vs  1  → take 1    result: [1]
+compare  3 vs  9  → take 3    result: [1, 3]
+compare 27 vs  9  → take 9    result: [1, 3, 9]
+compare 27 vs 10  → take 10   result: [1, 3, 9, 10]
+compare 27 vs 82  → take 27   result: [1, 3, 9, 10, 27]
+compare 38 vs 82  → take 38   result: [1, 3, 9, 10, 27, 38]
+compare 43 vs 82  → take 43   result: [1, 3, 9, 10, 27, 38, 43]
+left is empty     → copy 82   result: [1, 3, 9, 10, 27, 38, 43, 82]
+```
+
+Each comparison places one element in the output, so merging a total of `n` elements takes at most `n − 1` comparisons: linear time. That's the key to merge sort's efficiency.
+
+## A full example
+
+Now let's sort `[38, 27, 43, 3, 9, 82, 10, 1]`. The array is split in half again and again until every piece has one element. Then the pieces are merged back together, level by level:
+
+```text
+                 [38, 27, 43, 3, 9, 82, 10, 1]
+split:       [38, 27, 43, 3]          [9, 82, 10, 1]
+split:      [38, 27]   [43, 3]       [9, 82]   [10, 1]
+split:     [38] [27]  [43] [3]      [9] [82]  [10] [1]
+merge:      [27, 38]   [3, 43]       [9, 82]   [1, 10]
+merge:       [3, 27, 38, 43]          [1, 9, 10, 82]
+merge:           [1, 3, 9, 10, 27, 38, 43, 82]
+```
+
+Eight elements take three levels of splitting, because 8 can be halved three times before reaching 1. The final merge is exactly the one we traced above.
+
+In the visualizer, watch for small sorted runs forming first, then being merged into longer and longer sorted runs until a single run covers the whole array.
+
+<SortingVisualizer algorithm="merge" />
+
+## Implementation
+
+The Python and JavaScript versions favor clarity: they return a new sorted array. The Java version shows a more memory-conscious approach that sorts in place using a single helper buffer allocated once.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="merge_sort.py" {7-9}
+def merge_sort(arr):
+    """Return a new list containing the elements of arr in ascending order."""
+    if len(arr) <= 1:
+        return arr[:]  # base case: 0 or 1 element is already sorted
+
+    mid = len(arr) // 2
+    left = merge_sort(arr[:mid])    # sort the left half
+    right = merge_sort(arr[mid:])   # sort the right half
+    return merge(left, right)       # combine
+
+
+def merge(left, right):
+    """Merge two sorted lists into one sorted list."""
+    result = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:  # <= keeps equal elements in order (stable)
+            result.append(left[i])
+            i += 1
+        else:
+            result.append(right[j])
+            j += 1
+    # One side is exhausted; append whatever remains of the other.
+    result.extend(left[i:])
+    result.extend(right[j:])
+    return result
+
+
+print(merge_sort([38, 27, 43, 3, 9, 82, 10, 1]))
+# [1, 3, 9, 10, 27, 38, 43, 82]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="mergeSort.js" {5-7}
+function mergeSort(arr) {
+  if (arr.length <= 1) return arr.slice(); // base case
+
+  const mid = Math.floor(arr.length / 2);
+  const left = mergeSort(arr.slice(0, mid)); // sort the left half
+  const right = mergeSort(arr.slice(mid)); // sort the right half
+  return merge(left, right); // combine
+}
+
+function merge(left, right) {
+  const result = [];
+  let i = 0;
+  let j = 0;
+  while (i < left.length && j < right.length) {
+    // <= keeps equal elements in their original order (stable)
+    if (left[i] <= right[j]) {
+      result.push(left[i++]);
+    } else {
+      result.push(right[j++]);
+    }
+  }
+  // One side is exhausted; append whatever remains of the other.
+  return result.concat(left.slice(i), right.slice(j));
+}
+
+console.log(mergeSort([38, 27, 43, 3, 9, 82, 10, 1]));
+// [1, 3, 9, 10, 27, 38, 43, 82]
+```
+
+</Tab>
+<Tab>
+
+```java title="MergeSort.java" {12-14}
+import java.util.Arrays;
+
+public class MergeSort {
+    public static void mergeSort(int[] arr) {
+        int[] temp = new int[arr.length]; // one shared buffer for all merges
+        sort(arr, temp, 0, arr.length - 1);
+    }
+
+    private static void sort(int[] arr, int[] temp, int lo, int hi) {
+        if (lo >= hi) return; // 0 or 1 element: already sorted
+        int mid = lo + (hi - lo) / 2;
+        sort(arr, temp, lo, mid);
+        sort(arr, temp, mid + 1, hi);
+        merge(arr, temp, lo, mid, hi);
+    }
+
+    private static void merge(int[] arr, int[] temp, int lo, int mid, int hi) {
+        for (int k = lo; k <= hi; k++) {
+            temp[k] = arr[k];
+        }
+        int i = lo;      // next element of the left half
+        int j = mid + 1; // next element of the right half
+        for (int k = lo; k <= hi; k++) {
+            if (i > mid) {
+                arr[k] = temp[j++];          // left half used up
+            } else if (j > hi) {
+                arr[k] = temp[i++];          // right half used up
+            } else if (temp[i] <= temp[j]) {
+                arr[k] = temp[i++];          // <= keeps the sort stable
+            } else {
+                arr[k] = temp[j++];
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        int[] data = {38, 27, 43, 3, 9, 82, 10, 1};
+        mergeSort(data);
+        System.out.println(Arrays.toString(data));
+        // [1, 3, 9, 10, 27, 38, 43, 82]
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="tip" title="Why less-than-or-equal?">
+
+When the front elements of both halves are equal, the merge takes from the **left** half first. Since the left half came earlier in the original array, equal elements keep their original relative order. That's what makes merge sort **stable**. Change `<=` to `<` and you lose that guarantee.
+
+</Callout>
+
+## Complexity analysis
+
+| Case    | Time       | Notes                                              |
+| ------- | ---------- | -------------------------------------------------- |
+| Best    | O(n log n) | Still splits and merges everything                 |
+| Average | O(n log n) | Same amount of work for any input order            |
+| Worst   | O(n log n) | No input can make it slower                        |
+| Space   | O(n)       | Temporary storage for merging, plus O(log n) stack |
+
+### Where n log n comes from
+
+Picture the recursion as a tree. Each level splits every piece in half, so after about log₂ n levels the pieces have size 1. At every level, the merges together touch each of the `n` elements once, so each level costs O(n) work:
+
+```text
+level 0:   1 piece  of size n     → merging costs about n
+level 1:   2 pieces of size n/2   → merging costs about n
+level 2:   4 pieces of size n/4   → merging costs about n
+  ...
+level k:   n pieces of size 1     → nothing to merge
+
+total:  log₂ n levels × n work per level = O(n log n)
+```
+
+The same result can be written as the recurrence `T(n) = 2T(n/2) + n`: two half-size subproblems plus a linear merge. For a million elements, that's roughly 20 million operations, compared with about 500 billion comparisons for [bubble sort](/tutorials/algorithms/sorting/bubble-sort).
+
+### The cost: extra memory
+
+Merging can't easily be done in place in an array, because you'd overwrite elements before they're placed. So merge sort needs O(n) auxiliary memory for the temporary buffer. For huge arrays on memory-constrained systems, that can be a real drawback, and it's the main reason [quick sort](/tutorials/algorithms/sorting/quick-sort) is often preferred for in-memory arrays.
+
+<Callout type="note" title="Hybrid merge sorts">
+
+Recursing all the way down to single elements is wasteful, because the call overhead dominates for tiny pieces. Real implementations stop splitting at a small size and finish with [insertion sort](/tutorials/algorithms/sorting/insertion-sort). Timsort, used by Python's `sorted()` and Java's sorting of objects, takes this further by detecting runs that are already sorted in the input and merging those.
+
+</Callout>
+
+## When to use it
+
+Merge sort shines when you need:
+
+- **A guaranteed running time.** There's no bad input that degrades it to O(n²), unlike quick sort.
+- **Stability.** Sorting records by one key while preserving an earlier ordering by another.
+- **Linked lists.** Merging only needs sequential access, and on a [linked list](/tutorials/data-structures/linear/linked-lists) it can relink nodes instead of copying them, so no extra buffer is required.
+- **External sorting.** When data is too large to fit in memory, you can sort chunks that fit, write them to disk, and then merge the sorted chunks by streaming through them.
+- **Parallelism.** The two halves are independent, so they can be sorted on different cores at the same time.
+
+Its downsides are the O(n) extra memory and somewhat higher constant factors than quick sort, due to all the copying.
+
+## Key takeaways
+
+- Merge sort splits the array in half, recursively sorts each half, and merges the two sorted halves.
+- Merging two sorted arrays takes linear time by repeatedly taking the smaller front element.
+- It runs in O(n log n) time in the best, average, and worst cases: log₂ n levels with O(n) work each.
+- It's stable but needs O(n) extra memory for arrays.
+- It's ideal for linked lists, external sorting, and anywhere you need predictable performance.
+
+<Quiz
+  question="What is the worst-case time complexity of merge sort?"
+  options={["O(n)", "O(n log n)", "O(n²)", "O(log n)"]}
+  answer={1}
+  explanation="Merge sort always splits the array into halves, giving about log₂ n levels, and each level does O(n) merging work, no matter how the input is ordered."
+/>
+
+<Quiz
+  question="How many levels of splitting does merge sort need for an array of 1,024 elements?"
+  options={["2", "10", "32", "512"]}
+  answer={1}
+  explanation="Each level halves the piece size, and 1,024 can be halved 10 times before reaching 1, since 2¹⁰ = 1,024."
+/>

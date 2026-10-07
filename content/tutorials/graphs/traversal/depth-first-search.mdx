@@ -1,0 +1,352 @@
+---
+title: "Depth-First Search"
+description: "Dive deep into a graph with recursion or a stack, then use DFS to detect cycles, count components and power topological sort."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+How do you escape a maze without a map? One classic strategy: keep walking forward, taking the first unexplored passage you see. When you hit a dead end, backtrack to the most recent junction that still has an unexplored passage and try that one. Carry a piece of chalk and mark every spot you've visited so you never walk the same corridor twice. Congratulations, you've just performed a **depth-first search** (DFS).
+
+Where [breadth-first search](/tutorials/graphs/traversal/breadth-first-search) spreads out cautiously in layers, DFS commits to a path and follows it as deep as it can before backing up. That makes it the wrong tool for shortest paths, but an exceptional tool for uncovering a graph's *structure*: cycles, connected components, dependency orders and more. It's also one of the most natural algorithms to write with [recursion](/tutorials/algorithms/getting-started/recursion).
+
+## The big idea
+
+DFS has one rule: **always go deeper if you can.** From the current vertex, move to any unvisited neighbor and repeat from there. Only when the current vertex has no unvisited neighbors left do you **backtrack** to the vertex you came from and carry on with its remaining neighbors.
+
+That "go deep, then back up" pattern is exactly how a [stack](/tutorials/data-structures/linear/stacks) behaves. The path from the start to where you are now is the stack: going deeper pushes a vertex, and backtracking pops one. You can let the programming language manage that stack for you through recursive calls, or manage it yourself with an explicit stack. Both give you DFS.
+
+## How DFS works
+
+### The recursive definition
+
+DFS is easiest to state recursively. To explore from a vertex u:
+
+1. Mark u as visited.
+2. For each neighbor v of u, if v hasn't been visited, explore from v.
+
+That's the whole algorithm. When the loop finishes, everything reachable from u has been visited and the call returns. That return *is* the backtracking step.
+
+### Tracing an example
+
+Let's run DFS from A on the same graph we used for BFS, again taking neighbors in alphabetical order.
+
+```text
+    A ─── B ─── E
+    │     │     │
+    C ─── D     F ─── G
+```
+
+The recursive calls unfold like this (✓ marks a neighbor that's already visited):
+
+```text
+dfs(A)                      A's neighbors: B, C
+└── dfs(B)                  B's neighbors: A ✓, D, E
+    ├── dfs(D)              D's neighbors: B ✓, C
+    │   └── dfs(C)          C's neighbors: A ✓, D ✓   dead end, backtrack
+    └── dfs(E)              E's neighbors: B ✓, F
+        └── dfs(F)          F's neighbors: E ✓, G
+            └── dfs(G)      G's neighbors: F ✓        dead end, backtrack
+```
+
+The visiting order is **A, B, D, C, E, F, G**. Compare that with BFS's A, B, C, D, E, F, G on the same graph. DFS reaches C the long way around (A → B → D → C) instead of through the direct edge, because it dives all the way down B's branch before it ever looks at A's second neighbor. By the time DFS returns to A and checks C, C is already visited.
+
+The edges DFS used to discover new vertices (A–B, B–D, D–C, B–E, E–F and F–G) form a **DFS tree**. The one edge left over, A–C, connects C back to its ancestor A. It's called a **back edge**, and it's the telltale sign of a cycle: A → B → D → C → A.
+
+Now watch DFS on its own. Notice how it plunges down one branch before backtracking, which looks very different from the expanding rings of BFS.
+
+<GraphTraversalVisualizer algorithm="dfs" />
+
+### Discovery and finish times
+
+A powerful way to understand DFS is to stamp each vertex with two times from a global clock: a **discovery time** when it's first visited, and a **finish time** when its call returns. For our trace:
+
+```text
+ vertex   discovered   finished
+ ──────   ──────────   ────────
+   A           1          14
+   B           2          13
+   D           3           6
+   C           4           5
+   E           7          12
+   F           8          11
+   G           9          10
+```
+
+The intervals nest like parentheses. B's interval, 2 to 13, contains D's (3 to 6) and E's (7 to 12), because D and E are B's descendants in the DFS tree, while D's and E's intervals don't overlap at all because neither is an ancestor of the other. This **parenthesis structure** is the foundation of many DFS-based algorithms. In particular, listing the vertices of a DAG by *decreasing* finish time gives a [topological sort](/tutorials/graphs/traversal/topological-sort).
+
+## The stack behind DFS
+
+### The call stack
+
+In the recursive version, the language's call stack does all the bookkeeping. At any moment the active stack frames are exactly the current path from the start vertex. While `dfs(C)` runs in our trace, the stack holds A, B, D and C; when C returns, D resumes right where it left off.
+
+Push and pop a few values below to get a feel for last-in, first-out order: the newest item is always the next one to come off, just as the most recently discovered vertex is the next one DFS explores.
+
+<StackQueueVisualizer mode="stack" />
+
+### An explicit stack
+
+Recursion has a catch. Every level uses a stack frame, and a long path, say a chain of 100,000 vertices, can overflow the call stack. The fix is to manage the stack yourself. Swapping BFS's queue for a stack gets you most of the way to an iterative DFS, with one subtlety. To visit vertices in the same order as the recursive version:
+
+- Mark a vertex visited when you **pop** it, not when you push it, and skip any vertex that's already visited by the time it's popped.
+- Push neighbors in **reverse** order, so the first neighbor ends up on top and gets explored first.
+
+Because a vertex can be pushed once for each edge leading into it, the explicit stack can hold up to O(E) entries. That's the price of exactly matching the recursive order.
+
+<Callout type="warning" title="Mind the recursion limit">
+
+Python's default recursion limit is about 1,000 frames, so recursive DFS on a long path raises `RecursionError` long before you run out of memory. Java and JavaScript allow deeper recursion, but their stacks are still finite. For large or adversarial inputs, use the iterative version. Raising the limit with `sys.setrecursionlimit` helps for moderate inputs, but can crash the interpreter outright if the underlying C stack runs out.
+
+</Callout>
+
+## Implementation
+
+Each tab shows both versions. On our example graph, both return A, B, D, C, E, F, G.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="dfs.py" {25-26,29}
+def dfs(graph, start):
+    """Recursive DFS. Returns vertices in the order they were discovered."""
+    visited = set()
+    order = []
+
+    def visit(u):
+        visited.add(u)
+        order.append(u)
+        for v in graph[u]:
+            if v not in visited:
+                visit(v)
+
+    visit(start)
+    return order
+
+
+def dfs_iterative(graph, start):
+    """Same visiting order, using an explicit stack instead of recursion."""
+    visited = set()
+    order = []
+    stack = [start]
+
+    while stack:
+        u = stack.pop()
+        if u in visited:
+            continue                     # stale entry: u was reached another way
+        visited.add(u)
+        order.append(u)
+        for v in reversed(graph[u]):     # reversed, so the first neighbor pops first
+            if v not in visited:
+                stack.append(v)
+    return order
+
+
+graph = {
+    "A": ["B", "C"],
+    "B": ["A", "D", "E"],
+    "C": ["A", "D"],
+    "D": ["B", "C"],
+    "E": ["B", "F"],
+    "F": ["E", "G"],
+    "G": ["F"],
+}
+print(dfs(graph, "A"))             # ['A', 'B', 'D', 'C', 'E', 'F', 'G']
+print(dfs_iterative(graph, "A"))   # ['A', 'B', 'D', 'C', 'E', 'F', 'G']
+```
+
+</Tab>
+<Tab>
+
+```javascript title="dfs.js"
+function dfs(graph, start) {
+  const visited = new Set();
+  const order = [];
+
+  function visit(u) {
+    visited.add(u);
+    order.push(u);
+    for (const v of graph[u]) {
+      if (!visited.has(v)) visit(v);
+    }
+  }
+
+  visit(start);
+  return order;
+}
+
+function dfsIterative(graph, start) {
+  const visited = new Set();
+  const order = [];
+  const stack = [start];
+
+  while (stack.length > 0) {
+    const u = stack.pop();
+    if (visited.has(u)) continue; // stale entry: u was reached another way
+    visited.add(u);
+    order.push(u);
+    const neighbors = graph[u];
+    for (let i = neighbors.length - 1; i >= 0; i--) { // reversed order
+      if (!visited.has(neighbors[i])) stack.push(neighbors[i]);
+    }
+  }
+  return order;
+}
+
+const graph = {
+  A: ["B", "C"],
+  B: ["A", "D", "E"],
+  C: ["A", "D"],
+  D: ["B", "C"],
+  E: ["B", "F"],
+  F: ["E", "G"],
+  G: ["F"],
+};
+console.log(dfs(graph, "A"));          // ["A", "B", "D", "C", "E", "F", "G"]
+console.log(dfsIterative(graph, "A")); // ["A", "B", "D", "C", "E", "F", "G"]
+```
+
+</Tab>
+<Tab>
+
+```java title="DFS.java"
+import java.util.*;
+
+public class DFS {
+    static List<String> dfs(Map<String, List<String>> graph, String start) {
+        List<String> order = new ArrayList<>();
+        visit(graph, start, new HashSet<>(), order);
+        return order;
+    }
+
+    private static void visit(Map<String, List<String>> graph, String u,
+                              Set<String> visited, List<String> order) {
+        visited.add(u);
+        order.add(u);
+        for (String v : graph.getOrDefault(u, List.of())) {
+            if (!visited.contains(v)) visit(graph, v, visited, order);
+        }
+    }
+
+    static List<String> dfsIterative(Map<String, List<String>> graph, String start) {
+        Set<String> visited = new HashSet<>();
+        List<String> order = new ArrayList<>();
+        Deque<String> stack = new ArrayDeque<>();
+        stack.push(start);
+
+        while (!stack.isEmpty()) {
+            String u = stack.pop();
+            if (!visited.add(u)) continue;   // already visited: stale entry
+            order.add(u);
+            List<String> neighbors = graph.getOrDefault(u, List.of());
+            for (int i = neighbors.size() - 1; i >= 0; i--) {   // reversed order
+                String v = neighbors.get(i);
+                if (!visited.contains(v)) stack.push(v);
+            }
+        }
+        return order;
+    }
+
+    public static void main(String[] args) {
+        Map<String, List<String>> graph = Map.of(
+                "A", List.of("B", "C"),
+                "B", List.of("A", "D", "E"),
+                "C", List.of("A", "D"),
+                "D", List.of("B", "C"),
+                "E", List.of("B", "F"),
+                "F", List.of("E", "G"),
+                "G", List.of("F"));
+
+        System.out.println(dfs(graph, "A"));           // [A, B, D, C, E, F, G]
+        System.out.println(dfsIterative(graph, "A"));  // [A, B, D, C, E, F, G]
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="note" title="Iterative isn't automatically identical">
+
+A common shortcut marks vertices visited when they're *pushed*, just like BFS does. That still reaches every vertex, but its visiting order and discovery and finish structure are no longer those of a true DFS, so algorithms that rely on DFS properties, such as finding back edges or computing a topological order, can quietly break. If you need real DFS behavior, mark visited on pop or use recursion.
+
+</Callout>
+
+## Complexity
+
+| Resource                  | Cost                                                    |
+| ------------------------- | ------------------------------------------------------- |
+| Time, adjacency list      | O(V + E)                                                |
+| Time, adjacency matrix    | O(V²)                                                   |
+| Space, recursive          | O(V) for the visited set and the call stack             |
+| Space, iterative (above)  | O(V + E), since a vertex can be pushed once per incoming edge |
+
+The analysis mirrors BFS. The visited check guarantees each vertex is visited once, and when a vertex is visited its neighbors are scanned once. Summed over the whole graph, that's O(V) for the visits plus O(E) for the scans. In the worst case, a graph that's one long chain, the recursion goes V levels deep, so the call stack needs O(V) space.
+
+## Putting DFS to work
+
+### Cycle detection
+
+In an **undirected** graph, DFS has found a cycle whenever it sees an already-visited neighbor that isn't the vertex it just came from (its parent in the DFS tree). In our trace, C sees the visited vertex A, which isn't its parent D, so there's a cycle.
+
+**Directed** graphs need more care, because reaching an already-visited vertex doesn't always mean a cycle. You may simply have arrived at a finished part of the graph by a different route. The standard fix gives every vertex one of three colors:
+
+- **White:** not discovered yet.
+- **Gray:** discovered, and its call is still on the stack, so it's on the current path.
+- **Black:** finished, with everything reachable from it fully explored.
+
+An edge to a **gray** vertex points back to an ancestor on the current path. That's a back edge, so the graph has a cycle. An edge to a black vertex is harmless.
+
+```python title="has_cycle.py" {10-11}
+WHITE, GRAY, BLACK = 0, 1, 2
+
+def has_cycle(graph):
+    """Detect a cycle in a directed graph. Every vertex must be a key of graph."""
+    color = {u: WHITE for u in graph}
+
+    def visit(u):
+        color[u] = GRAY                  # u is on the current path
+        for v in graph[u]:
+            if color[v] == GRAY:         # back edge: v is an ancestor of u
+                return True
+            if color[v] == WHITE and visit(v):
+                return True
+        color[u] = BLACK                 # u and everything below it are done
+        return False
+
+    return any(color[u] == WHITE and visit(u) for u in graph)
+```
+
+### Connected components
+
+To count the connected components of an undirected graph, loop over every vertex. Whenever you find one that's still unvisited, add one to a counter and run DFS from it to mark its entire component. The total time is O(V + E). The same pattern counts islands in a grid, and the paint-bucket tool in image editors is a DFS or BFS flood fill over pixels.
+
+### More applications
+
+- **Topological sorting:** reversing the DFS finish order of a DAG gives a valid dependency order. See [Topological Sort](/tutorials/graphs/traversal/topological-sort).
+- **Paths and mazes:** DFS quickly answers "is there *any* path from here to there?", and with parent pointers it produces one, though not necessarily the shortest.
+- **Backtracking:** solving Sudoku, generating permutations and placing N queens are all DFS over an implicit graph of partial solutions.
+- **Strongly connected components:** Tarjan's and Kosaraju's algorithms use DFS to split a directed graph into its strongly connected pieces in O(V + E).
+- **Bridges and articulation points:** values computed during a single DFS reveal which edges and vertices would disconnect a network if removed.
+
+## Key takeaways
+
+- DFS goes **as deep as possible** before backtracking, using recursion or an explicit **stack**.
+- It runs in **O(V + E)** time with an adjacency list, and the recursion can be up to V levels deep.
+- DFS does **not** find shortest paths, but it reveals structure: DFS trees, back edges, and discovery and finish times.
+- In undirected graphs, a visited neighbor that isn't your parent means a cycle. In directed graphs, an edge to a **gray** vertex does.
+- For an iterative version that matches recursive DFS, mark visited on **pop** and push neighbors in reverse order.
+- DFS powers topological sort, connected components, flood fill, backtracking and strongly connected components.
+
+<Quiz
+  question="Starting from A with neighbors in alphabetical order, DFS visits A, B, D, C, E, F, G. Why is C visited fourth instead of second?"
+  options={["C has the highest degree in the graph", "DFS explores all of B's branch, reaching C through D, before returning to A's second neighbor", "DFS visits vertices in reverse alphabetical order", "C is farther from A than D is"]}
+  answer={1}
+  explanation="DFS commits to A's first neighbor, B, and fully explores everything reachable through it. C is reached via B and D along the way, so by the time DFS returns to A, C has already been visited."
+/>
+
+<Quiz
+  question="During DFS on a directed graph, you follow an edge from u to v and find that v is gray. What does that tell you?"
+  options={["v has not been discovered yet", "v is finished, so the edge is harmless", "v is an ancestor of u on the current path, so the graph has a cycle", "u and v are in different components"]}
+  answer={2}
+  explanation="Gray vertices are exactly the ones whose DFS calls are still on the stack, which is the current path. An edge back to one of them closes a loop, so it is a back edge and proves a directed cycle."
+/>

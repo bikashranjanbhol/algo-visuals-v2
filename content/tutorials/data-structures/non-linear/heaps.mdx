@@ -1,0 +1,381 @@
+---
+title: "Heaps & Priority Queues"
+description: "Always know the smallest or largest item: how binary heaps power priority queues with O(log n) insert and remove, and O(n) heapify."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+Sometimes you don't care about the order items arrived in. You just need the **most important** one next: the most urgent patient, the earliest deadline, the closest unexplored city. A structure that hands you the highest-priority item on demand is called a **priority queue**, and the classic way to build one is a **binary heap**.
+
+A heap is a [binary tree](/tutorials/data-structures/non-linear/binary-trees) with a simple rule that keeps the minimum (or maximum) at the root, and it's stored compactly in a plain array. It's not fully sorted, and that's the point: by doing only the work needed to find the top item, a heap gets O(log n) inserts and removals and can be built from scratch in linear time.
+
+## Priority queues
+
+Think of an emergency room. Patients don't get seen in arrival order. Someone with a heart attack goes ahead of someone with a sprained ankle, no matter who walked in first. New patients arrive constantly, and at any moment the staff needs to know who is most urgent.
+
+That's the **priority queue** abstract data type. It supports:
+
+| Operation      | What it does                                         |
+| -------------- | ---------------------------------------------------- |
+| `push(x)`      | Insert an item with some priority                    |
+| `peek()`       | Return the highest-priority item without removing it |
+| `pop()`        | Remove and return the highest-priority item          |
+| `size()`       | Report how many items are stored                     |
+
+You could implement this with a sorted array or an unsorted list, but one of the operations always ends up O(n). A heap makes every operation O(log n) or better. Unlike a regular [queue](/tutorials/data-structures/linear/queues), arrival order doesn't matter. Only priority does.
+
+## The heap property
+
+A **min-heap** is a binary tree with two properties:
+
+1. **Shape**: it's a **complete** binary tree. Every level is full except possibly the last, which fills from left to right.
+2. **Order**: every node's key is less than or equal to its children's keys.
+
+A **max-heap** flips the order rule, so every parent is at least as large as its children. Everything in this lesson applies to both. Just swap the comparison.
+
+```text
+               1
+            /     \
+           3       2
+          / \     / \
+         7   4   5   8
+        /
+       9
+```
+
+Follow any path from the root downward and the keys never decrease. That guarantees the minimum is always at the root. Notice what the rule does **not** say: there's no relationship between siblings or cousins. The 3 on the left is larger than the 2 on the right, and that's fine. A heap is only **partially ordered**, which is why it's cheaper to maintain than a fully sorted structure.
+
+<Callout type="warning" title="A heap is not a binary search tree">
+
+In a [BST](/tutorials/data-structures/non-linear/binary-search-trees), left is smaller and right is larger, so you can search for any key in O(log n). In a heap, parents are smaller than **both** children, so searching for an arbitrary key may require checking every node. Heaps are built to answer one question quickly: what is the minimum?
+
+</Callout>
+
+## Stored in an array
+
+Because a heap is always complete, it fits perfectly in an [array](/tutorials/data-structures/linear/arrays) with no gaps and no pointers. Store the nodes level by level, left to right:
+
+```text
+index:   0   1   2   3   4   5   6   7
+value:  [1,  3,  2,  7,  4,  5,  8,  9]
+
+parent of i:       (i - 1) // 2
+left child of i:   2i + 1
+right child of i:  2i + 2
+```
+
+The node at index 1 (key 3) has its children at indices 3 and 4 (keys 7 and 4), and its parent at index 0. Moving around the tree is just arithmetic, which makes heaps compact and cache-friendly.
+
+## Core operations
+
+Every heap operation follows the same pattern: make a change that keeps the **shape** valid, then repair the **order** by moving one element up or down a single path. Since a complete tree with `n` nodes has height ⌊log₂ n⌋, each repair costs O(log n).
+
+### Push: sift up
+
+Append the new item at the end of the array, which is the next free spot on the bottom level, so the tree stays complete. It might be smaller than its parent, so **sift it up**: swap it with its parent until the parent is smaller or it reaches the root.
+
+```text
+Push 0:   [1, 3, 2, 7, 4, 5, 8, 9, 0]     append at index 8, parent is index 3 (7)
+          [1, 3, 2, 0, 4, 5, 8, 9, 7]     0 is smaller than 7: swap, parent is index 1 (3)
+          [1, 0, 2, 3, 4, 5, 8, 9, 7]     0 is smaller than 3: swap, parent is index 0 (1)
+          [0, 1, 2, 3, 4, 5, 8, 9, 7]     0 is smaller than 1: swap, reached the root
+```
+
+### Pop: sift down
+
+The minimum is at the root, so save it to return. To keep the tree complete, move the **last** element into the root's spot and shrink the array by one. That element is probably too large for the root, so **sift it down**: swap it with its **smaller** child until both children are larger or it becomes a leaf.
+
+```text
+Pop from [1, 3, 2, 7, 4, 5, 8, 9]:
+
+          [9, 3, 2, 7, 4, 5, 8]     return 1, move the last item (9) to the root
+          [2, 3, 9, 7, 4, 5, 8]     children are 3 and 2: swap with the smaller, 2
+          [2, 3, 5, 7, 4, 9, 8]     children are 5 and 8: swap with the smaller, 5
+                                    9 is now a leaf, so stop
+```
+
+Swapping with the smaller child matters. If you swapped 9 with 3 instead of 2, then 3 would become the parent of 2, breaking the heap property.
+
+### Building a heap in O(n)
+
+Given `n` unsorted items, you could push them one at a time for O(n log n). There's a faster way called **heapify**: drop the items into an array as they are, then sift down every non-leaf node, starting from the last one and working back to the root.
+
+Why is this O(n) and not O(n log n)? Most nodes live near the bottom, where sifting down is cheap. About half the nodes are leaves and need no work. A quarter sit one level up and can move at most 1 step, an eighth can move at most 2, and so on. The total is n/4 × 1 + n/8 × 2 + n/16 × 3 + ..., which sums to at most n. Only the single root can travel the full log₂ n levels.
+
+## Implementation
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="min_heap.py" {30-37,39-51}
+class MinHeap:
+    def __init__(self, items=()):
+        self._a = list(items)
+        # Heapify: sift down every internal node, from the last one up to the root.
+        for i in range(len(self._a) // 2 - 1, -1, -1):
+            self._sift_down(i)
+
+    def __len__(self):
+        return len(self._a)
+
+    def peek(self):
+        if not self._a:
+            raise IndexError("peek from empty heap")
+        return self._a[0]
+
+    def push(self, value):
+        self._a.append(value)
+        self._sift_up(len(self._a) - 1)
+
+    def pop(self):
+        if not self._a:
+            raise IndexError("pop from empty heap")
+        smallest = self._a[0]
+        last = self._a.pop()
+        if self._a:
+            self._a[0] = last        # move the last leaf to the root...
+            self._sift_down(0)       # ...and let it sink into place
+        return smallest
+
+    def _sift_up(self, i):
+        a = self._a
+        while i > 0:
+            parent = (i - 1) // 2
+            if a[i] >= a[parent]:
+                break
+            a[i], a[parent] = a[parent], a[i]
+            i = parent
+
+    def _sift_down(self, i):
+        a, n = self._a, len(self._a)
+        while True:
+            left, right = 2 * i + 1, 2 * i + 2
+            smallest = i
+            if left < n and a[left] < a[smallest]:
+                smallest = left
+            if right < n and a[right] < a[smallest]:
+                smallest = right
+            if smallest == i:
+                return
+            a[i], a[smallest] = a[smallest], a[i]
+            i = smallest
+
+
+heap = MinHeap([7, 3, 9, 1, 4])
+heap.push(2)
+print([heap.pop() for _ in range(len(heap))])   # [1, 2, 3, 4, 7, 9]
+```
+
+</Tab>
+<Tab>
+
+```javascript title="minHeap.js"
+class MinHeap {
+  #a;
+
+  constructor(items = []) {
+    this.#a = [...items];
+    // Heapify: sift down every internal node, from the last one up to the root.
+    for (let i = Math.floor(this.#a.length / 2) - 1; i >= 0; i--) {
+      this.#siftDown(i);
+    }
+  }
+
+  get size() {
+    return this.#a.length;
+  }
+
+  peek() {
+    if (this.#a.length === 0) throw new Error("peek from empty heap");
+    return this.#a[0];
+  }
+
+  push(value) {
+    this.#a.push(value);
+    this.#siftUp(this.#a.length - 1);
+  }
+
+  pop() {
+    const a = this.#a;
+    if (a.length === 0) throw new Error("pop from empty heap");
+    const smallest = a[0];
+    const last = a.pop();
+    if (a.length > 0) {
+      a[0] = last; // move the last leaf to the root...
+      this.#siftDown(0); // ...and let it sink into place
+    }
+    return smallest;
+  }
+
+  #siftUp(i) {
+    const a = this.#a;
+    while (i > 0) {
+      const parent = Math.floor((i - 1) / 2);
+      if (a[i] >= a[parent]) break;
+      [a[i], a[parent]] = [a[parent], a[i]];
+      i = parent;
+    }
+  }
+
+  #siftDown(i) {
+    const a = this.#a;
+    const n = a.length;
+    while (true) {
+      const left = 2 * i + 1;
+      const right = 2 * i + 2;
+      let smallest = i;
+      if (left < n && a[left] < a[smallest]) smallest = left;
+      if (right < n && a[right] < a[smallest]) smallest = right;
+      if (smallest === i) return;
+      [a[i], a[smallest]] = [a[smallest], a[i]];
+      i = smallest;
+    }
+  }
+}
+
+const heap = new MinHeap([7, 3, 9, 1, 4]);
+heap.push(2);
+const out = [];
+while (heap.size > 0) out.push(heap.pop());
+console.log(out); // [1, 2, 3, 4, 7, 9]
+```
+
+</Tab>
+<Tab>
+
+```java title="MinHeap.java"
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+public class MinHeap<T extends Comparable<T>> {
+    private final List<T> a;
+
+    public MinHeap() {
+        a = new ArrayList<>();
+    }
+
+    public MinHeap(Collection<? extends T> items) {
+        a = new ArrayList<>(items);
+        // Heapify: sift down every internal node, from the last one up to the root.
+        for (int i = a.size() / 2 - 1; i >= 0; i--) siftDown(i);
+    }
+
+    public int size() {
+        return a.size();
+    }
+
+    public T peek() {
+        if (a.isEmpty()) throw new NoSuchElementException("peek from empty heap");
+        return a.get(0);
+    }
+
+    public void push(T value) {
+        a.add(value);
+        siftUp(a.size() - 1);
+    }
+
+    public T pop() {
+        if (a.isEmpty()) throw new NoSuchElementException("pop from empty heap");
+        T smallest = a.get(0);
+        T last = a.remove(a.size() - 1);
+        if (!a.isEmpty()) {
+            a.set(0, last); // move the last leaf to the root...
+            siftDown(0);    // ...and let it sink into place
+        }
+        return smallest;
+    }
+
+    private void siftUp(int i) {
+        while (i > 0) {
+            int parent = (i - 1) / 2;
+            if (a.get(i).compareTo(a.get(parent)) >= 0) break;
+            Collections.swap(a, i, parent);
+            i = parent;
+        }
+    }
+
+    private void siftDown(int i) {
+        int n = a.size();
+        while (true) {
+            int left = 2 * i + 1;
+            int right = 2 * i + 2;
+            int smallest = i;
+            if (left < n && a.get(left).compareTo(a.get(smallest)) < 0) smallest = left;
+            if (right < n && a.get(right).compareTo(a.get(smallest)) < 0) smallest = right;
+            if (smallest == i) return;
+            Collections.swap(a, i, smallest);
+            i = smallest;
+        }
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+## Complexity
+
+| Operation               | Binary heap | Sorted array | Unsorted array  |
+| ----------------------- | ----------- | ------------ | --------------- |
+| Peek at the minimum     | O(1)        | O(1)         | O(n)            |
+| Insert                  | O(log n)    | O(n)         | O(1) amortized  |
+| Remove the minimum      | O(log n)    | O(1)         | O(n)            |
+| Build from n items      | O(n)        | O(n log n)   | O(n)            |
+| Search for any value    | O(n)        | O(log n)     | O(n)            |
+
+The sorted array column assumes the array is kept in descending order, so the minimum sits at the end and can be removed without shifting. Either way, one of its operations is O(n). The heap is the only option with no O(n) priority-queue operation.
+
+## Heaps in practice
+
+### Built-in priority queues
+
+You'll rarely write a heap from scratch in production code:
+
+- **Python**: the `heapq` module turns a plain list into a min-heap with `heapify`, `heappush` and `heappop`. Python 3.14 added max-heap counterparts such as `heappush_max`. On older versions, push negated priorities to simulate a max-heap.
+- **Java**: `PriorityQueue` is a min-heap by natural ordering, with `offer`, `poll` and `peek`. Pass `Comparator.reverseOrder()` to get a max-heap.
+- **JavaScript**: there's no built-in heap, so use a small class like the one above, or a library.
+
+<Callout type="tip" title="Breaking ties safely">
+
+In Python, pushing `(priority, item)` tuples works until two priorities tie. Then Python compares the items themselves, which fails for objects that can't be compared. Push `(priority, counter, item)` instead, where `counter` is an increasing number from `itertools.count()`. It breaks ties by insertion order and never reaches the item.
+
+</Callout>
+
+### Classic uses
+
+- **Shortest paths.** [Dijkstra's algorithm](/tutorials/graphs/shortest-paths/dijkstra) repeatedly pulls the closest unvisited node from a min-heap.
+- **Top k items.** To find the `k` largest of `n` items, keep a min-heap of size `k`. If a new item beats the heap's minimum, replace the minimum. That's O(n log k) time and O(k) space, which is great for streams too large to sort.
+- **Merging k sorted lists.** Put the first element of each list in a min-heap, pop the smallest, and push the next element from the same list. Database engines and external sorts merge data this way.
+- **Running median.** Keep the lower half of a stream in a max-heap and the upper half in a min-heap. The median is always at one or both roots.
+- **Scheduling.** Operating systems and job queues pick the task with the earliest deadline or highest priority.
+
+### Heap sort
+
+A heap also gives you a sorting algorithm. Heapify the array into a **max-heap** in O(n). Then repeatedly swap the root, which is the current maximum, with the last element of the heap, shrink the heap by one, and sift the new root down. The sorted output builds up at the end of the same array.
+
+Heap sort runs in **O(n log n) in the worst case** and uses O(1) extra space, which neither [merge sort](/tutorials/algorithms/sorting/merge-sort) (O(n) extra space) nor [quick sort](/tutorials/algorithms/sorting/quick-sort) (O(n²) worst case) can claim. In practice it's often slower than quick sort because it jumps around the array and makes poor use of the cache, and it isn't stable.
+
+## Key takeaways
+
+- A **priority queue** always serves the highest-priority item next. A **binary heap** is the standard way to build one.
+- A min-heap is a **complete** binary tree in which every parent is at most as large as its children, so the minimum is at the root.
+- Heaps live in arrays: the children of index `i` are at `2i + 1` and `2i + 2`, and its parent is at `(i - 1) // 2`.
+- Push sifts up and pop sifts down, so both cost **O(log n)**. Peek is **O(1)**, and heapify builds a heap in **O(n)**.
+- Heaps power Dijkstra's algorithm, top-k queries, k-way merges, running medians and heap sort.
+
+<Quiz
+  question="In a heap stored in a 0-indexed array, what is the index of the parent of the node at index 10?"
+  options={["4", "5", "9", "20"]}
+  answer={0}
+  explanation="The parent of index i is (i - 1) // 2, so the parent of 10 is 9 // 2 = 4. Check it in reverse: the children of 4 are at 2 × 4 + 1 = 9 and 2 × 4 + 2 = 10."
+/>
+
+<Quiz
+  question="Which statement about a min-heap is always true?"
+  options={["The array is sorted in ascending order", "The smallest element is at the root", "Searching for any value takes O(log n) time", "Every left child is smaller than its right sibling"]}
+  answer={1}
+  explanation="The heap property only guarantees that each parent is no larger than its children, which puts the minimum at the root. Siblings have no required order, the array is not fully sorted, and finding an arbitrary value can take O(n)."
+/>

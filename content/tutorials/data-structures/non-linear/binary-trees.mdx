@@ -1,0 +1,373 @@
+---
+title: "Binary Trees"
+description: "Hierarchical data with at most two children per node: tree vocabulary, shapes, array layout, and the four classic traversals."
+difficulty: beginner
+updated: 2026-10-07
+---
+
+So far every structure in this tutorial has been **linear**: each element has at most one thing before it and one thing after it. Trees break that mold. A tree organizes data as a **hierarchy**, where each element can branch out to several others. A **binary tree** is the most common kind: every node has at most two children, called the **left** child and the **right** child.
+
+Binary trees are the foundation for some of the most important structures in computer science, including [binary search trees](/tutorials/data-structures/non-linear/binary-search-trees), [heaps](/tutorials/data-structures/non-linear/heaps), expression parsers and decision trees. Before you can use those, you need the vocabulary and the core skill this lesson teaches: **traversing** a tree, that is, visiting every node in a deliberate order.
+
+## Trees in the wild
+
+You already know lots of trees. A company org chart has a CEO at the top, managers below, and their reports below them. Your computer's file system has a root folder containing folders that contain more folders. A tournament bracket is a binary tree: every match has two incoming players and one winner who moves up.
+
+In each case, there's a single starting point at the top, every item except the top has exactly one parent, and there are no loops. Those three properties are what make something a tree. (Computer scientists draw trees upside down, with the root at the top.)
+
+## Tree vocabulary
+
+```text
+                A            depth 0   ◄ root
+              /   \
+             B     C         depth 1
+            / \     \
+           D   E     F       depth 2   ◄ D, E and F are leaves
+```
+
+- **Node**: an element of the tree. This one has six: A through F.
+- **Root**: the top node, with no parent. Here it's A.
+- **Parent and child**: B is the parent of D and E. D and E are B's children, and they're **siblings** of each other.
+- **Leaf**: a node with no children, like D, E and F.
+- **Edge**: the link between a parent and a child. A tree with `n` nodes always has `n - 1` edges.
+- **Subtree**: any node together with all of its descendants. B, D and E form the left subtree of A.
+- **Depth** of a node: the number of edges from the root down to it. E has depth 2.
+- **Height** of a tree: the number of edges on the longest path from the root to a leaf. This tree has height 2. By convention, a single node has height 0 and an empty tree has height −1.
+
+<Callout type="note" title="Conventions vary">
+
+Some textbooks count height and depth in nodes instead of edges, which shifts every value up by one. Neither is wrong. Just pick one convention and stay consistent. This tutorial counts edges.
+
+</Callout>
+
+## Shapes of binary trees
+
+The same number of nodes can be arranged in very different shapes, and the shape determines performance.
+
+- **Full**: every node has either 0 or 2 children.
+- **Complete**: every level is completely filled except possibly the last, which is filled from left to right. Heaps are always complete.
+- **Perfect**: every internal node has two children and all leaves sit at the same depth. A perfect tree of height `h` has exactly `2^(h+1) - 1` nodes.
+- **Degenerate** (skewed): every node has only one child. It's really a [linked list](/tutorials/data-structures/linear/linked-lists) in disguise.
+
+```text
+   Perfect            Complete           Degenerate
+      1                   1                1
+    /   \               /   \               \
+   2     3             2     3               2
+  / \   / \           / \   /                 \
+ 4   5 6   7         4   5 6                   3
+```
+
+Since each level can hold at most twice as many nodes as the level above, a tree with `n` nodes has a height somewhere between ⌊log₂ n⌋ (packed tight, like the perfect tree) and `n - 1` (stretched out, like the degenerate one). Many tree operations cost O(h), so keeping trees short and bushy is the central concern of balanced search trees.
+
+## Representing a tree
+
+### Linked nodes
+
+The most flexible representation gives each node a value and two references, `left` and `right`, which are `null` when the child is missing. This works for any shape of tree.
+
+### Array layout
+
+A **complete** binary tree can be stored in a plain [array](/tutorials/data-structures/linear/arrays) with no pointers at all. Store the nodes level by level, left to right, and the parent/child relationships follow from simple arithmetic:
+
+```text
+            A
+          /   \
+         B     C
+        / \   /
+       D   E F
+
+index:   0   1   2   3   4   5
+value:  [A,  B,  C,  D,  E,  F]
+
+children of index i:   2i + 1  and  2i + 2
+parent of index i:     ⌊(i − 1) / 2⌋
+```
+
+B sits at index 1, so its children are at indices 3 and 4: D and E. This compact layout is exactly how [heaps](/tutorials/data-structures/non-linear/heaps) are implemented. For trees that aren't complete it wastes space on empty slots, so linked nodes are the norm.
+
+## Traversals
+
+A traversal visits every node exactly once. There are two families: **depth-first**, which dives down one branch before backing up, and **breadth-first**, which sweeps the tree level by level.
+
+### Depth-first: pre, in and post
+
+The three depth-first orders differ only in **when** you visit the current node relative to its two subtrees. The prefix tells you where the node goes:
+
+- **Preorder**: node, then left subtree, then right subtree.
+- **Inorder**: left subtree, then node, then right subtree.
+- **Postorder**: left subtree, then right subtree, then node.
+
+```text
+        1
+      /   \
+     2     3          preorder:     1 2 4 5 3 6
+    / \     \         inorder:      4 2 5 1 3 6
+   4   5     6        postorder:    4 5 2 6 3 1
+                      level order:  1 2 3 4 5 6
+```
+
+Each order has natural uses. Preorder visits a parent before its children, which is ideal for copying or serializing a tree. Inorder on a binary search tree yields the keys in **sorted order**. Postorder handles children before their parent, which is what you need to free memory or evaluate an expression tree such as `(3 + 4) × 2`, where both operands must be computed before the operator.
+
+### Breadth-first: level order
+
+Level-order traversal visits the root, then all nodes at depth 1, then depth 2, and so on. It uses a [queue](/tutorials/data-structures/linear/queues): dequeue a node, visit it, enqueue its children. This is the same idea as [breadth-first search](/tutorials/graphs/traversal/breadth-first-search) on graphs, and it's the right tool for questions like "what's the minimum depth?" or "print the tree level by level".
+
+### Traversal code
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="binary_tree.py"
+from collections import deque
+
+
+class TreeNode:
+    def __init__(self, value, left=None, right=None):
+        self.value = value
+        self.left = left
+        self.right = right
+
+
+def preorder(node):
+    if node is not None:
+        yield node.value                 # visit before the subtrees
+        yield from preorder(node.left)
+        yield from preorder(node.right)
+
+
+def inorder(node):
+    if node is not None:
+        yield from inorder(node.left)
+        yield node.value                 # visit between the subtrees
+        yield from inorder(node.right)
+
+
+def postorder(node):
+    if node is not None:
+        yield from postorder(node.left)
+        yield from postorder(node.right)
+        yield node.value                 # visit after the subtrees
+
+
+def level_order(root):
+    if root is None:
+        return []
+    out, queue = [], deque([root])
+    while queue:
+        node = queue.popleft()
+        out.append(node.value)
+        if node.left is not None:
+            queue.append(node.left)
+        if node.right is not None:
+            queue.append(node.right)
+    return out
+
+
+def height(node):
+    """Edges on the longest root-to-leaf path; an empty tree has height -1."""
+    if node is None:
+        return -1
+    return 1 + max(height(node.left), height(node.right))
+
+
+root = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3, None, TreeNode(6)))
+print(list(inorder(root)))   # [4, 2, 5, 1, 3, 6]
+print(level_order(root))     # [1, 2, 3, 4, 5, 6]
+print(height(root))          # 2
+```
+
+</Tab>
+<Tab>
+
+```javascript title="binaryTree.js"
+class TreeNode {
+  constructor(value, left = null, right = null) {
+    this.value = value;
+    this.left = left;
+    this.right = right;
+  }
+}
+
+function preorder(node, out = []) {
+  if (node === null) return out;
+  out.push(node.value); // visit before the subtrees
+  preorder(node.left, out);
+  preorder(node.right, out);
+  return out;
+}
+
+function inorder(node, out = []) {
+  if (node === null) return out;
+  inorder(node.left, out);
+  out.push(node.value); // visit between the subtrees
+  inorder(node.right, out);
+  return out;
+}
+
+function postorder(node, out = []) {
+  if (node === null) return out;
+  postorder(node.left, out);
+  postorder(node.right, out);
+  out.push(node.value); // visit after the subtrees
+  return out;
+}
+
+function levelOrder(root) {
+  const out = [];
+  if (root === null) return out;
+  const queue = [root];
+  // Walk the array with an index instead of shift(), which is O(n).
+  for (let i = 0; i < queue.length; i++) {
+    const node = queue[i];
+    out.push(node.value);
+    if (node.left !== null) queue.push(node.left);
+    if (node.right !== null) queue.push(node.right);
+  }
+  return out;
+}
+
+function height(node) {
+  if (node === null) return -1;
+  return 1 + Math.max(height(node.left), height(node.right));
+}
+
+const root = new TreeNode(1,
+  new TreeNode(2, new TreeNode(4), new TreeNode(5)),
+  new TreeNode(3, null, new TreeNode(6)));
+console.log(inorder(root));    // [4, 2, 5, 1, 3, 6]
+console.log(levelOrder(root)); // [1, 2, 3, 4, 5, 6]
+console.log(height(root));     // 2
+```
+
+</Tab>
+<Tab>
+
+```java title="BinaryTree.java"
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+
+public class BinaryTree {
+    static class TreeNode {
+        int value;
+        TreeNode left, right;
+
+        TreeNode(int value) {
+            this(value, null, null);
+        }
+
+        TreeNode(int value, TreeNode left, TreeNode right) {
+            this.value = value;
+            this.left = left;
+            this.right = right;
+        }
+    }
+
+    static void preorder(TreeNode node, List<Integer> out) {
+        if (node == null) return;
+        out.add(node.value); // visit before the subtrees
+        preorder(node.left, out);
+        preorder(node.right, out);
+    }
+
+    static void inorder(TreeNode node, List<Integer> out) {
+        if (node == null) return;
+        inorder(node.left, out);
+        out.add(node.value); // visit between the subtrees
+        inorder(node.right, out);
+    }
+
+    static void postorder(TreeNode node, List<Integer> out) {
+        if (node == null) return;
+        postorder(node.left, out);
+        postorder(node.right, out);
+        out.add(node.value); // visit after the subtrees
+    }
+
+    static List<Integer> levelOrder(TreeNode root) {
+        List<Integer> out = new ArrayList<>();
+        if (root == null) return out;
+        Queue<TreeNode> queue = new ArrayDeque<>();
+        queue.add(root);
+        while (!queue.isEmpty()) {
+            TreeNode node = queue.poll();
+            out.add(node.value);
+            if (node.left != null) queue.add(node.left);
+            if (node.right != null) queue.add(node.right);
+        }
+        return out;
+    }
+
+    static int height(TreeNode node) {
+        if (node == null) return -1;
+        return 1 + Math.max(height(node.left), height(node.right));
+    }
+
+    public static void main(String[] args) {
+        TreeNode root = new TreeNode(1,
+            new TreeNode(2, new TreeNode(4), new TreeNode(5)),
+            new TreeNode(3, null, new TreeNode(6)));
+        List<Integer> out = new ArrayList<>();
+        inorder(root, out);
+        System.out.println(out);              // [4, 2, 5, 1, 3, 6]
+        System.out.println(levelOrder(root)); // [1, 2, 3, 4, 5, 6]
+        System.out.println(height(root));     // 2
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+## Thinking recursively
+
+Look at `height` again. It never loops over the tree. It asks each subtree for its own height, then combines the two answers. That's the essential pattern for binary tree problems:
+
+1. **Base case**: what's the answer for an empty tree?
+2. **Recursive case**: assume the recursive calls correctly solve the left and right subtrees, then combine their answers with the current node.
+
+Counting nodes is `1 + count(left) + count(right)`. Summing values is `node.value + sum(left) + sum(right)`. Checking whether two trees are identical compares the roots and then recurses on both pairs of children. If [recursion](/tutorials/algorithms/getting-started/recursion) still feels slippery, trees are the best place to practice it, because the structure itself is recursive: every subtree is a binary tree too.
+
+<Callout type="warning" title="Watch the recursion depth">
+
+Recursive traversals use O(h) space on the call stack. That's tiny for a balanced tree, but a degenerate tree with 100,000 nodes means 100,000 nested calls. Python's default recursion limit is 1,000, so deep trees raise `RecursionError`. Rewrite the traversal with an explicit [stack](/tutorials/data-structures/linear/stacks) when trees can be deep.
+
+</Callout>
+
+## Complexity
+
+Here `n` is the number of nodes, `h` is the height, and `w` is the maximum width, meaning the most nodes on any single level.
+
+| Operation                          | Time | Extra space        |
+| ---------------------------------- | ---- | ------------------ |
+| Preorder, inorder, postorder       | O(n) | O(h) call stack    |
+| Level-order traversal              | O(n) | O(w) queue         |
+| Search for a value (no ordering)   | O(n) | O(h)               |
+| Height, size or sum                | O(n) | O(h)               |
+| Find parent or child (array layout)| O(1) | O(1)               |
+
+Notice that searching a plain binary tree is O(n): with no ordering rule, the value could be anywhere. Adding an ordering rule is precisely what turns a binary tree into a [binary search tree](/tutorials/data-structures/non-linear/binary-search-trees).
+
+## Key takeaways
+
+- A binary tree is a hierarchy in which every node has at most two children. Learn the vocabulary: root, leaf, parent, child, depth and height.
+- Height ranges from about log₂ n for a bushy tree to `n - 1` for a degenerate one, and many operations cost O(h).
+- Complete binary trees fit neatly in an array, with children at `2i + 1` and `2i + 2`.
+- Preorder, inorder and postorder differ only in when the node is visited relative to its subtrees. Level order uses a queue.
+- Most tree problems become simple with recursion: solve the left and right subtrees, then combine.
+
+<Quiz
+  question="For the tree with root 1, children 2 and 3, where 2 has children 4 and 5 and 3 has a right child 6, which traversal produces 4, 2, 5, 1, 3, 6?"
+  options={["Preorder", "Inorder", "Postorder", "Level order"]}
+  answer={1}
+  explanation="Inorder visits the left subtree, then the node, then the right subtree. The left subtree of 1 gives 4, 2, 5, then comes 1, and finally the right subtree gives 3, 6."
+/>
+
+<Quiz
+  question="A complete binary tree is stored in an array starting at index 0. At which index is the left child of the node at index 4?"
+  options={["5", "8", "9", "10"]}
+  answer={2}
+  explanation="The left child of index i is at 2i + 1, so for i = 4 it's 2 × 4 + 1 = 9. The right child would be at 10."
+/>

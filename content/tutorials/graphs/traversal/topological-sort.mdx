@@ -1,0 +1,412 @@
+---
+title: "Topological Sort"
+description: "Order the vertices of a DAG so every edge points forward, using Kahn's algorithm or DFS, and catch impossible circular dependencies."
+difficulty: intermediate
+updated: 2026-10-07
+---
+
+Before you can take Algorithms, you need Data Structures. Before Data Structures, you need Intro to Programming and Discrete Math. Given a whole catalog of prerequisites like these, in what order should you take your courses? Build tools face the same question with source files, package managers with libraries, and spreadsheets with cells whose formulas depend on other cells.
+
+All of these are instances of **topological sorting**: given a directed graph in which an edge u → v means "u must come before v", produce a linear ordering of the vertices so that every edge points *forward*. In this lesson you'll learn two classic O(V + E) algorithms for it, Kahn's queue-based algorithm and a DFS-based approach, and see how both detect the one situation where no answer exists.
+
+## The problem
+
+Here's a small course catalog drawn as a directed graph. An arrow from one course to another means the first is a prerequisite of the second.
+
+```text
+  intro ──► ds ──► algo ──┐
+            ▲             ▼
+  math ─────┘             ml
+    │                     ▲
+    └─────► prob ─────────┘
+
+  intro = Intro to Programming     ds   = Data Structures
+  math  = Discrete Math            algo = Algorithms
+  prob  = Probability              ml   = Machine Learning
+```
+
+One valid order is intro, math, ds, prob, algo, ml. Another is math, prob, intro, ds, algo, ml. Both respect every arrow, which shows that topological orders are usually **not unique**. Any order works, as long as each course appears after all of its prerequisites.
+
+### Only DAGs have one
+
+What if Algorithms also required Machine Learning? Then ml needs algo first and algo needs ml first. That's a **cycle**, and no ordering can satisfy both constraints. In general, a directed graph has a topological order **if and only if** it's a **directed acyclic graph** (DAG). A good topological sort doesn't just produce an order for DAGs; it also reports when the input has a cycle, which in practice means "circular dependency detected".
+
+Why does every DAG have a topological order? Every DAG has at least one vertex with no incoming edges. If every vertex had an incoming edge, you could keep walking backward along arrows forever, and with finitely many vertices you'd eventually revisit one, which would be a cycle. Put that vertex first, remove it, and what's left is still a DAG. Repeat until nothing is left. That argument is, almost word for word, Kahn's algorithm.
+
+## Kahn's algorithm
+
+### The idea
+
+Kahn's algorithm, published in 1962, peels the graph apart using **in-degrees**, the number of incoming edges of each vertex:
+
+1. Compute the in-degree of every vertex.
+2. Put every vertex with in-degree 0 into a [queue](/tutorials/data-structures/linear/queues). These have no prerequisites, so they can go first.
+3. While the queue isn't empty, remove a vertex u, append it to the output, and "delete" its outgoing edges by decrementing the in-degree of each neighbor v. If v's in-degree drops to 0, all of its prerequisites are now placed, so enqueue it.
+4. If the output contains every vertex, it's a valid topological order. If not, the leftover vertices lie on a cycle or downstream of one, and their in-degrees could never reach 0.
+
+### Tracing an example
+
+The starting in-degrees are: intro 0, math 0, ds 2, prob 1, algo 1, ml 2.
+
+```text
+ step  take    in-degree updates       queue after     output so far
+ ────  ─────   ─────────────────────   ─────────────   ────────────────────────────
+   0   –       (initial zeros)         [intro, math]   []
+   1   intro   ds 2→1                  [math]          [intro]
+   2   math    ds 1→0, prob 1→0        [ds, prob]      [intro, math]
+   3   ds      algo 1→0                [prob, algo]    [intro, math, ds]
+   4   prob    ml 2→1                  [algo]          [intro, math, ds, prob]
+   5   algo    ml 1→0                  [ml]            [intro, math, ds, prob, algo]
+   6   ml      none                    []              [intro, math, ds, prob, algo, ml]
+```
+
+The final order is **intro, math, ds, prob, algo, ml**. Look at step 1: placing intro drops ds's in-degree to 1, but ds still has to wait, because math hasn't been placed yet. A vertex becomes ready only once *all* of its prerequisites are done.
+
+<Callout type="tip" title="Parallel waves for free">
+
+If you process Kahn's queue one full "wave" at a time, each wave is a group of tasks that can run **in parallel**. Here the waves are intro and math, then ds and prob, then algo, then ml. With no limit on courses per term, you could finish the whole catalog in four terms. Build systems use exactly this idea to schedule parallel jobs.
+
+</Callout>
+
+## The DFS approach
+
+The second algorithm builds on [depth-first search](/tutorials/graphs/traversal/depth-first-search) and its finish times. The key insight: in a DAG, by the time DFS finishes a vertex u, every vertex reachable from u has already finished. So if you list vertices in the order they **finish** (called *postorder*), each vertex appears after all of the vertices it points to. Reverse that list and every edge points forward.
+
+Running DFS over the catalog, starting from each unvisited vertex in the order intro, math, ds, prob, algo, ml:
+
+```text
+ dfs(intro) → dfs(ds) → dfs(algo) → dfs(ml)
+     finished so far: ml, algo, ds, intro
+
+ dfs(math) → ds already visited → dfs(prob) → ml already visited
+     finished so far: ml, algo, ds, intro, prob, math
+
+ reversed: math, prob, intro, ds, algo, ml
+```
+
+That's a different but equally valid order. To detect cycles, reuse the three colors from the DFS lesson. A vertex is gray while its call is on the stack. If DFS ever follows an edge to a **gray** vertex, it has found a back edge, which means a cycle.
+
+## Implementation
+
+### Kahn's algorithm
+
+Both implementations take an adjacency list in which every vertex appears as a key, including vertices with no outgoing edges such as ml.
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="topo_kahn.py" {21-22}
+from collections import deque
+
+def topological_sort(graph):
+    """Kahn's algorithm. graph maps every vertex to the vertices it points to."""
+    in_degree = {u: 0 for u in graph}
+    for u in graph:
+        for v in graph[u]:
+            in_degree[v] += 1
+
+    queue = deque(u for u in graph if in_degree[u] == 0)
+    order = []
+
+    while queue:
+        u = queue.popleft()
+        order.append(u)
+        for v in graph[u]:
+            in_degree[v] -= 1
+            if in_degree[v] == 0:      # every prerequisite of v is placed
+                queue.append(v)
+
+    if len(order) != len(graph):
+        raise ValueError("graph has a cycle; no topological order exists")
+    return order
+
+
+courses = {
+    "intro": ["ds"],
+    "math":  ["ds", "prob"],
+    "ds":    ["algo"],
+    "prob":  ["ml"],
+    "algo":  ["ml"],
+    "ml":    [],
+}
+print(topological_sort(courses))
+# ['intro', 'math', 'ds', 'prob', 'algo', 'ml']
+```
+
+</Tab>
+<Tab>
+
+```javascript title="topoKahn.js" {20-22}
+function topologicalSort(graph) {
+  const inDegree = new Map(Object.keys(graph).map((u) => [u, 0]));
+  for (const u of Object.keys(graph)) {
+    for (const v of graph[u]) inDegree.set(v, inDegree.get(v) + 1);
+  }
+
+  const queue = [...inDegree.keys()].filter((u) => inDegree.get(u) === 0);
+  const order = [];
+
+  for (let head = 0; head < queue.length; head++) {
+    const u = queue[head];
+    order.push(u);
+    for (const v of graph[u]) {
+      inDegree.set(v, inDegree.get(v) - 1);
+      if (inDegree.get(v) === 0) queue.push(v); // every prerequisite of v is placed
+    }
+  }
+
+  // Vertices on (or behind) a cycle never reach in-degree 0
+  if (order.length !== inDegree.size) {
+    throw new Error("graph has a cycle; no topological order exists");
+  }
+  return order;
+}
+
+const courses = {
+  intro: ["ds"],
+  math: ["ds", "prob"],
+  ds: ["algo"],
+  prob: ["ml"],
+  algo: ["ml"],
+  ml: [],
+};
+console.log(topologicalSort(courses));
+// ["intro", "math", "ds", "prob", "algo", "ml"]
+```
+
+</Tab>
+<Tab>
+
+```java title="TopoKahn.java"
+import java.util.*;
+
+public class TopoKahn {
+    static List<String> topologicalSort(Map<String, List<String>> graph) {
+        Map<String, Integer> inDegree = new LinkedHashMap<>();
+        for (String u : graph.keySet()) inDegree.put(u, 0);
+        for (List<String> targets : graph.values()) {
+            for (String v : targets) inDegree.merge(v, 1, Integer::sum);
+        }
+
+        Deque<String> queue = new ArrayDeque<>();
+        for (Map.Entry<String, Integer> entry : inDegree.entrySet()) {
+            if (entry.getValue() == 0) queue.add(entry.getKey());
+        }
+
+        List<String> order = new ArrayList<>();
+        while (!queue.isEmpty()) {
+            String u = queue.poll();
+            order.add(u);
+            for (String v : graph.get(u)) {
+                if (inDegree.merge(v, -1, Integer::sum) == 0) queue.add(v);
+            }
+        }
+
+        if (order.size() != graph.size()) {
+            throw new IllegalStateException("graph has a cycle; no topological order exists");
+        }
+        return order;
+    }
+
+    public static void main(String[] args) {
+        Map<String, List<String>> courses = new LinkedHashMap<>();
+        courses.put("intro", List.of("ds"));
+        courses.put("math", List.of("ds", "prob"));
+        courses.put("ds", List.of("algo"));
+        courses.put("prob", List.of("ml"));
+        courses.put("algo", List.of("ml"));
+        courses.put("ml", List.of());
+
+        System.out.println(topologicalSort(courses));
+        // [intro, math, ds, prob, algo, ml]
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+The cycle check at the end is all it takes to make the algorithm robust. If some vertex never reached in-degree 0, it's on a cycle or downstream of one, and the output comes up short.
+
+### DFS-based
+
+<Tabs items={["Python", "JavaScript", "Java"]}>
+<Tab>
+
+```python title="topo_dfs.py"
+WHITE, GRAY, BLACK = 0, 1, 2
+
+def topological_sort_dfs(graph):
+    """Reverse postorder DFS with three-color cycle detection."""
+    color = {u: WHITE for u in graph}
+    postorder = []
+
+    def visit(u):
+        color[u] = GRAY
+        for v in graph[u]:
+            if color[v] == GRAY:
+                raise ValueError(f"cycle detected through {v!r}")
+            if color[v] == WHITE:
+                visit(v)
+        color[u] = BLACK
+        postorder.append(u)          # u finishes after everything it points to
+
+    for u in graph:
+        if color[u] == WHITE:
+            visit(u)
+    return postorder[::-1]
+
+
+courses = {
+    "intro": ["ds"],
+    "math":  ["ds", "prob"],
+    "ds":    ["algo"],
+    "prob":  ["ml"],
+    "algo":  ["ml"],
+    "ml":    [],
+}
+print(topological_sort_dfs(courses))
+# ['math', 'prob', 'intro', 'ds', 'algo', 'ml']
+```
+
+</Tab>
+<Tab>
+
+```javascript title="topoDfs.js"
+const WHITE = 0, GRAY = 1, BLACK = 2;
+
+function topologicalSortDfs(graph) {
+  const color = new Map(Object.keys(graph).map((u) => [u, WHITE]));
+  const postorder = [];
+
+  function visit(u) {
+    color.set(u, GRAY);
+    for (const v of graph[u]) {
+      if (color.get(v) === GRAY) throw new Error(`cycle detected through ${v}`);
+      if (color.get(v) === WHITE) visit(v);
+    }
+    color.set(u, BLACK);
+    postorder.push(u); // u finishes after everything it points to
+  }
+
+  for (const u of Object.keys(graph)) {
+    if (color.get(u) === WHITE) visit(u);
+  }
+  return postorder.reverse();
+}
+
+const courses = {
+  intro: ["ds"],
+  math: ["ds", "prob"],
+  ds: ["algo"],
+  prob: ["ml"],
+  algo: ["ml"],
+  ml: [],
+};
+console.log(topologicalSortDfs(courses));
+// ["math", "prob", "intro", "ds", "algo", "ml"]
+```
+
+</Tab>
+<Tab>
+
+```java title="TopoDfs.java"
+import java.util.*;
+
+public class TopoDfs {
+    private enum Color { WHITE, GRAY, BLACK }
+
+    static List<String> topologicalSort(Map<String, List<String>> graph) {
+        Map<String, Color> color = new HashMap<>();
+        for (String u : graph.keySet()) color.put(u, Color.WHITE);
+        Deque<String> result = new ArrayDeque<>();
+
+        for (String u : graph.keySet()) {
+            if (color.get(u) == Color.WHITE) visit(graph, u, color, result);
+        }
+        return new ArrayList<>(result);
+    }
+
+    private static void visit(Map<String, List<String>> graph, String u,
+                              Map<String, Color> color, Deque<String> result) {
+        color.put(u, Color.GRAY);
+        for (String v : graph.get(u)) {
+            if (color.get(v) == Color.GRAY) {
+                throw new IllegalStateException("cycle detected through " + v);
+            }
+            if (color.get(v) == Color.WHITE) visit(graph, v, color, result);
+        }
+        color.put(u, Color.BLACK);
+        result.push(u);   // pushing onto the front reverses the postorder for us
+    }
+
+    public static void main(String[] args) {
+        Map<String, List<String>> courses = new LinkedHashMap<>();
+        courses.put("intro", List.of("ds"));
+        courses.put("math", List.of("ds", "prob"));
+        courses.put("ds", List.of("algo"));
+        courses.put("prob", List.of("ml"));
+        courses.put("algo", List.of("ml"));
+        courses.put("ml", List.of());
+
+        System.out.println(topologicalSort(courses));
+        // [math, prob, intro, ds, algo, ml]
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="warning" title="Which way do the arrows point?">
+
+The most common topological-sort bug is a flipped edge direction. These implementations assume u → v means "u comes **before** v". If your input lists dependencies instead, with u → v meaning "u **depends on** v", you'll get the order exactly backward. Either reverse each edge as you build the graph or reverse the output, but decide deliberately.
+
+</Callout>
+
+## Complexity
+
+| Algorithm        | Time     | Extra space |
+| ---------------- | -------- | ----------- |
+| Kahn's algorithm | O(V + E) | O(V)        |
+| DFS-based        | O(V + E) | O(V)        |
+
+Both are linear in the size of the graph. Kahn's algorithm touches each edge twice, once to compute in-degrees and once to decrement them, and enqueues each vertex once. The DFS version is a single DFS plus a reversal. The extra space holds the in-degree map and queue, or the color map, output list and recursion stack. That recursion can go V levels deep on a long dependency chain, so Kahn's algorithm is the safer choice in languages with small call stacks.
+
+## Where it's used
+
+- **Build systems** such as Make, Bazel and Gradle build targets in topological order of their dependencies, and report circular dependencies as errors.
+- **Package managers** install each library after the libraries it depends on.
+- **Spreadsheets** recalculate cells in topological order so every formula sees up-to-date inputs, and flag circular references.
+- **Task schedulers and CI pipelines** run each job only after its prerequisite jobs finish, often in parallel waves.
+- **Dynamic programming on DAGs.** Processing vertices in topological order guarantees that a vertex's subproblems are solved before the vertex itself, which is the core requirement of [dynamic programming](/tutorials/dynamic-programming/core-ideas/what-is-dp). The longest path in a DAG takes just O(V + E) this way, even though longest path is NP-hard in general graphs.
+- **Shortest paths in DAGs**, even with negative edge weights, take O(V + E) by relaxing each vertex's outgoing edges in topological order.
+
+### Variations
+
+- **Smallest order first:** to get the lexicographically smallest topological order, replace Kahn's queue with a min-[heap](/tutorials/data-structures/non-linear/heaps). The cost rises to O(V log V + E).
+- **Uniqueness check:** the topological order is unique exactly when Kahn's queue never holds more than one vertex at a time.
+- **All orders:** a DAG can have exponentially many topological orders, so enumerate them only for small graphs, typically with backtracking.
+
+## Key takeaways
+
+- A **topological order** lists a directed graph's vertices so that every edge u → v has u before v.
+- An order exists **if and only if** the graph is a DAG, and good algorithms report cycles instead of returning garbage.
+- **Kahn's algorithm** repeatedly removes vertices with in-degree 0 using a queue; leftover vertices mean a cycle.
+- The **DFS approach** outputs vertices in reverse finish order; an edge to a gray vertex means a cycle.
+- Both run in **O(V + E)** time, and topological orders are usually not unique.
+- Topological order is the backbone of build systems, schedulers, spreadsheets and DP on DAGs.
+
+<Quiz
+  question="Kahn's algorithm finishes with 7 vertices in its output, but the graph has 10. What can you conclude?"
+  options={["The graph is disconnected", "The graph contains a cycle", "The algorithm has a bug", "Exactly three vertices had in-degree 0 at the start"]}
+  answer={1}
+  explanation="Vertices on a cycle, and everything downstream of one, never reach in-degree 0, so they are never enqueued. A short output is exactly how Kahn's algorithm detects a cycle. Disconnected DAGs are handled just fine."
+/>
+
+<Quiz
+  question="Which of these is NOT a valid topological order of the course graph above?"
+  options={["intro, math, ds, prob, algo, ml", "math, intro, prob, ds, algo, ml", "math, prob, intro, ds, ml, algo", "math, intro, ds, algo, prob, ml"]}
+  answer={2}
+  explanation="It places ml before algo, but algo is a prerequisite of ml, so the edge from algo to ml would point backward. Every other option keeps each course after all of its prerequisites."
+/>
