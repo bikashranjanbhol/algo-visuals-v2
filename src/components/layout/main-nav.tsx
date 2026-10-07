@@ -2,7 +2,7 @@
 
 import { ArrowRight, ChevronDown } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useSelectedLayoutSegment } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { TutorialIcon } from "@/components/icons";
 import type { NavTutorial } from "@/lib/content-types";
@@ -11,13 +11,17 @@ import { primaryNav } from "@/lib/site";
 import { accentStyles, cn } from "@/lib/utils";
 
 export function MainNav({ tutorials }: { tutorials: NavTutorial[] }) {
-  const pathname = usePathname();
+  // The active section comes from the router tree, not the URL. Unmatched URLs
+  // are served the prerendered 404 page, whose segment is "/_not-found" on both
+  // server and client, while the browser URL (e.g. /dashboard/settings) would
+  // make a pathname check disagree with the server HTML during hydration.
+  const segment = useSelectedLayoutSegment();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLLIElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useDismiss(ref, open, close);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string) => segment === href.slice(1);
   const linkClass = (active: boolean) =>
     cn(
       "inline-flex h-9 items-center gap-1 rounded-lg px-3 text-sm font-medium transition-colors",
