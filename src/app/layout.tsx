@@ -55,12 +55,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   const tree = getNavTree();
   const searchIndex = getSearchIndex();
 
+  // suppressHydrationWarning on <html>, <head> and <body> covers attributes added
+  // before hydration: the theme script sets html's class, and browser extensions
+  // (password managers, Grammarly, ColorZilla…) stamp attributes on head/body.
+  // It applies to each element's own attributes only, so mismatches inside the
+  // page are still reported.
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
-      <head>
+      <head suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="flex min-h-dvh flex-col font-sans antialiased">
+      <body className="flex min-h-dvh flex-col font-sans antialiased" suppressHydrationWarning>
         <a
           href="#main"
           className="sr-only z-[100] rounded-lg bg-brand px-4 py-2 font-semibold text-brand-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
