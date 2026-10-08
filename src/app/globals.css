@@ -266,8 +266,10 @@
   transform: rotate(-45deg);
   transition: transform 0.15s;
 }
-.prose-article :where(details > summary):not(:where(.not-prose, .not-prose *)):hover {
-  background: var(--muted);
+@media (hover: hover) {
+  .prose-article :where(details > summary):not(:where(.not-prose, .not-prose *)):hover {
+    background: var(--muted);
+  }
 }
 .prose-article :where(details[open] > summary):not(:where(.not-prose, .not-prose *)) {
   border-bottom: 1px solid var(--border);
