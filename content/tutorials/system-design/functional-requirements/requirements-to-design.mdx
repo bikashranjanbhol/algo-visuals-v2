@@ -1,0 +1,410 @@
+---
+title: "From Requirements to Design"
+description: "Connect requirements to software design: clarifying questions, worked examples, APIs, data, architecture, acceptance criteria and testing (Sections 29–46)."
+difficulty: intermediate
+updated: 2026-10-08
+---
+
+*Part 3 of 5 of [Functional Requirements](/tutorials/system-design/functional-requirements) · Sections 29–46.* These sections connect this skill to software design. New to the topic? Start with [Functional Requirements Fundamentals](/tutorials/system-design/functional-requirements/fundamentals).
+
+## 29. Clarifying questions: URL shortener
+
+Prompt: **“Design a URL shortener.”**
+
+A **clarifying question** resolves uncertainty that materially affects the problem or its boundaries. It matters because the prompt gives a category, not a complete specification.
+
+Before the table, one solution term: a **database** is an organized collection of stored information with ways to retrieve and change it. A store might retain orders in a database; this matters for remembering information, but selecting its technology is a later design choice.
+
+A **custom alias** is a user-selected short-link name, such as “sale.” It matters because two people may request the same name. **Latency** is elapsed time between a request and its response; it matters for evaluating speed.
+
+| Weak question | Why weak here | Stronger question | What it reveals |
+|---|---|---|---|
+| Which database should I use? | Chooses a solution before understanding behavior | Can anyone create links, or only signed-in users? | Actors, ownership, permissions: functional |
+| Should it be good? | Does not lead to a decision | Can users choose custom aliases? | Naming and conflict behavior: functional |
+| What color is the button? | Usually irrelevant to this interview scope | Should links expire? | Lifecycle behavior: functional |
+| Should I use many servers? | Premature solution question | Can owners delete links, and what should visitors see afterward? | Deletion behavior: functional |
+| Is analytics cool? | Asks for preference vaguely | Do owners need per-link click counts? | Optional capability: functional |
+| Must it be fast? | Target unclear | What redirection latency target and traffic assumptions should guide design? | Quality and workload: non-functional |
+
+Start with questions that change the core behavior. In an interview, propose a reasonable initial scope and invite correction rather than asking an endless checklist.
+
+## 30. Extracting requirements from “Design a system like WhatsApp”
+
+A named product is a clue to an experience, not permission to assume every feature it contains. We are describing a hypothetical messaging application, not asserting the exact behavior of a real service.
+
+Reasoning process:
+
+1. Infer the likely goal provisionally: let people exchange messages.
+2. Identify actors: sender, recipient, possibly group administrator or moderator.
+3. Ask whether the first scope is one-to-one messaging or also groups.
+4. Clarify text versus images, video, and files.
+5. Clarify status meanings, history, deletion, and blocking.
+6. Confirm which optional behaviors are excluded.
+
+Useful questions: Do we need group messages? Read receipts? Online status? Search? Voice calls? Message deletion for oneself or everyone? Can blocked people send messages? Must offline recipients receive messages after returning?
+
+A **read receipt** indicates a recipient’s application has reported a message as read under defined rules. **Online status** indicates current or recent connectivity under a defined policy. Neither is proof of a person’s attention; definitions matter.
+
+### Proposed minimum functional requirements
+
+- **MSG-MIN-01:** Users can register and sign in.
+- **MSG-MIN-02:** Signed-in users can find an eligible recipient by an agreed unique identifier.
+- **MSG-MIN-03:** Users can exchange nonempty one-to-one text messages with eligible recipients.
+- **MSG-MIN-04:** Recipients can retrieve accepted messages when they next use the application.
+- **MSG-MIN-05:** Conversation participants can view their retained message history.
+- **MSG-MIN-06:** The system reports accepted, delivered, or failed status according to explicit definitions.
+
+### Optional requirements
+
+Group conversations, images/files, reactions, read receipts, search, blocking controls, deletion for all participants, disappearing messages. A **reaction** is a small response attached to a message, such as a thumbs-up. **Disappearing messages** are messages removed from the application’s accessible history after an agreed condition or time; define limits rather than promising deletion from every possible external copy.
+
+### Out of scope for this interview example
+
+Voice/video calls, public channels, live location, payments, and every feature of the named real application. A **voice call** is a live audio conversation; it introduces a different interaction from stored text messages. Exclusion keeps discovery focused enough to finish the design exercise.
+
+## 31. Detailed example: URL shortener
+
+**Prompt:** Design a URL shortener.
+
+**Product goal:** Make a long supported web address easy to share using a shorter address.
+
+**Actors:** Link creator; visitor opening the link; optional owner/admin if management is included.
+
+**Major capabilities:** Create a link; resolve/open a link; report unusable links.
+
+**Clarifying questions:** Anonymous creation? Supported URL schemes? Custom names? Expiry? Owner deletion? Reuse of existing short links? Click counts? What happens to deleted/expired addresses?
+
+A **URL scheme** identifies the kind of address, such as `https`. It matters because arbitrary address types may not be suitable destinations. Here we assume the product supports `http` and `https` web destinations and rejects unsupported or malformed inputs; accepting a syntactically valid URL does not prove the destination is reachable or safe.
+
+### Core functional requirements
+
+- **FR-1:** A creator can submit a supported long URL and receive a shortened URL associated with that exact destination.
+- **FR-2:** When a visitor opens an active shortened URL, the system redirects to its associated destination.
+- **FR-3:** The system reports an unknown-link error when the submitted short identifier does not exist.
+- **FR-4:** The system rejects unsupported or malformed destination URLs and explains the supported input rules.
+
+### Optional, only if agreed
+
+- **FR-5:** A creator can request an available custom alias; the system refuses an alias already allocated or reserved.
+- **FR-6:** An owner can set a future expiration time; after expiration the system reports the link expired rather than redirecting.
+- **FR-7:** An authorized owner can deactivate a link; later visitors receive an unavailable-link result.
+- **FR-8:** An authorized owner can view a per-link count of redirect requests under the agreed counting definition.
+
+Decide whether repeated redirects, automated visitors, and failed requests count. “Clicks” is not precise enough for every reporting purpose.
+
+**Information retention** means keeping information for a defined time and purpose, such as keeping redirect counts for a month. It matters because later viewing and deletion depend on how long information remains available.
+
+Account ownership, expiration, and analytics create additional requirements for permission, state, and information retention. They should not be assumed merely because they are common possibilities.
+
+## 32. Detailed example: e-commerce system
+
+**Goal:** Let customers purchase available products and follow the resulting orders.
+
+**Actors:** Customer, administrator, payment provider, shipping provider. A **shipping provider** is the external delivery organization; administrators and employees may have distinct permissions.
+
+**Example scope assumptions:** Card-based payment, one store, one purchase currency, cancellation before dispatch, returns only under an explicitly approved return policy. These assumptions must be confirmed in a real project.
+
+- **FR-001:** Visitors can register an account using the defined fields and validation rules.
+- **FR-002:** Eligible registered customers can sign in and sign out.
+- **FR-003:** Customers can update their own permitted profile fields and saved delivery addresses.
+- **FR-004:** Customers can browse products available for sale.
+- **FR-005:** Customers can search product names and descriptions using keywords.
+- **FR-006:** Customers can view product price, description, variants, and current availability.
+- **FR-007:** Customers can add an available product variant to their cart at a permitted quantity.
+- **FR-008:** Customers can change cart quantities or remove cart lines; the system recalculates totals.
+- **FR-009:** The system rejects checkout for an empty cart or unavailable requested quantities.
+- **FR-010:** Customers can select a valid delivery address and an offered shipping option.
+- **FR-011:** The system shows the final item, discount, shipping, and tax amounts before payment confirmation, under the agreed pricing rules.
+- **FR-012:** The system requests payment for the customer-confirmed total and records the provider’s outcome.
+- **FR-013:** Under this example policy, confirmed payment creates exactly one order for that checkout attempt.
+- **FR-014:** Rejected payment does not create a paid order; the system offers correction or another permitted method.
+- **FR-015:** Unknown payment outcomes remain pending until confirmed or resolved under the recovery policy.
+- **FR-016:** Customers can view their own order details and current shipment status.
+- **FR-017:** The system accepts shipment updates from the authorized shipping provider and associates them with the correct order.
+- **FR-018:** Customers can cancel their own undispatched orders under the cancellation rule.
+- **FR-019:** Accepted cancellation releases eligible stock reservations and initiates any required refund under policy.
+- **FR-020:** Customers can request returns for eligible delivered items and provide the required reason/information.
+- **FR-021:** Authorized staff can approve or refuse a return under the return policy and communicate the decision.
+- **FR-022:** On approved refund eligibility, the system requests the agreed amount and records refund status.
+- **FR-023:** Authorized administrators can add or update product listings and stock information.
+- **FR-024:** Authorized administrators can retire listings from new sales without changing the details of historical orders.
+- **FR-025:** The system refuses customer access to other customers’ order details.
+
+**Discount** means a reduction in price; **tax** is a charge calculated under applicable business rules. This chapter does not prescribe tax law: ask for the correct pricing rules and confirm them with the responsible stakeholders.
+
+Open questions: guest checkout? Payment timing? Stock reservation duration? Split shipments? Partial returns? Cancellation fees? Refund completion expectations? These materially change behavior.
+
+## 33. Detailed example: messaging application
+
+**Goal:** Two people can exchange and later retrieve text messages.
+
+### Core MVP, proposed
+
+- **CHAT-FR-01:** Visitors can create an account and eligible users can sign in.
+- **CHAT-FR-02:** Users can find another eligible user by the agreed exact account identifier.
+- **CHAT-FR-03:** A user can start a one-to-one conversation with that recipient.
+- **CHAT-FR-04:** A participant can send nonempty text within the agreed message-length limit.
+- **CHAT-FR-05:** The recipient can retrieve accepted messages, including those accepted while the recipient was offline.
+- **CHAT-FR-06:** Participants can view retained conversation history in the agreed order.
+- **CHAT-FR-07:** The system shows Sent when it has accepted a message and Delivered when the agreed recipient-delivery confirmation occurs.
+- **CHAT-FR-08:** A sender sees failed or pending status when sending has not been confirmed; retry does not create a second copy of the same message request.
+- **CHAT-FR-09:** Participants can delete a message from their own history view; the other participant’s view is unaffected under this example policy.
+- **CHAT-FR-10:** Nonparticipants cannot read the conversation history.
+
+**Offline** means currently not connected to the application. The “receive later” requirement matters because instant simultaneous connection is not always possible. Define how long history is retained and what ordering means; display time alone may not decide the order of competing messages.
+
+### Advanced features, separately scoped
+
+Groups and group membership; files/images; reactions; voice calls; disappearing messages; message search; read receipts; blocking; editing; deletion from everyone’s view. Each needs rules. For example, group removal raises whether a former member may view old messages, and blocking raises whether existing history remains readable.
+
+## 34. Functional requirements and APIs
+
+Imagine a waiter conveying your order to the kitchen using an agreed ticket format. An API similarly provides an agreed request/response route for software. Its precise design is one possible implementation of a requirement.
+
+**HTTP** is a common set of rules for requests and responses on the web. An HTTP **method** names the kind of request: `GET` commonly retrieves information; `POST` commonly submits work or creates something; `PATCH` changes selected fields; `DELETE` requests removal. An **endpoint** is an address where a particular API operation is offered. These terms matter when turning established behavior into software interactions.
+
+| Functional requirement | Possible API operation | Important behavior still needed |
+|---|---|---|
+| Customer views own order | `GET /orders/{orderId}` | Verify ownership; report nonexistent order |
+| User creates a short link | `POST /links` | Validate URL; return link or error |
+| User creates a task | `POST /tasks` | Validate title and associate owner |
+| Task owner edits title | `PATCH /tasks/{taskId}` | Verify owner and permitted update |
+| User removes own saved address | `DELETE /addresses/{addressId}` | Preserve historical order addresses under policy |
+| Sender submits a message | `POST /conversations/{id}/messages` | Verify membership; handle duplicate retry |
+| Customer requests cancellation | `POST /orders/{orderId}/cancellations` | Enforce current-state eligibility |
+
+Braces mark values supplied for a particular item: `{orderId}` is replaced with an order identifier. An endpoint name does not prove the requirement is fulfilled. The same need might be implemented through a different API or a non-web interface.
+
+## 35. Functional requirements and data
+
+A librarian remembers who borrowed which copy. Software also needs information to support later behavior.
+
+**Data** is represented information, such as an address or a message. A database, introduced in Section 29, retains information so actions like “view my previous orders” work beyond the current screen. We are not choosing a database technology yet.
+
+| Requirement | Information the system needs to remember |
+|---|---|
+| Save multiple delivery addresses | Customer, address fields, ownership, optional address label |
+| Redirect a short link | Short identifier, destination, active/expired status if supported |
+| Show task progress | Task, owner, title, completion state |
+| View message history | Conversation participants, message content, sender, ordering information |
+| Cancel an eligible order | Order owner, current state, relevant payment and cancellation outcome |
+| Reserve a library copy | Book title, physical copy, member, reservation order, loan state |
+
+A **record** is information about one item, such as one address. Requirements identify what must be remembered and why. They do not automatically dictate tables, products, or storage layout. Also ask what may be deleted, when, and what must remain available afterward.
+
+## 36. Functional requirements and architecture
+
+A house plan depends on whether the building is a family home or a hospital. Software design likewise needs a known purpose.
+
+**Architecture** is the high-level organization of a software solution: its major parts, responsibilities, and interactions. **System design** is deciding how a system will satisfy its requirements and constraints. **Implementation** is building the chosen solution in working software. These distinctions matter because a behavior can often be delivered by several designs.
+
+A **frontend** is the part people interact with, such as a notes screen. A **backend** performs supporting work behind that interface, such as checking access and saving a note. A **service** is a software part that provides a defined capability to other parts, such as processing orders. These names describe solution responsibilities, not user goals.
+
+For “Users can create and retrieve notes,” begin with ownership, fields, retrieval, error behavior, and quality targets. Do not immediately require these technologies:
+
+In these definitions, **in-memory** means kept in a computer’s working memory while running, such as a temporary ready-to-use value; this matters because retention and access properties differ from long-term storage. **Deployment** means putting software into an environment where it runs for its intended users. A deployment environment is the place and resources used to run it; these matter when operating the chosen solution.
+
+- **Kafka:** a software platform for carrying and retaining streams of events, such as shipment events.
+- **Redis:** a commonly used fast in-memory data store, sometimes used to keep reusable copies of information.
+- **Microservices:** an approach organizing software as separately operated services with distinct responsibilities.
+- **Kubernetes:** a platform for managing deployment and operation of packaged software workloads.
+
+They may be appropriate later, but naming them does not answer what happens when someone tries to read another person’s note. Requirements, quality targets, and constraints determine whether such complexity is justified.
+
+> Requirements describe the problem. Architecture describes one possible solution.
+
+## 37. Functional requirements in system-design interviews
+
+A **system-design interview** is a discussion in which a candidate clarifies a software problem and proposes a solution. Interviewers commonly look for structured reasoning, relevant questions, explicit assumptions, and coherent scope. Expectations vary; these are useful habits, not a universal scoring rubric.
+
+Start: “Before designing the architecture, I’d like to clarify the main functionality and scope.”
+
+**Interviewer:** Design a YouTube-like video platform.
+
+**Candidate:** I’ll treat that as a hypothetical video-sharing product. Should we focus on uploading and watching videos, or include comments, subscriptions, recommendations, and live streaming?
+
+**Interviewer:** Focus on uploading and watching.
+
+**Candidate:** Who uploads? Must uploaders sign in, and may visitors watch without accounts?
+
+**Interviewer:** Uploaders sign in. Visitors can watch public videos.
+
+**Candidate:** Should uploaders provide a title and description? What should viewers see while a video is not yet ready?
+
+**Interviewer:** Title is required; description is optional. A video is unavailable until ready.
+
+**Candidate:** Do uploaders need to delete their own videos? Should search be included?
+
+**Interviewer:** Include owner deletion. Exclude search for now; viewers open known video links.
+
+**Candidate:** Then the core is signed-in upload, validation, readiness status, public playback by link, owner deletion, and clear results for missing or unavailable videos. Is that the agreed scope?
+
+**Interviewer:** Yes.
+
+Agreed requirements:
+
+- **VID-FR-01:** Signed-in uploaders can submit supported video files with a required title and optional description.
+- **VID-FR-02:** Unsupported files are rejected with the supported input rules.
+- **VID-FR-03:** The system makes a submitted video publicly playable only after it is ready and reports failure when preparation fails.
+- **VID-FR-04:** Visitors can open a public, ready video by its link and control playback.
+- **VID-FR-05:** Owners can remove their videos from public access.
+- **VID-FR-06:** Missing, removed, or unready videos produce the agreed unavailable result.
+
+Quality targets and workload estimates come next; confirming functionality does not finish the entire interview.
+
+## 38. Common interview mistakes
+
+| Mistake | Why it happens | Why it hurts | Better approach |
+|---|---|---|---|
+| Immediately drawing architecture | Familiar technologies feel concrete | Solves an assumed problem | Confirm actors and core behavior first |
+| Assuming every feature | A real product has many familiar functions | Scope becomes impossible to address | Choose a coherent MVP with interviewer |
+| Too many irrelevant questions | Candidate follows a memorized list | Consumes time without decisions | Ask questions that change the design problem |
+| Mixing functional and non-functional | “Send fast” sounds like one need | Behavior and measurement remain unclear | Separate sending from a defined latency target |
+| Not confirming scope | Candidate treats guesses as agreement | Later design may be judged against another goal | Summarize and invite correction |
+| Ignoring actors | Candidate lists only features | Admin/provider behaviors disappear | List people and external systems |
+| Ignoring failures | Success is easier to imagine | Design cannot recover or communicate honestly | Include critical rejection and unknown outcomes |
+| Treating technologies as requirements | Product knowledge replaces discovery | Premature solution limits reasoning | Ask what behavior technology would support |
+| Vague requirements | Uses words such as “manage” | No clear test or design responsibility | Name action, object, conditions, result |
+| Forgetting writes | Focus on serving pages | Information never gets created or updated | Ask how each important item enters and changes |
+| Forgetting administration | Thinks only of customers | Product cannot be operated responsibly | Clarify essential management and support needs |
+
+A **write operation** changes stored information, such as sending a message or updating stock; a **read operation** retrieves information. Both matter because viewing a product requires some defined way for the listing to exist and remain current.
+
+## 39. Requirements versus implementation: 15 exercises
+
+For each pair, identify which statement describes needed behavior and which names a possible solution. Write your answer before consulting the final column.
+
+Before the examples, here are the new solution terms. You only need their meaning to distinguish problem from solution:
+
+A **worker** is a software process assigned to perform work. **Firebase Cloud Messaging** is a product for delivering notifications to client applications. **Cassandra** and **PostgreSQL** are database products; **Amazon S3** is a file/object storage service. An **SDK**, or software development kit, is reusable code and tools supplied to help integration. **WebSockets** provide a continuing two-way communication connection. A **queue** holds work items for later processing. A **database lock** coordinates access to information to prevent incompatible changes, such as two purchases claiming the same final unit. **Object storage** stores named information objects such as video files. A **relational table** organizes related records into rows and fields. These names matter as examples of how behavior may be implemented; they are not prerequisites for writing requirements.
+
+| # | Statement A | Statement B | Solution and reason |
+|---|---|---|---|
+| 1 | Notify customers when orders ship | Use Kafka, notification workers, and Firebase Cloud Messaging | A requirement; B implementation |
+| 2 | Store messages in Cassandra | Participants can retrieve retained conversation history | B requirement; A implementation |
+| 3 | Users can upload supported photos | Save photo files in Amazon S3 | A requirement; B implementation |
+| 4 | Use Redis for search results | Customers can search available products | B requirement; A implementation |
+| 5 | Visitors can open a short link | Generate link identifiers using a counter | A requirement; B implementation |
+| 6 | Use PostgreSQL for tasks | Task owners can mark their tasks complete | B requirement; A implementation |
+| 7 | Customers can pay the shown total | Integrate a particular provider’s SDK | A requirement; B implementation unless mandated |
+| 8 | Use WebSockets | Recipients receive accepted messages while connected | B requirement; A implementation |
+| 9 | Uploaders can remove their own videos | Place video files in object storage | A requirement; B implementation |
+| 10 | Use a queue for receipt work | Customers can request another copy of a receipt | B requirement; A implementation |
+| 11 | Reject checkout when stock is unavailable | Protect stock updates using database locks | A requirement; B implementation |
+| 12 | Deploy services with Kubernetes | Customers can request eligible returns | B requirement; A implementation |
+| 13 | Members can reserve available books | Use a relational table for reservations | A requirement; B implementation |
+| 14 | Use a background worker | Expired holds release the seats for booking | B requirement; A implementation |
+| 15 | Drivers can accept an eligible ride request | Split matching and trips into microservices | A requirement; B implementation |
+
+If a company explicitly mandates a technology, record that as a constraint instead of pretending it is optional. A specific solution obligation can be a requirement in the broad sense without being a functional behavior requirement.
+
+## 40. Requirements versus design decisions
+
+A **design decision** is a selected approach for satisfying needs, such as choosing a database. It matters because teams should be able to explain why they chose one solution over another.
+
+| Requirement | Design decision |
+|---|---|
+| Users can retrieve their messages | Store messages in Cassandra |
+| Visitors reach a short link’s destination | Represent the association as an identifier-to-URL record |
+| Customers cannot buy the same last unit twice | Coordinate inventory commitment with a particular locking approach |
+| Order owners receive shipment notifications | Process notification work asynchronously |
+
+**Asynchronously** means work may complete after the initiating interaction rather than requiring that interaction to wait. A receipt sent after checkout is an example. It matters when choosing how to meet agreed timing and failure behavior; the user-facing obligation still needs to specify what eventually happens and how failure is reported.
+
+A design decision may later become a documented project constraint, but retain its rationale and category. Do not reverse-engineer every product requirement from your favorite technology.
+
+## 41. Requirements versus constraints
+
+If a shop rents a particular building, the layout must fit it. A software constraint similarly restricts available choices.
+
+| Statement | Classification and implication |
+|---|---|
+| Must run on AWS | Platform constraint; AWS is Amazon Web Services, a hosted computing platform |
+| Must use the company’s existing payment provider | Integration constraint; derive functional requirements for its supported requests and outcomes |
+| Must support GDPR deletion requests | Broad legal/compliance obligation needing qualified interpretation and decomposition |
+| Must integrate with an existing identity system | Integration constraint plus derived login, account-linking, and failure behaviors |
+
+**GDPR** is the European Union’s General Data Protection Regulation. Mentioning it here illustrates a compliance constraint, not legal advice or a statement that all information must always be deleted. Teams need the applicable policy clarified by responsible specialists; then document observable request handling, permitted retention, and response obligations.
+
+A statement can contain more than one kind of need. “Use the existing identity system to sign users in” combines a mandated integration and behavior. Record both rather than forcing every sentence into one exclusive box.
+
+## 42. Traceability
+
+A cake order can link the customer’s request to the recipe, the finished cake, and a check that it serves eight. Requirements traceability provides similar connections.
+
+**Traceability** is the ability to follow a requirement’s source and its connections to related work and evidence. It matters when checking whether the software solves the intended problem and when estimating the effect of change.
+
+Example chain, with each item linked to the next:
+
+| Level | Complete example |
+|---|---|
+| Business goal | Customers can follow purchases without contacting support |
+| Functional requirement, FR-016 | Customers can view their own order’s current status |
+| Use case, UC-04 | Customer opens an owned order and reads the status; unauthorized access is refused |
+| Possible API | `GET /orders/{orderId}` |
+| Implementation | Order-retrieval code checks ownership and returns the agreed fields |
+| Test, T-016A | Owner receives the current status |
+| Test, T-016B | Another customer is refused access |
+
+This maps **goal → requirement → use case → API → implementation → test**, with an extra test for the permission branch. The links are associations, not a requirement that every team use the same development order. A screen-based or offline system may have no web API.
+
+## 43. Acceptance criteria
+
+Before accepting the cake, you might check its serving size and requested inscription. **Acceptance criteria** are specific observable conditions used to decide whether a requirement is satisfied. They matter because two people may agree on “password reset” but disagree on its completion.
+
+Requirement: **A user can reset a forgotten password.** Proposed acceptance criteria:
+
+- The user can submit a registered email to request a reset.
+- The system gives the agreed neutral request response and sends reset instructions to the account’s contact address.
+- The reset link is usable only before the configured expiration and only once.
+- A valid link permits setting a password that satisfies the agreed password rules.
+- An invalid, used, or expired link cannot change the password and offers a new request route.
+- A completed reset makes the old password unusable and follows the chosen policy for existing sessions.
+
+A useful format is **Given / When / Then**: Given an unused unexpired reset link, when the user submits a valid new password, then the system changes the password and marks the link used. “Given” states conditions, “When” identifies the action, and “Then” states the expected result.
+
+Acceptance criteria do not need to describe every internal mechanism. They should remove uncertainty about outcomes. “Configured expiration” requires a resolved value or a linked policy before final acceptance testing.
+
+## 44. Requirements and testing
+
+Every test should prove some expected behavior. Tests can check functional outcomes or non-functional qualities; their expectations should come from requirements or justified design obligations.
+
+Requirement: **Customers can add available products to their shopping cart.**
+
+| Test situation | Expected result under the chosen policy |
+|---|---|
+| Add one available product | Cart contains one unit and correct total |
+| Add the same product/variant twice | One cart line shows the combined permitted quantity |
+| Add an unavailable product | Request refused; cart unchanged for that addition; explanation shown |
+| Add more than permitted stock | Increase refused; available limit shown |
+| Add another variant of the same product | Separate variant line created |
+| Retry the same uncertain add request | Apply the documented duplicate-request rule rather than accidentally doubling |
+
+A **test case** is a specific situation with inputs, conditions, and expected results. A **duplicate request** repeats the same intended operation, often after the user did not see confirmation. These matter because “same product intentionally added twice” differs from “one action retried.”
+
+If you cannot choose an expected outcome for a test, you may have found a missing requirement. Do not invent the behavior secretly in the test; clarify and document it.
+
+## 45. Requirement conflicts
+
+A **conflict** occurs when requirements cannot all be satisfied under the same conditions. It matters because no architecture can resolve a contradiction without a policy decision.
+
+| Requirement A | Requirement B | Decision needed |
+|---|---|---|
+| Users permanently erase messages | Administrators retain every original message forever | Clarify deletion meaning, retention purpose, and permitted exceptions |
+| Guests checkout without providing contact information | Every buyer receives an email receipt | Make contact required, support another receipt route, or change the receipt promise |
+| Customers may cancel until delivery | Shipped purchases can never be cancelled | Agree a single boundary and define return behavior separately |
+| All videos are publicly viewable | Private videos are visible only to owners | Introduce explicit visibility categories instead of “all” |
+| Every reservation is immediately confirmed | Payment must succeed before confirmation | Add pending state or alter the confirmation rule |
+| Product deletion removes all associated details | Historical invoices must preserve original purchase details | Separate catalog removal from historical records |
+
+Record who owns the decision, the selected rule, and affected requirements. Do not merely choose the easier rule to implement.
+
+## 46. Requirement changes
+
+Version 1: users can upload one profile image. Later: users can upload several and choose a primary image.
+
+A **version** is a particular revision of a product or document. **Change impact** is the affected behavior, information, interfaces, tests, and operations. **Backward compatibility** means existing users or older interacting software can continue to work as promised after a change. These concepts matter because a small wording change can affect many connected obligations.
+
+Questions: Do existing images become the primary image? What is the maximum number? Who can see each image? How is removal handled when only one remains? Does an older application still receive a single primary image?
+
+Preserve stable requirement identifiers, record changed wording and rationale, update acceptance criteria and tests, and review traceability links. A documented assumption is easier to revisit than behavior buried only in code.

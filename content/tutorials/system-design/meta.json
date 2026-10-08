@@ -1,0 +1,22 @@
+{
+  "title": "System Design",
+  "description": "Learn to design software systems step by step, starting with functional requirements: deciding what a system must do before choosing how to build it.",
+  "order": 5,
+  "level": "Beginner",
+  "icon": "boxes",
+  "accent": "rose",
+  "chapters": [
+    {
+      "slug": "functional-requirements",
+      "title": "Functional Requirements",
+      "description": "What must the system do? Discover, write and check functional requirements, then use them in design and interviews.",
+      "topics": [
+        "fundamentals",
+        "paths-and-quality",
+        "requirements-to-design",
+        "practice-and-interviews",
+        "knowledge-check"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,429 @@
+---
+title: "Knowledge Check and Revision"
+description: "Test yourself with multiple-choice, true/false, short-answer and scenario questions, then revise with 36 flashcards and a cheat sheet (Sections 66–70)."
+difficulty: beginner
+updated: 2026-10-08
+---
+
+*Part 5 of 5 of [Functional Requirements](/tutorials/system-design/functional-requirements) · Sections 66–70.* Finish with the knowledge check, flashcards, and revision sheet. New to the topic? Start with [Functional Requirements Fundamentals](/tutorials/system-design/functional-requirements/fundamentals).
+
+## 66. Knowledge check
+
+Do not consult the answer key until you have attempted all questions. Choose exactly one answer for each multiple-choice question. For short answers and scenarios, alternative wording is acceptable if the reasoning and behavior are correct.
+
+### Fifteen multiple-choice questions
+
+**MC1. Which best describes a software system?**
+
+A. One screen, independent of any other part  
+B. Connected software and resources working toward a purpose  
+C. A list of desired technologies  
+D. Any instruction that must be followed
+
+**MC2. Which is a functional requirement?**
+
+A. Deploy using Kubernetes  
+B. Keep within the approved project budget  
+C. Customers can view their own orders  
+D. 95% of order-page requests finish within two seconds at the agreed load
+
+**MC3. Which is a non-functional requirement?**
+
+A. Customers can cancel eligible orders  
+B. Owners can delete notes  
+C. Administrators can suspend accounts  
+D. Search meets a specified response-time target under a defined workload
+
+**MC4. Who can be an actor?**
+
+A. An external payment system interacting with the store  
+B. Only the person buying something  
+C. Every internal function, regardless of boundary  
+D. Only people who are already signed in
+
+**MC5. What should happen before choosing architecture?**
+
+A. Select a database based only on popularity  
+B. Clarify goals, behavior, scope, and relevant constraints/quality needs  
+C. Assume every feature of the named real product  
+D. Specify as many services as possible
+
+**MC6. What is a precondition?**
+
+A. The result after an interaction finishes  
+B. Another way to reach the goal  
+C. A condition that must already hold before an interaction  
+D. The implementation of a test
+
+**MC7. A payment request times out. What can we safely conclude?**
+
+A. The customer was definitely charged  
+B. The customer was definitely not charged  
+C. The order must be deleted  
+D. The outcome is unknown until further evidence establishes it
+
+**MC8. Which best describes an MVP?**
+
+A. The smallest coherent product delivering useful value and supporting learning  
+B. Every familiar feature built at low quality  
+C. A product that implements only successful cases  
+D. A technology demonstration with no user goal
+
+**MC9. Which statement is a business rule in its primary wording?**
+
+A. Use PostgreSQL  
+B. Under this library’s policy, a member may borrow at most five copies  
+C. Search returns within the specified time target  
+D. The system rejects a sixth active loan
+
+**MC10. Which requirement is clearest?**
+
+A. Support shopping  
+B. Make cancellation good  
+C. The system refuses customer cancellation of an order after dispatch and shows the current status  
+D. Have useful order stuff
+
+**MC11. What does CRUD cover?**
+
+A. All possible workflows and policies  
+B. A particular database technology  
+C. A prioritization method  
+D. Create, Read, Update, Delete information operations
+
+**MC12. Why define message-deletion meaning?**
+
+A. Self-only hiding and removal for participants are different required behaviors  
+B. “Delete” always guarantees erasure from every external copy  
+C. Deletion has no effect on requirements  
+D. The database must decide the product policy
+
+**MC13. Which best illustrates traceability?**
+
+A. List requirements without sources or links  
+B. Link a business goal to an FR, related interaction, implementation, and tests  
+C. Replace requirements with database names  
+D. Keep test results separate from all expected behaviors
+
+**MC14. Which is an edge case for ticket booking?**
+
+A. A visitor reads the event title normally  
+B. A customer views a seat with many seats available  
+C. Two customers request the final seat at nearly the same time  
+D. A customer opens an ordinary event list
+
+**MC15. What makes an acceptance criterion useful?**
+
+A. It promises the application is “excellent”  
+B. It mentions a famous technology  
+C. It repeats the product name  
+D. It specifies an observable result under defined conditions
+
+### Ten true/false questions
+
+1. Functional requirements can include error responses.
+2. Every business rule is already a complete software behavior specification.
+3. An internal background job is always an external actor.
+4. An authorization rule can be a functional requirement.
+5. Requirements should never change after the first draft.
+6. A failed operation can still change attempt history or status.
+7. Choosing Cassandra is normally a design choice unless mandated as a constraint.
+8. Scope exclusions help keep an interview focused.
+9. CRUD is a complete inventory of every possible requirement.
+10. A timeout always proves an operation failed.
+
+### Ten short-answer questions
+
+1. Explain input, processing, and output using a restaurant.
+2. Define a requirement and distinguish it from a desire.
+3. Define an FR in one sentence and give an example.
+4. Give one FR/NFR pair for a search function.
+5. Name four useful clarification questions about booking tickets.
+6. Explain actor, primary actor, and secondary actor.
+7. Explain state and give one invalid state transition.
+8. Explain why a user story may need acceptance criteria.
+9. Distinguish a requirement, design decision, and constraint using storage.
+10. Explain how a missing test expectation can reveal a missing requirement.
+
+### Five scenario questions
+
+1. “Users can delete messages.” Identify at least four missing decisions and propose a scoped requirement.
+2. Two customers submit checkout for the final product unit. What behavior must be defined before design?
+3. A bank transfer confirmation response is lost. What should the application avoid, preserve, and communicate?
+4. A restaurant rejects a paid order. Write the relevant failure/refund requirements without assuming an implementation.
+5. The prompt is “Design a video platform.” Propose a coherent MVP, two useful questions, and three excluded capabilities.
+
+### Answer key — read only after attempting everything
+
+#### Multiple-choice answers with explanations
+
+| Question | Answer | Explanation |
+|---|---|---|
+| MC1 | B | A system includes cooperating parts and a purpose. A screen may be only one part; a technology list or instruction is not a system definition |
+| MC2 | C | Viewing an owned order is observable behavior. A names a solution, B a resource constraint, and D a quality target |
+| MC3 | D | It describes a measured quality of search. The other options describe actions/permission behavior |
+| MC4 | A | Actors can be external software roles. Being human or signed in is not required; internal parts are not automatically external actors |
+| MC5 | B | A solution must be based on the actual problem. Popularity, full-product assumptions, and maximizing services do not establish needs |
+| MC6 | C | A precondition holds before the interaction. A is a postcondition; B is an alternative flow |
+| MC7 | D | The response may be missing despite success or failure. Do not infer either result or delete the evidence |
+| MC8 | A | Minimum must still deliver a coherent goal. It does not mean broad poor quality, ignored failures, or a goal-free demonstration |
+| MC9 | B | It states domain policy. D is software enforcement of that policy; A is design; C is quality |
+| MC10 | C | It identifies action, condition, refusal, and visible result. The other wording leaves important behavior undefined |
+| MC11 | D | CRUD describes information operations. It omits many workflows and is neither a technology nor a prioritization method |
+| MC12 | A | Different deletion meanings affect different people and retained information. Product policy must be clarified rather than chosen accidentally by storage |
+| MC13 | B | Traceability follows purpose and evidence through connected work. Unlinked lists and technology substitutions do not provide that chain |
+| MC14 | C | Competing requests for the final unit expose a boundary/correctness issue. The other situations are ordinary successful reads |
+| MC15 | D | An observable expectation allows verification. Praise, brand names, and repetition do not establish acceptance |
+
+#### True/false answers with explanations
+
+1. **True.** Refusal, recovery options, and information effects are observable behavior.
+2. **False.** A rule may exist outside software; specify how the system enforces it and reports results.
+3. **False.** Actor classification depends on the boundary. An internal job is often a system part.
+4. **True.** Allowing or refusing an actor’s action is functional behavior.
+5. **False.** Requirements evolve; changes require review and updates to related work.
+6. **True.** Failure can record an attempt, update a counter, or establish pending status.
+7. **True.** A technology choice normally explains how; an explicit mandate restricts choices.
+8. **True.** Exclusions prevent unbounded assumptions about real products.
+9. **False.** Sending, approving, calculating, and coordinating workflows need more than CRUD labels.
+10. **False.** A timeout establishes lack of a timely response, not the external outcome.
+
+#### Short-answer sample answers
+
+1. **Restaurant:** Input is the soup request; processing checks availability and prepares it; output is soup or an unavailable response. The model helps identify both successful and unsuccessful behavior.
+2. **Requirement:** A stated need or obligation to satisfy. “I want convenient shopping” is a desire; “Customers can save a cart and retrieve it later” gives behavior supporting that desire.
+3. **FR:** A required observable system behavior. Example: opening an active short link redirects to its associated destination.
+4. **Pair:** FR: customers search names/descriptions by keywords. NFR: 95% of those searches finish within two seconds under a defined workload. One enables action; the other measures quality.
+5. **Questions:** Assigned or unassigned seats? Is sign-in required? When is payment required? What happens to an expired hold? What cancellation/refund policy applies? These determine different obligations.
+6. **Actors:** An actor is an interacting role outside the boundary. The primary actor seeks the goal, such as a buyer; the secondary actor supports it, such as the payment provider. One role can be primary in another use case.
+7. **State:** Current meaningful condition. Delivered → Preparing is invalid for the original food order under the example workflow; an exception or return needs a separately defined process.
+8. **Story criteria:** A story identifies actor, action, and goal but may omit limits, failures, or exact results. Criteria define observable acceptance conditions, such as rejecting an expired reset link.
+9. **Storage distinction:** “Users retrieve saved notes” is behavior. “Store them in PostgreSQL” is a design decision when selected by designers. “Company policy mandates PostgreSQL” is a constraint.
+10. **Missing expectation:** If you cannot say whether quantity zero removes a cart line or is refused, neither a test nor implementation has a justified expected result. Resolve the policy and add the requirement.
+
+#### Scenario sample solutions
+
+1. **Message deletion:** Clarify self-only versus all recipients; eligibility deadline; who may delete; retained records; offline behavior; visible placeholder. Scoped FR: “A conversation participant can remove a message from their own history view without changing other participants’ views.” This is specific without promising global erasure.
+2. **Final product unit:** Require at most one committed purchase, clear refusal/correction for the other customer, a defined stock-allocation point, and correction/refund behavior if money was collected for an unfulfillable purchase. Mechanisms are later design choices.
+3. **Lost transfer response:** Avoid a second independent transfer. Preserve the original request identity, amount, recipient, and pending status. Communicate uncertainty and provide status retrieval; resolve against reliable bank evidence before claiming success or failure.
+4. **Restaurant rejection:** Record rejection, cancel the order, stop delivery progression, initiate the agreed full refund if collection occurred, and expose refund status. Refunding money is distinct from deleting an order or merely showing “cancelled.”
+5. **Video MVP:** Signed-in supported upload, readiness/failure status, public playback by link, owner removal, unavailable results. Ask whether viewers need accounts and whether discovery/search is in scope. Exclude live streaming, advertising, and comments for this agreed version. If search is essential to the goal, include it rather than preserving this proposed exclusion blindly.
+
+**Review guide:** If you confuse FRs and NFRs, revisit Section 4. If you name features without conditions, revisit Sections 5 and 25–28. If failure and state questions are difficult, revisit Sections 11–19 and 65. If you rush to technologies, revisit Sections 34–42.
+
+## 67. Flashcards: 36 cards
+
+**Q1:** What is a system?  
+**A:** Connected parts working together for a purpose, receiving inputs and producing results.
+
+**Q2:** What is a software application?  
+**A:** A program people or other programs use to accomplish tasks.
+
+**Q3:** What is a software system?  
+**A:** Cooperating software and resources organized to deliver a purpose.
+
+**Q4:** What is a requirement?  
+**A:** A stated need or obligation that must be satisfied.
+
+**Q5:** What is a functional requirement?  
+**A:** A required observable system behavior, including relevant conditions and outcomes.
+
+**Q6:** What question do FRs answer?  
+**A:** What must the system do?
+
+**Q7:** What is a non-functional requirement?  
+**A:** A required quality, operating limit, or condition of the system or its behavior.
+
+**Q8:** Give an FR/NFR pair.  
+**A:** Users can search products; 95% of searches finish within two seconds under the agreed workload.
+
+**Q9:** What is an actor?  
+**A:** A role outside the chosen boundary that interacts with the system.
+
+**Q10:** What is a primary actor?  
+**A:** An actor pursuing the goal of a use case.
+
+**Q11:** What is a secondary actor?  
+**A:** An actor supporting the goal, such as an external payment provider.
+
+**Q12:** What is a capability?  
+**A:** A broad ability the system provides, such as purchasing products.
+
+**Q13:** What is a feature?  
+**A:** A recognizable product function that may contain several detailed requirements.
+
+**Q14:** What is a use case?  
+**A:** A structured description of an actor achieving a goal, including conditions and alternative/error flows.
+
+**Q15:** What is a workflow?  
+**A:** A sequence of actions and decisions leading toward an outcome.
+
+**Q16:** What is a user journey?  
+**A:** The steps a person takes and experiences while pursuing a goal.
+
+**Q17:** What is a precondition?  
+**A:** Something that must already be true before an interaction begins.
+
+**Q18:** What is a postcondition?  
+**A:** Something that is true after the interaction finishes, for that outcome.
+
+**Q19:** What is a trigger?  
+**A:** The action, event, or condition that starts behavior.
+
+**Q20:** What is state?  
+**A:** An item’s meaningful current condition, such as Pending or Delivered.
+
+**Q21:** What is a state transition?  
+**A:** A change from one state to another under defined rules.
+
+**Q22:** What is a business rule?  
+**A:** A domain policy governing decisions, eligibility, or permitted actions.
+
+**Q23:** How does a rule become an FR?  
+**A:** Specify the system behavior that enforces it, such as refusing an over-limit withdrawal.
+
+**Q24:** What is an edge case?  
+**A:** A boundary or unusual situation exposing assumptions in normal behavior.
+
+**Q25:** What is CRUD?  
+**A:** Create, Read, Update, Delete: a discovery checklist for information operations.
+
+**Q26:** Give a non-CRUD behavior.  
+**A:** Calculate a shipping charge, send a notification, or approve a transaction.
+
+**Q27:** What are input and output?  
+**A:** Input is what arrives; output is the result produced or communicated.
+
+**Q28:** What is an error flow?  
+**A:** Defined behavior when the normal route cannot succeed, including feedback and information effects.
+
+**Q29:** What is scope?  
+**A:** The agreed boundary of included and excluded work/functionality.
+
+**Q30:** What is an MVP?  
+**A:** The smallest coherent product delivering useful value and supporting learning.
+
+**Q31:** What are acceptance criteria?  
+**A:** Observable conditions used to judge whether a requirement is satisfied.
+
+**Q32:** What is authentication versus authorization?  
+**A:** Authentication checks identity; authorization checks permission for an action.
+
+**Q33:** What is traceability?  
+**A:** Following a requirement’s purpose and links to related work and evidence.
+
+**Q34:** What is an API?  
+**A:** A defined way for software to request actions or information from other software.
+
+**Q35:** What is architecture versus a requirement?  
+**A:** Architecture organizes a solution; a requirement states a need or obligation the solution must satisfy.
+
+**Q36:** What does a timeout prove?  
+**A:** A timely response was not received; the actual outcome may still be unknown.
+
+## 68. Summary cheat sheet
+
+### Functional requirements
+
+**Core question:** What must the system do?
+
+**Formula:** Actor + Action + Object + Expected Behavior, under specified conditions.
+
+**Useful pattern:** “When [trigger/condition], the system shall [observable response].”
+
+**Discovery:** Goal → actors → capabilities → user journeys → FRs → business rules → errors and edge cases → permissions → scope and priority → acceptance checks.
+
+### Essential distinctions
+
+| Concept | Remember |
+|---|---|
+| Functional requirement | Behavior: customers can view their orders |
+| Non-functional requirement | Quality: a defined proportion of views finishes within the target time at the stated load |
+| Business rule | Domain policy: cancellation allowed before dispatch |
+| Enforcement FR | System refuses cancellation after dispatch |
+| Constraint | Mandated restriction: use existing identity provider |
+| Design decision | Selected solution: choose a storage mechanism |
+| User story | Actor’s need and purpose; refine with criteria |
+| Acceptance criterion | Observable condition proving satisfaction |
+
+### Common mistakes
+
+Vague verbs; assuming all features; architecture before discovery; undefined deletion; missing permissions; happy-path-only thinking; arbitrary targets; contradictory policies; treating timeout as rejection; forgetting writes and administration.
+
+### Interview checklist
+
+Clarify actors and goals. Confirm core actions. Establish MVP and exclusions. Identify important rules, states, and failures. Summarize agreed scope. Separate behavior from quality and implementation. Then design.
+
+### Example requirements
+
+- A creator can submit a supported long URL and receive a short URL.
+- Opening an active short link redirects to the associated destination.
+- The system refuses checkout when the cart is empty.
+- Customers can view only orders they own unless expressly granted another authority.
+- A repeated booking request does not create another booking or charge request.
+
+### Quick boundary drill
+
+For every important operation ask: valid input? Invalid input? Empty input? Exact limit? Wrong actor? Wrong state? Duplicate request? Competing request? Definite failure? Unknown outcome?
+
+## 69. Learning progression: what to study next
+
+You now know how to describe the problem. Study the solution topics in a sequence that keeps their purpose visible.
+
+| Next topic | Beginner definition and example | Why it follows |
+|---|---|---|
+| Functional requirements | Needed behavior, such as retrieving notes | Establishes the task to solve |
+| Non-functional requirements | Quality and operating targets, such as defined availability and speed | Behavior alone does not define acceptable quality |
+| Capacity estimation | Approximate how much work and information the system must handle; estimate searches per day | Gives scale context to quality and design choices |
+| APIs | Defined software interaction routes, such as requesting an order | Converts behaviors into clear interactions |
+| Data modeling | Describe the information concepts and relationships; customer owns addresses | Interactions reveal what information is needed |
+| High-level architecture | Organize responsibilities and interactions across major parts | Known behavior, quality, and information guide organization |
+| Databases and storage | Ways to retain/retrieve information; save messages for later reading | Architecture identifies information responsibilities |
+| Caching | Reuse copies of information to avoid repeated work; keep popular product details ready | Storage/access patterns reveal where repeated work costs time |
+| Load balancing | Distribute incoming work across available processing resources; send searches to different application instances | More processing resources need coordinated traffic distribution |
+| Distributed systems | Systems whose parts run on separate computers and coordinate over communication links | Distribution introduces delay, uncertain outcomes, and failure interactions |
+
+An **application instance** is one running copy of an application. It matters when multiple copies share work. These topics are connected, but learning is iterative: new knowledge may expose an earlier assumption that needs revision. You do not have to use caching, many instances, or distributed services in every design.
+
+Keep one small example—such as the Todo application—and ask at each stage which requirement the new idea helps satisfy.
+
+## 70. Completeness review and final self-assessment
+
+Answer these aloud without reading the answer column. Then document requirements for an unfamiliar small system, such as booking a haircut.
+
+| Can you explain…? | Minimum sound answer | Revisit |
+|---|---|---|
+| What is a system? | Connected parts perform work on input to produce a purposeful result | 1 |
+| What is a requirement? | A stated need or obligation to satisfy | 2 |
+| What is an FR? | Required observable behavior under relevant conditions | 3, 5 |
+| Why do requirements matter? | They establish a shared problem, guide work, and enable checking | 2, 27 |
+| What is an actor? | An interacting role outside the chosen boundary | 6 |
+| What is a capability? | A broad ability supporting goals | 7 |
+| What is a use case? | A structured goal-oriented interaction with conditions and paths | 11 |
+| What is a workflow? | Sequence and decisions producing an outcome | 12 |
+| What is system state? | Current meaningful condition affecting allowed behavior | 13 |
+| What is a business rule? | A domain policy governing decisions or actions | 14 |
+| What is an edge case? | A boundary/unusual condition exposing an assumption | 19, 56 |
+| What is CRUD? | Create, Read, Update, Delete information operations | 9 |
+| What is scope? | Agreed included/excluded work | 24 |
+| What is an MVP? | Smallest coherent useful product for value and learning | 23 |
+| What are acceptance criteria? | Observable conditions proving requirement satisfaction | 43 |
+| FR versus NFR? | Needed behavior versus its qualities/operating conditions | 4 |
+| Requirements versus architecture? | Needs versus organization of a possible solution | 36, 40 |
+| How do I discover FRs? | Start with goals/actors; follow journeys, rules, errors, and boundaries; agree scope | 28, 62 |
+| How do I write good FRs? | Specify actor/trigger, action, object, conditions, and result; make it checkable | 5, 25–27 |
+| How do I clarify them in interviews? | Ask high-value behavior/scope questions, state assumptions, and confirm the summary | 29, 57–58, 64 |
+
+### Final practice task
+
+For a haircut-booking application, write:
+
+1. One product goal.
+2. The actors and boundary.
+3. Five clarification questions.
+4. One successful journey and two failure branches.
+5. Eight requirements with identifiers.
+6. Two business rules and corresponding enforcement behaviors.
+7. An explicit MVP and three exclusions.
+8. Acceptance criteria for one requirement and four tests, including a boundary and an unauthorized action.
+
+Evaluate your draft with Section 63. You are ready to progress when you can justify each requirement, state its expected result, identify important uncertainty, and explain which choices belong to later design.

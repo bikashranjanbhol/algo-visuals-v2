@@ -140,7 +140,7 @@ export function TutorialNav({
                           )}
                         >
                           {active && <span className="absolute top-1.5 bottom-1.5 -left-[9px] w-0.5 rounded-full bg-brand" aria-hidden />}
-                          <span className="flex-1 truncate">{topic.title}</span>
+                          <span className="line-clamp-2 flex-1 leading-snug">{topic.title}</span>
                           <PendingHint />
                           {completed && <CircleCheck className="size-3.5 shrink-0 text-emerald-500" aria-label="Completed" />}
                         </Link>

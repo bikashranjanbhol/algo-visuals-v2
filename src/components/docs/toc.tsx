@@ -111,7 +111,7 @@ export function MobileTableOfContents({ headings }: { headings: Heading[] }) {
         className="flex w-full items-center gap-2 py-2.5 text-left text-sm"
       >
         <AlignLeft className="size-4 shrink-0 text-muted-foreground" />
-        <span className="font-medium">On this page</span>
+        <span className="shrink-0 font-medium whitespace-nowrap">On this page</span>
         {current && !open && <span className="truncate text-muted-foreground">· {current.text}</span>}
         <ChevronDown className={cn("ml-auto size-4 shrink-0 transition-transform", open && "rotate-180")} />
       </button>
