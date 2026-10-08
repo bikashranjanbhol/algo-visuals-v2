@@ -229,6 +229,58 @@
   background-attachment: local, local, scroll, scroll;
 }
 
+/* Collapsible solutions: <details><summary>Solution</summary> … </details> */
+.prose-article :where(details):not(:where(.not-prose, .not-prose *)) {
+  margin-block: 1.25em;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+  padding-inline: 1rem;
+}
+.prose-article :where(details[open]):not(:where(.not-prose, .not-prose *)) {
+  border-color: color-mix(in oklch, var(--brand) 35%, var(--border));
+}
+.prose-article :where(details > summary):not(:where(.not-prose, .not-prose *)) {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-inline: -1rem;
+  padding: 0.6rem 1rem;
+  border-radius: calc(0.75rem - 1px);
+  color: var(--brand);
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+.prose-article :where(details > summary):not(:where(.not-prose, .not-prose *))::-webkit-details-marker {
+  display: none;
+}
+.prose-article :where(details > summary):not(:where(.not-prose, .not-prose *))::before {
+  content: "";
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+.prose-article :where(details > summary):not(:where(.not-prose, .not-prose *)):hover {
+  background: var(--muted);
+}
+.prose-article :where(details[open] > summary):not(:where(.not-prose, .not-prose *)) {
+  border-bottom: 1px solid var(--border);
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+.prose-article :where(details[open] > summary):not(:where(.not-prose, .not-prose *))::before {
+  transform: rotate(45deg);
+}
+.prose-article :where(details > p):not(:where(.not-prose, .not-prose *)) {
+  margin-block: 0.9em;
+}
+
 /* ---------- Code blocks (rehype-pretty-code) ---------- */
 [data-rehype-pretty-code-figure] {
   position: relative;
@@ -320,5 +372,9 @@
   }
   [data-tabs-panel][hidden] {
     display: block !important;
+  }
+  /* A printout cannot be clicked open, so print solutions expanded. */
+  .prose-article details::details-content {
+    content-visibility: visible;
   }
 }

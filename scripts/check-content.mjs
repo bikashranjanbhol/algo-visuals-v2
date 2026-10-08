@@ -20,7 +20,7 @@ const COMPONENTS = new Set([
   "GraphTraversalVisualizer",
   "StackQueueVisualizer",
 ]);
-const HTML_ALLOWED = new Set(["br", "sup", "sub", "kbd", "abbr", "mark"]);
+const HTML_ALLOWED = new Set(["br", "sup", "sub", "kbd", "abbr", "mark", "details", "summary"]);
 const LEVELS = new Set(["Beginner", "Intermediate", "Advanced"]);
 const ICONS = new Set(["binary", "layers", "network", "brain", "code", "route", "boxes"]);
 const ACCENTS = new Set(["violet", "sky", "emerald", "amber", "rose"]);

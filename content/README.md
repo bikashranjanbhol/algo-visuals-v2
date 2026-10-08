@@ -132,6 +132,21 @@ Provide one `<Tab>` per label, in the same order.
 
 `answer` is the zero-based index of the correct option.
 
+### Collapsible solutions
+
+```mdx
+<details>
+<summary>Solution</summary>
+
+The answer, in **Markdown**.
+
+</details>
+```
+
+Put `<summary>` on its own line and leave a blank line before and after the answer. MDX cannot
+compile the compact form, where `<details><summary>Solution</summary>` is followed by the answer
+on the next line. Solutions start collapsed and print expanded.
+
 ### Interactive visualizers
 
 | Component                                        | Props                                                            |
