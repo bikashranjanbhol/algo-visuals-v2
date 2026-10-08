@@ -34,6 +34,10 @@ function collectJsx(names) {
   return () => (tree) => {
     visit(tree, ["mdxJsxFlowElement", "mdxJsxTextElement"], (node) => {
       if (node.name) names.add(node.name);
+      // Without blank lines, <summary> ends up inside a paragraph, which breaks the toggle.
+      if (node.type === "mdxJsxTextElement" && (node.name === "details" || node.name === "summary")) {
+        names.add("#inline-details");
+      }
     });
     visit(tree, "heading", (node) => {
       if (node.depth === 1) names.add("#h1");
@@ -106,6 +110,9 @@ for (const tutorial of tutorials) {
       }
       for (const name of names) {
         if (name === "#h1") fail(file, "do not use a level-1 heading; the title comes from frontmatter");
+        else if (name === "#inline-details") {
+          fail(file, "put <details> and <summary> on their own lines, with blank lines around the answer (see content/README.md)");
+        }
         else if (!COMPONENTS.has(name) && !HTML_ALLOWED.has(name)) fail(file, `unknown component <${name}>`);
       }
     }
