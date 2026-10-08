@@ -1,0 +1,85 @@
+---
+title: "Knowledge Check Answer Key"
+description: "Explained answers to the knowledge check: multiple choice, true/false, short answers, scenarios and architecture decisions (Section 45)."
+difficulty: beginner
+updated: 2026-10-08
+---
+
+*[System Design Trade-offs](/tutorials/system-design/trade-offs) · Part IX — Knowledge-check answer key · Section 45 of 55.* New to the topic? Start with [Trade-off Fundamentals](/tutorials/system-design/trade-offs/fundamentals).
+
+## 45. Explained answers
+
+### A. Multiple choice
+
+1. **B.** Trade-offs compare benefits with costs or competing goals; novelty is not justification.
+2. **C.** A measurable outcome at a stated workload is a requirement. A and B select mechanisms/products.
+3. **A.** With no later write, a read begun after the completed write must observe that value under linearizability.
+4. **D.** Eventual convergence requires its assumptions; it is not a fixed-age guarantee.
+5. **B.** Both offices can claim the same seat. Resolving the conflict later cannot honour both promises.
+6. **C.** This states the partition impossibility in the classical shared-data model without the misleading permanent-choice slogan.
+7. **D.** Required storage/network work can add waiting before acknowledgement.
+8. **B.** Recovery copies with suitable retention and verified restore can cover deletion; live copies may immediately copy it.
+9. **C.** Real cost includes people and lifecycle work, not only purchase or disk fees.
+10. **A.** Demonstrated variation can justify bounded configuration; testing remains necessary.
+11. **D.** You can buy software and self-host it, or build an application using managed infrastructure.
+12. **B.** Keep the simpler adequate design; add complexity for a real gap and revisit with measurements.
+13. **C.** State can live outside private handlers; shared stores still need their own guarantees.
+14. **A.** Async separates stages. It does not guarantee faster work, no failures, or no duplicates.
+15. **D.** A lost reply can follow a completed charge; use stable identity, status lookup, and reconciliation.
+16. **B.** Read views can avoid repeated joins, at the cost of updating and repairing extra representations.
+17. **C.** Reuse makes advance work valuable when age fits requirements; rare demand can favour on-read work.
+18. **A.** Scope coordination to actual user needs while preserving within-room order.
+19. **D.** Throughput and per-request delay are different; high throughput can coexist with long queues.
+20. **B.** Compare $500 savings against $2,000 recurring added labour; no compensating benefit is stated.
+
+### B. True/false
+
+1. **True.** Strong read semantics govern operations, not automatic screen refresh.
+2. **False.** Common power, software, access, or location failures can affect all copies.
+3. **False.** The application still controls permissions and integration.
+4. **True.** Jobs can be accepted quickly and wait before processing.
+5. **False.** A snapshot preserves the meaning at purchase time, unlike current contact data.
+6. **False.** Serializable ordering need not respect wall-clock completion order; strict serializability adds that rule.
+7. **True.** Total value can favour fees over unaffordable human responsibility.
+8. **False.** State normally moves to shared stores or other components.
+9. **True.** Every supported option adds combinations and potential confusion.
+10. **True.** Earlier assumptions can stop applying; a recorded decision makes this visible.
+
+### C. Short answers
+
+1. Latency is one meal's wait, such as 300 ms/request; throughput is meals served per minute, or 1,000 completed requests/s. More cooks can improve throughput without shortening the slowest dish's preparation.
+2. Which data is accepted, what storage/copy work has completed, which failures it survives, and whether the operation is finished or pending. “Saved” without this boundary hides risk.
+3. Deletions/corruption can propagate; common failures can affect all live copies. Retained history and tested restoration protect different events.
+4. A user's later reads include that user's own successful updates; unrelated users may still see older values. A global linearizable view imposes real-time ordering across its scope.
+5. If a current name is copied into many order views and only some update after a change, displays disagree. Normalize it or maintain derived views; preserve true historical snapshots.
+6. Extra hosting/skills, update propagation and lag, and rebuild/restore work. Additional examples include schema migration, permissions, and network dependency.
+7. Frequent shared local updates can benefit from locality and one owner. The team accepts host-recovery and migration responsibilities rather than a remote shared-store call for each frame.
+8. Many consumers, entrenched data representations, difficult migrations, custom interfaces, contractual restrictions, and unavailable export can make exit costly. Record compatibility and transition work.
+9. Strategic uniqueness, mandatory behavior, team expertise, lifetime cost, existing product fit, obligations, and exit feasibility. At least five with explanation earns full credit.
+10. State the determining variables and conditional choices: if current facts are needed for a forbidden-outcome check, use authority; if a delayed display is acceptable and latency matters, consider a derived view.
+
+### D. Scenarios
+
+1. Use a suitable derived count with declared age; monitor lag and define behavior when too old. Keep account security outside this relaxed promise.
+2. At most one successful active reservation for that seat, enforced by an atomic authoritative transition. A read-then-write race is insufficient.
+3. It means upload/job durably accepted under stated failures, not playable. Expose pending/processing/ready/failed states and completion target.
+4. A cached informational view can work if its permitted age and access rules remain satisfied; otherwise expose reduced service. Never invent current facts or report unsafe success.
+5. Repeated cost plus 15-minute tolerance supports periodic or incremental summaries. Add processing delay to age, retain correction/rebuild rules, and compare serving/update costs.
+6. Full TCO including labour, incidents, backup tests, upgrades, licences, support, and exit. Both options have customer responsibilities.
+7. Retry with the same operation identifier and retrieve/complete the original result without creating a new order. Record identity and outcome atomically as needed.
+8. Identity of additions/removals, quantity merge, conflicts, deletions, and stale pricing. Checkout revalidates authoritative stock and price; the cart is not a reservation.
+9. Remove the optional service from the required completion boundary; use bounded wait and generic/no recommendations. Also isolate resources so a failure does not exhaust checkout capacity.
+10. A cache stampede. Consider shared refresh, staggered expiry, prewarming useful entries, or safe stale serving where allowed; measure added complexity and load.
+
+### E. Architecture decisions
+
+1. A modular application plus a suitable logical database, with measured capacity, permissions, backup, and recovery. Managed operation can fit staffing. Extra components need additional requirements.
+2. Reject for now: there is no stated gap. Monitor real growth and features; evaluate a specialist when a tuned query misses requirements.
+3. Cached/derived browse views with explicit age; authoritative atomic reservation at checkout; durable orders. The trade-off differs by workflow.
+4. Store order and email intent together in a transaction/outbox; publish and process with retry-safe identity. The worker tracks completion; avoid a crash gap between order save and job recording.
+5. Assign each match an owner, checkpoint sufficient state, define tolerated lost progress, and prevent conflicting ownership after failover. Stateless routing can direct users to that owner.
+6. Per-room ordering because no cross-room rule exists. Accept no universal order and test each room's ordering under retries and failures.
+7. Measure query shape and indexes first; consider cached results, selected summaries, and then specialized analytics if justified. Define result age, late corrections, and rebuild before adopting.
+8. Compare named responsibilities, staffing capacity, recovery promises, control needs, and costs including people. Choose the supportable option; neither label wins universally.
+9. Requirement: browse p95 target and ≤30 s output age. Options: fresh read, cache, derived view. Decision: cache selected fields if measured beneficial; track data versions/age and use a safe refresh/fallback when outside promise. Risks include upstream-old inputs and stampede. Record owner, invalidation, cost, recovery, and revisit triggers.
+10. Revisit for demonstrated independent release blocking, distinct scaling demand, required fault isolation, or stable autonomous teams. Verify service boundaries and data ownership; user count alone is not a decision rule.

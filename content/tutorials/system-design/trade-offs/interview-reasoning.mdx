@@ -1,0 +1,93 @@
+---
+title: "Interview Reasoning"
+description: "A reusable spoken answer for trade-off questions, ten weak answers rewritten, and mock interviews: social feed, payments and startup SaaS (Sections 35–36)."
+difficulty: intermediate
+updated: 2026-10-08
+---
+
+*[System Design Trade-offs](/tutorials/system-design/trade-offs) · Part V — Interview reasoning · Sections 35–36 of 55.* New to the topic? Start with [Trade-off Fundamentals](/tutorials/system-design/trade-offs/fundamentals).
+
+## 35. A reusable spoken answer
+
+Say: “There are two reasonable approaches. A improves X and costs Y. B improves Y and adds Z. Given requirement R and constraint C, I choose A. Its failure risk is F; we will monitor M and recover using P. I would reconsider if threshold T changes.”
+
+This demonstrates prioritization, alternatives, consequences, and verification. It is stronger than naming a technology. Useful phrases include: “This improves X at the cost of Y”; “We can relax freshness because the workflow tolerates 30 seconds”; “This is reversible, so I would start simple”; “The extra component earns its place only if the measured target is missed.”
+
+### Ten weak answers rewritten
+
+| Question | Weak answer | Reasoned answer |
+|---|---|---|
+| Async receipt? | Async scales better | Email may finish later and is slow; use durable jobs, accepting retries and completion tracking |
+| Strong reads for inventory? | Strong is best | Browse can lag, but reservation must protect the final unit with an atomic authoritative update |
+| More replicas? | More reliable | We need to survive one zone loss; add appropriately separated copies and test failover, accepting cost |
+| Managed database? | Managed is easy | Two engineers cannot sustain required operations; evaluate a managed service and keep recovery testing |
+| Build sign-in? | More control | No unique needs yet; buy a suitable product, accepting dependence and retaining application permissions |
+| Dedicated search? | Search engines are faster | Current query misses required ranking and p95 under realistic load; evaluate an index and its update lag |
+| Denormalize? | Joins are slow | The indexed join is measured as the bottleneck; derive a read view and tolerate its declared lag |
+| Global message order? | Always order everything | Users need per-room order; remove cross-room coordination, retaining within-room ordering |
+| Microservices? | Big companies use them | Team independence or isolated workload scaling may justify boundaries; otherwise start modular |
+| Precompute reports? | Faster reads | One million repeated expensive views justify hourly summaries if one-hour age is acceptable |
+
+## 36. Three mock interviews
+
+### A. Social feed
+
+**Interviewer:** Make the feed fast and always current.
+
+**Candidate:** What delay is acceptable, and what does “current” mean? Are private-access changes allowed to lag?
+
+**Interviewer:** p95 under 300 ms; public posts may lag 30 s. Revoked access must be enforced.
+
+**Candidate:** Two valid approaches are collecting posts on every read and maintaining derived feed references. The second reduces repeated read work but increases update work and storage. Given frequent views, I would derive common entries, retaining authoritative permission checks for sensitive content.
+
+**Interviewer:** What about users with ten million followers?
+
+**Candidate:** Precomputing every follower's entry creates huge write fanout. I would evaluate a hybrid that merges these authors' recent posts at read time. That costs read work and more ranking logic; I would justify it from fanout measurements.
+
+**Interviewer:** If regions disconnect?
+
+**Candidate:** Safely mergeable reactions may continue locally. Permission-sensitive operations and reads need their own authoritative behavior. Continued availability does not justify leaking private content.
+
+**Interviewer:** Cost and operations?
+
+**Candidate:** Monitor update age, fanout backlog, storage, and read latency. Begin with the smallest view representation that meets targets. Revisit when its extra cost exceeds the measured savings or lag violates the requirement.
+
+### B. Payment platform
+
+**Interviewer:** A fast “success” response is our priority.
+
+**Candidate:** Does success mean the intent is saved, the provider has charged, or the order is final? These require different guarantees.
+
+**Interviewer:** It means one charge and a durable confirmed order.
+
+**Candidate:** Then a memory acknowledgement is insufficient. We need durable operation identity, safe provider retry, confirmed outcome, and recoverable order state. This adds latency and handling for pending outcomes. We can still process receipts asynchronously.
+
+**Interviewer:** Can we increase throughput by removing transactions?
+
+**Candidate:** Only if an alternative still preserves required invariants. We should first reduce unnecessary global coordination and scope safe work per operation. Payment duplication and partial ledger changes are unacceptable throughput shortcuts.
+
+**Interviewer:** Build the payment processor ourselves?
+
+**Candidate:** Compare strategic needs, expertise, obligations, time, and TCO. A provider may reduce implementation work but creates dependence; we still own order semantics and reconciliation.
+
+**Interviewer:** If the provider times out?
+
+**Candidate:** The outcome is unknown, not automatically failed. Record a pending state, query or retry safely using the same key, and reconcile. Monitor unresolved attempts and test recovery.
+
+### C. Startup SaaS
+
+**Interviewer:** Two engineers, 500 customers. We want a flexible platform.
+
+**Candidate:** Which customer variations exist, and what traffic and recovery targets apply? Customer count alone does not determine architecture.
+
+**Interviewer:** Similar workflows, 100 requests/s, moderate availability, four-week launch.
+
+**Candidate:** A modular application and suitable managed relational database are reasonable. Buy evaluated identity and email capabilities. That reduces operating work but retains fees and dependencies. Fixed modules with bounded options meet current variation; a plugin language is premature.
+
+**Interviewer:** Why no specialist database?
+
+**Candidate:** Existing tools should be measured first. Another store adds synchronization and recovery. If required queries fail the target after suitable tuning, evaluate specialization.
+
+**Interviewer:** Is reliability too low?
+
+**Candidate:** We need an explicit success and recovery target. Tested backups and appropriate redundancy may meet it; three regions need a stronger justification. I would document the boundary and revisit as outage harm grows.

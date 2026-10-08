@@ -1,0 +1,125 @@
+---
+title: "Cheat Sheet and Next Steps"
+description: "A master trade-off cheat sheet and matrix, a completeness self-review, a learning progression, further reading and the final mental model (Sections 51–55)."
+difficulty: beginner
+updated: 2026-10-08
+---
+
+*[System Design Trade-offs](/tutorials/system-design/trade-offs) · Part XII — Cheat sheet and next steps · Sections 51–55 of 55.* New to the topic? Start with [Trade-off Fundamentals](/tutorials/system-design/trade-offs/fundamentals).
+
+## 51. Master trade-off cheat sheet and matrix
+
+“Left” refers to the first named goal or approach; for latency it means lower latency, for cost lower cost, and for complexity lower complexity. These are conditional preferences, not laws.
+
+| Trade-off | Prefer left when | Prefer right when | Principal risk to check |
+|---|---|---|---|
+| Latency vs consistency | Speed matters and defined staleness is safe | Observation rules are essential for the workflow | Stale decisions / coordination waits |
+| Availability vs consistency | Isolated useful work can be merged safely | Conflicting successful operations are unacceptable | Conflicts / rejected requests |
+| Durability vs latency | Acknowledged data must survive named failures | Fast acceptance matters and loss is explicitly tolerable | Waiting / lost accepted data |
+| Cost vs reliability | Outage harm is low and recovery tolerance is broad | Correctness/outage harm justifies investment | Insufficient protection / excessive expense |
+| Simplicity vs flexibility | Current needs are stable with little variation | Real variation is frequent and valuable | Costly changes / unmanageable combinations |
+| Build vs buy | Strategic customization and expertise justify ownership | A suitable mature capability reduces lifecycle work | Maintenance / dependency and exit |
+| Managed vs self-hosted | Reducing infrastructure operation fits team needs | Required control and expertise justify operating it | Service limits / staff and recovery gaps |
+| General-purpose vs specialized | Existing tools meet measured needs | Proven workload/features justify another system | Bottleneck / synchronization and operation |
+| Stateful vs stateless | Local state and ownership benefit live work | Independent handlers ease replacement and load distribution | State loss/migration / shared-store dependence |
+| Sync vs async | Final result is needed before caller proceeds | Work can finish later with tracked deadlines | Wait propagation / backlog and duplicates |
+| Normalize vs denormalize | Current-fact ownership and update safety matter | Read representation materially improves required queries | Query cost / stale duplicate representations |
+| Precompute vs compute-on-read | Frequent expensive reuse outweighs updates/storage | Queries are rare or immediate calculation is preferable | Old/unused output / repeated expensive work |
+| Guarantees vs throughput | Essential invariants require coordination | Only unnecessary guarantee scope can be relaxed safely | Bottleneck / forbidden business outcomes |
+| Complexity vs efficiency | Human simplicity outweighs small resource savings | Measured net gains justify supportable extra mechanisms | Wasted resources / operator overload |
+
+### Questions behind every row
+
+1. **Latency/consistency:** Can stale data harm an action, for how long, and under what concurrency? Choose safe operation semantics, not a generic “fresh” label.
+2. **Availability/consistency:** During communication failure, which operations may continue with safe rules, and which must refuse? Plan reconnection repair.
+3. **Durability/latency:** What exactly must happen before “saved,” and which failures are covered? Compare acknowledgement meanings.
+4. **Cost/reliability:** What is downtime/correctness harm, how long can recovery take, and which investment reduces it? Count people and shared failures.
+5. **Simplicity/flexibility:** Which variations are real? Add bounded extension points where their value exceeds the combinatorial burden.
+6. **Build/buy:** Is the capability unique, are requirements met, is expertise sustainable, and can you exit? Compare the whole lifecycle.
+7. **Managed/self-hosted:** Who patches, monitors, restores, and responds? Check the contract and retained customer duties.
+8. **General/specialized:** Does the existing tool meet requirements after suitable tuning? Identify the exact feature or bottleneck before adoption.
+9. **Stateful/stateless:** Where is remembered information owned, how near must it be, and how is it recovered? Stateless components do not erase system state.
+10. **Sync/async:** Does the caller need the final result now? Specify acceptance, completion, uncertainty, and overload separately.
+11. **Normalize/denormalize:** What is current fact versus historical snapshot? Measure joins, updates, duplication, and repair.
+12. **Precompute/on-read:** Compare request frequency × calculation cost with update work and storage, under the required output age.
+13. **Guarantees/throughput:** Which invariants truly need shared coordination? Narrow scope before weakening correctness.
+14. **Complexity/efficiency:** Which resource is saved, and who sustains the mechanism? Human capacity belongs in the calculation.
+
+## 52. Completeness self-review
+
+Without looking back, explain each of the following aloud. If you cannot, revisit the specified lesson and its practice problem.
+
+| Learner can explain | Where taught and practiced |
+|---|---|
+| Trade-off, constraints, why no universal architecture | Lessons 1–6; classification/rewrite workbook |
+| Latency, consistency, why coordination can delay | Lesson 7; bank/likes/inventory scenarios |
+| Availability, partition, CAP nuance | Lesson 8; ticket partition problem |
+| Durability, persistence, acknowledgement levels | Lesson 9; acknowledgement calculation |
+| Reliability, nines, redundancy cost | Lesson 10; expected-loss and recovery exercises |
+| Simplicity, flexibility, premature variation | Lesson 11; startup interview |
+| Build/buy, strategic need, lifecycle ownership | Lesson 12; identity scenario |
+| Managed/self-hosted, retained duties, TCO | Lesson 13; cost exercise |
+| General/specialized, workload fit | Lesson 14; search/analytics cases |
+| State, stateful/stateless, replaceability, locality | Lesson 15; game/cart scenarios |
+| Sync/async, final result, backlog, duplicates | Lesson 16; video/email and queue exercise |
+| Normalization, denormalization, update anomalies | Lesson 17; current-name and invoice distinctions |
+| Precomputation, on-read, cache behavior | Lesson 18; report arithmetic |
+| Throughput, guarantees, scoped coordination | Lesson 19; per-room ordering |
+| Operational complexity and dimensions of efficiency | Lesson 20; specialist TCO scenario |
+| Compare valid options, hybrids, failure response | Lessons 21–28; architecture reviews |
+| Interviews, justified choices, revisit triggers | Part V; online-store project |
+| End-to-end workflow boundaries and recovery | Ticket case and project failure walkthrough |
+
+A correct answer includes what improves, what worsens, which requirement decides, and a failure or measurement. Memorizing “use a cache” is not enough.
+
+## 53. Recommended learning progression
+
+These are conceptual next steps, not product recommendations. Study them in this order because each supplies questions needed for the next.
+
+| Step | Topic and plain meaning | Why next |
+|---|---|---|
+| 1 | Requirements: needed outcomes and constraints | Establish what a design is trying to satisfy |
+| 2 | Trade-offs: benefits paired with costs | Compare reasonable choices |
+| 3 | Back-of-the-envelope estimation: rough arithmetic from explicit assumptions | Decide whether a capacity problem is plausible |
+| 4 | Latency and throughput: one wait versus total capacity | Interpret measurements and overload |
+| 5 | Databases: structured persistent information | Understand authoritative state and safe updates |
+| 6 | Caching: reuse of nearby information/results | Reduce repeated work while reasoning about age |
+| 7 | Replication: maintaining extra copies | Understand survival, lag, and failover |
+| 8 | Consistency models: precise permitted observations | Replace vague correctness labels with promises |
+| 9 | Queues and messaging: submitted work handled across time | Learn completion, retry, and duplicate boundaries |
+| 10 | Partitioning: dividing data/work across owners | Address proven capacity and ownership needs |
+| 11 | Distributed systems: cooperating networked computers | Combine coordination, failures, and shared state |
+| 12 | Reliability and SRE: engineering dependable operation | SRE means site reliability engineering; join software and operating discipline |
+| 13 | Architecture decision records | Preserve assumptions, evidence, costs, and revisit conditions |
+
+## 54. Source notes and further reading
+
+The teaching examples and exercise assumptions were written for this module. These primary sources verify specific technical distinctions; they are optional further reading and are not required to understand the chapter.
+
+- **[S1] Gilbert and Lynch, _Perspectives on the CAP Theorem_.** Defines the formal read/write model, partition condition, and availability distinction. [Paper hosted by MIT](https://groups.csail.mit.edu/tds/papers/Gilbert/Brewer2.pdf).
+- **[S2] PostgreSQL documentation, _Asynchronous Commit_.** A concrete example of faster acknowledgement with possible recent-transaction loss after a crash. [Documentation](https://www.postgresql.org/docs/current/wal-async-commit.html).
+- **[S3] Google, _Site Reliability Engineering: Embracing Risk_.** Discusses reliability targets, measurement, cost, and error budgets. [Chapter](https://sre.google/sre-book/embracing-risk/).
+- **[S4] AWS, _Amazon SQS at-least-once delivery_.** Documents why duplicate messages may occur and why consumers should handle them. [Documentation](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html).
+- **[S5] PostgreSQL documentation, _Transaction Isolation_.** Explains serializable behavior and retry requirements in a real implementation. [Documentation](https://www.postgresql.org/docs/current/transaction-iso.html).
+
+“Current” documentation links can change. The architectural distinctions are the reason for the links, rather than reliance on a particular product version or feature set.
+
+## 55. Final mental model
+
+The useful question is:
+
+> What architecture best satisfies these requirements, at this scale, with these constraints, for this team, at an acceptable cost?
+
+Every choice gives something and costs something. Make the reasoning visible:
+
+1. State the requirement.
+2. Identify what matters most.
+3. Identify what may safely be relaxed.
+4. Compare reasonable options.
+5. Say what each improves.
+6. Say what each worsens.
+7. Choose the simplest acceptable design.
+8. Measure it under representative workload and failures.
+9. Revisit when requirements or evidence change.
+
+When someone asks, “Should this be strongly consistent?”, ask what happens if the data is stale, how much delay is acceptable, whether conflicting writes are possible, what the required business invariant is, what happens during a partition, and who can operate the resulting design. System design is the discipline of making explicit, justified compromises under real requirements and constraints.

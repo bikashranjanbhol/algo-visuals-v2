@@ -1,0 +1,87 @@
+---
+title: "Knowledge Check"
+description: "Sixty questions to test yourself: multiple choice, true/false, short answer, scenarios and architecture decisions, answered on the next page (Section 44)."
+difficulty: beginner
+updated: 2026-10-08
+---
+
+*[System Design Trade-offs](/tutorials/system-design/trade-offs) · Part VIII — Knowledge check · Section 44 of 55.* New to the topic? Start with [Trade-off Fundamentals](/tutorials/system-design/trade-offs/fundamentals).
+
+## 44. Instructions
+
+Answer all sections before consulting Part IX. Choose the best answer under the stated assumptions. For open questions, explain a requirement, alternative, accepted cost, failure behavior, and measurement when relevant. The multiple-choice section has exactly one intended best answer per question.
+
+### A. Twenty multiple-choice questions
+
+1. A system-design trade-off is: **A)** choosing the newest tool; **B)** exchanging a benefit for another cost or goal; **C)** always choosing speed; **D)** eliminating requirements.
+2. Which is a requirement? **A)** use a cache; **B)** Redis; **C)** search p95 &lt;200 ms at stated load; **D)** async is scalable.
+3. A write is linearizable. A read begins after it completes, with no later writes. The read should: **A)** see the written value; **B)** always use the nearest copy; **C)** wait one day; **D)** ignore the write.
+4. Eventual consistency alone promises: **A)** every read is newest; **B)** exactly five-second lag; **C)** no failures; **D)** convergence under the stated update/communication assumptions.
+5. During a partition, unrestricted isolated sales of the same final seat risk: **A)** less storage; **B)** double booking; **C)** lower CPU use only; **D)** automatic reconciliation preserving both sales.
+6. Which best describes CAP? **A)** pick any two permanently; **B)** replicas always solve partitions; **C)** linearizability and universal request completion cannot both be guaranteed during indefinite partitions; **D)** all databases must be slow.
+7. Stronger durability can add latency because: **A)** every durable system is distant; **B)** durable data is always compressed; **C)** screens refresh slowly; **D)** acknowledgement may wait for persistence and copies.
+8. Which alone establishes survival of accidental deletion? **A)** three live replicas; **B)** retained, usable recovery copies covering the event; **C)** stateless handlers; **D)** a fast response.
+9. TCO includes: **A)** purchase price only; **B)** disk price only; **C)** operation, labour, maintenance, and exit; **D)** nothing after launch.
+10. Real repeated customer workflow variation most directly supports considering: **A)** bounded flexibility; **B)** no requirements; **C)** zero testing; **D)** global ordering of every event.
+11. Build vs buy is different from managed vs self-hosted because: **A)** all bought software is managed; **B)** bought software cannot run locally; **C)** build never uses cloud; **D)** source of capability and operator are distinct.
+12. Existing search meets features and latency. Usually the next step is: **A)** add five databases; **B)** retain it and measure growth; **C)** reject all future features; **D)** shard immediately.
+13. Stateless request handlers can still use: **A)** no data; **B)** no database; **C)** shared durable state; **D)** no credentials.
+14. Asynchronous acceptance necessarily means: **A)** submission and final completion are separate; **B)** final completion is faster; **C)** no failures; **D)** no duplicates.
+15. A timeout after a payment request means: **A)** payment failed certainly; **B)** payment succeeded certainly; **C)** safe to create a fresh charge blindly; **D)** outcome may be unknown.
+16. Denormalization can improve reads by: **A)** deleting facts; **B)** combining needed information in a read representation; **C)** preventing all crashes; **D)** ensuring every copy updates itself.
+17. Precomputation is particularly attractive for: **A)** a rare current-only query; **B)** constantly unused outputs; **C)** repeated expensive reads with acceptable age; **D)** eliminating authoritative inputs.
+18. Per-room order rather than global order can improve capacity by: **A)** allowing unrelated rooms to progress independently; **B)** violating every order; **C)** eliminating all storage; **D)** removing authentication.
+19. High throughput necessarily implies: **A)** no queues; **B)** lower latency; **C)** no coordination; **D)** none of these.
+20. A new specialist store saves $500/month and adds $2,000/month labour with no other benefit. It is: **A)** obviously efficient financially; **B)** $1,500/month worse before other costs; **C)** free; **D)** necessarily required.
+
+### B. Ten true/false questions
+
+1. A user interface can keep showing an old value even if a later fresh database read would be strong.
+2. More replicas automatically protect against every shared failure.
+3. A managed service eliminates application permission responsibilities.
+4. A queue can improve acceptance latency while increasing completion delay.
+5. A historical invoice name must always change with the customer's current name.
+6. Serializable transactions necessarily establish real-time ordering of non-overlapping transactions.
+7. A small team can rationally accept higher infrastructure fees to reduce operating work.
+8. A stateless handler means the entire product has no state.
+9. Unused flexibility can increase costs without benefiting users.
+10. Requirements can change enough to justify replacing an earlier good decision.
+
+### C. Ten short-answer questions
+
+1. Explain latency and throughput using a restaurant analogy and software units.
+2. What must a “saved” acknowledgement specify?
+3. Give two reasons replication is not a complete backup strategy.
+4. Explain read-your-writes and how it differs from a global strong view.
+5. Explain an update anomaly with customer names.
+6. Give three costs of a specialized search index.
+7. Why might a live game use stateful hosts?
+8. What makes a decision hard to reverse?
+9. Name five questions to ask before choosing build vs buy.
+10. Explain why “it depends” is incomplete without conditions.
+
+### D. Ten scenario questions
+
+1. Public like counts can lag ten seconds; low latency is important. Choose an approach and boundary.
+2. Two users request the last seat simultaneously. What must the reservation preserve?
+3. Videos take four minutes to convert. What should an upload response mean?
+4. A managed provider becomes unavailable. Which safe fallback can an informational product offer?
+5. A report is expensive and read 100,000 times/day, with a 15-minute age tolerance. Evaluate precomputation.
+6. A self-hosted option costs less in machines but requires weekly operations work. What comparison is missing?
+7. An order commits, then its response is lost. How should retry work?
+8. Users add cart items offline. What rules must synchronization define?
+9. A recommendation outage breaks checkout through a required call. What change could improve reliability?
+10. Cache entries expire simultaneously during peak traffic. What failure pattern appears?
+
+### E. Ten architecture-decision questions
+
+1. Choose an initial architecture for two engineers, stable forms, 100 requests/s, and no global deployment requirement.
+2. Justify or reject a dedicated search system when the existing query meets all targets.
+3. Choose a read/write design for fast product browsing with strict final-item reservation.
+4. Specify how orders and intended email jobs should be recorded across a crash boundary.
+5. Propose a design for active game state and recovery after host loss.
+6. Choose between global and per-room ordering for independent chats.
+7. Give an evolution plan for a dashboard whose reads become too expensive.
+8. Compare managed and self-hosted databases using responsibility and TCO.
+9. Write a decision record for a cache with a 30-second freshness requirement.
+10. Specify revisit triggers for splitting a modular monolith into services.

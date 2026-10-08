@@ -1,6 +1,6 @@
 {
   "title": "System Design",
-  "description": "Learn system design step by step: functional and non-functional requirements, then characterizing a problem's workload, state, trust and scale before choosing a design.",
+  "description": "Learn system design step by step: functional and non-functional requirements, characterizing a problem, and weighing the trade-offs behind every design choice.",
   "order": 5,
   "level": "Beginner",
   "icon": "boxes",
@@ -42,6 +42,25 @@
         "combining-dimensions",
         "applied-practice",
         "quiz-and-revision"
+      ]
+    },
+    {
+      "slug": "trade-offs",
+      "title": "System Design Trade-offs",
+      "description": "Choose a design from requirements and explain what it gives up: fourteen core trade-offs, decision records, case studies, interview answers and a full workbook.",
+      "topics": [
+        "fundamentals",
+        "fourteen-trade-offs",
+        "decisions-failures-and-evolution",
+        "case-studies",
+        "interview-reasoning",
+        "workbook",
+        "flashcards",
+        "knowledge-check",
+        "answer-key",
+        "online-store-project",
+        "ticket-booking-case-study",
+        "cheat-sheet-and-next-steps"
       ]
     }
   ]

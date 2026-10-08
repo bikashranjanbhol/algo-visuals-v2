@@ -1,0 +1,181 @@
+---
+title: "Trade-off Fundamentals"
+description: "Start from zero: an everyday trade-off, the smallest software system and its vocabulary, requirements versus decisions, and what to ask first (Sections 1–6)."
+difficulty: beginner
+updated: 2026-10-08
+---
+
+*A textbook chapter and practical workbook for absolute beginners*
+
+**Prerequisites:** none. **Purpose:** learn to choose a design from requirements, explain what it gives up, and revisit it using evidence. All prices, workloads, and timings in exercises are illustrative, not vendor quotations. The examples teach architectural reasoning, not production-ready financial or safety systems.
+
+## How to study
+
+Read Parts I–III in order. Stop at each practice question before reading its solution. Then study the [case studies](/tutorials/system-design/trade-offs/case-studies), complete the [workbook](/tutorials/system-design/trade-offs/workbook), and take the [knowledge check](/tutorials/system-design/trade-offs/knowledge-check) before opening the [answer key](/tutorials/system-design/trade-offs/answer-key). Advanced notes are optional on the first pass. You do not need to install software. Mermaid code blocks are diagrams that a compatible Markdown viewer renders; their labels and surrounding prose also explain the design.
+
+*Part I — Start from zero · Sections 1–6 of 55.*
+
+## 1. An everyday trade-off
+
+You are buying a car. You want a low price, high speed, luxury, low fuel consumption, and room for eight people. A bigger car may carry more people but use more fuel. Luxury may increase price. A faster engine may cost more to buy and operate. The right car depends on whether you carry a family, drive long distances, or race on a track.
+
+A **trade-off** is an exchange: gaining more of something desirable can require giving up something else. Think of packing a suitcase: more belongings leave less room. In software, storing extra copies of information may help survive a machine failure but use more storage. Trade-offs matter because an improvement must be judged together with its price.
+
+“Cheap, fast, high quality” is a useful prompt to examine constraints, not a law that you can only have two. Removing wasted effort can improve all three. Better tools sometimes create improvements without a meaningful downside for your product. Engineering asks where costs actually appear; it does not invent sacrifices to justify a slogan.
+
+**Practice:** Is the cheapest car always the best car?
+
+**Solution:** Only if it satisfies the needs that matter. A cheap two-seat car fails a requirement to carry six passengers. First identify required properties; compare price among acceptable choices.
+
+## 2. The smallest software system
+
+A **software program** is a set of instructions a computer follows, like a recipe. A calculator program adds numbers. Programs matter because they turn user intentions into repeatable actions.
+
+A **system** is a collection of parts that work together. A restaurant combines a kitchen, ordering desk, and delivery staff. An online store combines a shopping page, programs that process orders, and stored information. A **system design** chooses these parts, their responsibilities, and how they interact. **Architecture** means the important structure and rules of that design, like a building's floor plan. These choices affect what the product can do and how difficult it is to change.
+
+Before comparing architectures, learn the following vocabulary. Every row supplies a plain definition, an everyday analogy, a software example, and its purpose. Later sections deepen these definitions. You can return here whenever a word is unfamiliar.
+
+### Building-block vocabulary
+
+| Term | Plain definition and analogy | Software example and why it matters |
+|---|---|---|
+| Application | A program or group of programs serving a purpose; like a shop's working staff. | An ordering application creates purchases; it implements product behavior. |
+| User interface / frontend | The part people see and use; like a shop counter. | A shopping page displays products; it shapes how users interact. |
+| Backend | Programs behind the interface; like the kitchen behind the counter. | Order processing checks prices and stock; it enforces rules. |
+| Client | A program asking another program for work; like a customer ordering food. | A browser asks for products; it starts an interaction. |
+| Server | A computer or program serving requests; like a staffed service desk. | A catalog server returns product details; it supplies capabilities. |
+| Request / response | An ask and its answer; like an order and a receipt. | “Show product 42” gets product information; this is the basic exchange. |
+| Network | Connections that carry messages between computers; like roads connecting shops. | A phone contacts a server over the internet; delay and failure affect users. |
+| Service | A capability exposed to other programs; like a delivery service. | A payment service handles charges; responsibilities can be separated. |
+| API | Application programming interface: agreed ways programs make requests; like a menu with permitted orders. | An order API accepts a product and quantity; it defines interaction rules. |
+| HTTP | Hypertext Transfer Protocol: common rules for exchanging web requests; like a standard order form. | A browser requests a web page; shared rules make programs compatible. |
+| Data | Recorded information; like names and prices in a notebook. | An order number and amount; data represents business facts. |
+| Database | A system for storing and retrieving organized data; like a searchable filing cabinet. | Store customers and orders; information remains usable between requests. |
+| Read / write | Retrieve information / change stored information; like reading or editing a notebook. | View a balance / record a withdrawal; the two paths often have different needs. |
+| Memory | Fast working storage that commonly loses contents when power or a process is lost; like notes on a temporary desk. | A program holds an unfinished cart; a crash can erase it. |
+| Persistent storage / disk | Storage intended to retain information across restarts; like a bound notebook. | An order is written to disk; survival still depends on hardware and write completion. |
+| Crash | A program or machine stops unexpectedly; like a shop losing power. | A server stops mid-request; recovery behavior matters. |
+| Deployment | Put a program version into operation; like opening a new shop procedure for customers. | Release updated checkout code; changes can introduce failures. |
+| Monitoring | Observe whether a system is working; like checking shop queues and alarms. | Track slow requests and failed orders; problems become visible. |
+| Incident / recovery | A harmful interruption / restoration of acceptable behavior; like a breakdown and repair. | A database outage is repaired; response time affects losses. |
+| Infrastructure | The computing foundations programs use; like a shop's building and utilities. | Machines, networks, and storage; they cost money and need care. |
+| Cloud | Computing resources accessed from a provider; like renting equipped premises. | Rent a database and machines; capacity is obtained without owning hardware. |
+| Compute / CPU | Capacity to execute instructions / the central processing unit doing them; like cooks doing kitchen work. | Calculate recommendations; computation consumes time and money. |
+| Storage capacity | How much information can be retained; like shelf space. | Keep one terabyte of images; duplicates increase required capacity. |
+| Bandwidth | How much data a connection can carry per unit time; like road carrying capacity. | Upload a large video; transfer capacity can limit speed. |
+| Workload | The mix and volume of work a system handles; like a restaurant's orders. | Many product reads, few purchases; design must match actual work. |
+| Scale / scaling | Amount of work / changing capacity to support it; like adding tables or opening branches. | Support more requests per second; growth changes bottlenecks. |
+| Bottleneck | The part limiting overall progress; like a single cashier in a busy shop. | One overloaded database delays every request; improving other parts may not help. |
+| Dependency | A part needed by another part; like a kitchen needing electricity. | Checkout needs the payment provider; failures can propagate. |
+| Coordination | Parts exchanging information to make a shared decision; like cashiers checking the same last ticket. | Servers agree which buyer gets a seat; agreement takes work. |
+| Concurrency / parallelism | Work overlapping in time / work executing simultaneously; like several ongoing orders / several cooks working at once. | Two purchases overlap; overlapping updates need safe rules. |
+| Constraint | A limit that choices must obey; like a fixed travel budget. | Two engineers and a monthly spending cap; an otherwise good design may be infeasible. |
+| Failure mode | A particular way something can go wrong; like a tyre puncture. | Lost response, full disk, stale copy; explicit failures guide protection. |
+
+### Goal vocabulary
+
+| Term | Plain definition and analogy | Software example and why it matters |
+|---|---|---|
+| Latency | Time one operation takes; like waiting for one meal. | A page appears after 300 milliseconds; it affects responsiveness. |
+| Millisecond, ms | One thousandth of a second; like dividing a second into 1,000 ticks. | 300 ms is 0.3 seconds; units prevent bad comparisons. |
+| Consistency | Rules about what versions of data reads and updates can observe; like cashiers using compatible stock records. | Two screens may show different balances; specify what observations are allowed. |
+| Availability | Ability to deliver the required service when needed; like a shop being able to serve a customer. | An order request succeeds within its deadline; define success and measurement. |
+| Durability | Survival of acknowledged data through specified failures; like a signed record kept safely. | “Saved” orders survive a server crash; users depend on this promise. |
+| Reliability | Correct, dependable behavior over time under expected conditions; like transport arriving safely and predictably. | Checkout both works and charges correctly; uptime alone is insufficient. |
+| Throughput | Completed work per unit time; like meals served each minute. | 1,000 orders per second; it measures capacity rather than one user's wait. |
+| Guarantee | A stated promise under stated assumptions; like a delivery contract. | Never sell a seat twice; boundaries and exceptions must be explicit. |
+| Simplicity | Fewer concepts and interactions to understand and operate; like a short recipe. | One application with clear modules; it lowers human effort. |
+| Flexibility | Ability to accommodate real variations and changes; like adjustable shelving. | Customer-specific approval rules; it can reduce future modification work. |
+| Efficiency | Useful output per resource used; like meals per bag of ingredients. | Requests per CPU-second; saving machines may cost engineer time. |
+| Operational complexity | Difficulty running, changing, diagnosing, and recovering a system; like managing several kitchens. | Five databases need five recovery plans; people become a capacity limit. |
+| State | Information remembered between interactions; like a tab kept at a café. | A cart's contents persist between clicks; state needs an owner and lifespan. |
+| Cost | Resources paid or spent; like money and time needed for a journey. | Service fees plus engineer effort; the cloud bill is only part of it. |
+
+### Mechanism vocabulary
+
+| Term | Plain definition and analogy | Software example and why it matters |
+|---|---|---|
+| Replica / replication | Another copy / maintaining copies; like duplicate notebooks in different offices. | Copy orders to another machine; helps only with suitable failure separation and recovery. |
+| Redundancy | Extra capacity or alternatives; like a spare tyre. | A second server can take over; spares require testing. |
+| Backup / restore | A retained recovery copy / using it to recover; like an archived notebook. | Restore orders after accidental deletion; a live replica may copy the deletion too. |
+| Failover | Switch service to another component; like using the spare cashier. | Another database becomes active; unsafe switching can corrupt business behavior. |
+| Region / availability zone | Geographic cloud area / isolated location within one area; like cities / separate buildings. | Put copies in two zones; exact isolation is provider-specific. |
+| Cache | An extra store for reusable data or results; like keeping a popular file on your desk. | Remember product details near the application; repeated reads may be faster but old. |
+| Staleness | How out of date a value is; like yesterday's printed timetable. | A product page shows old stock; acceptable age depends on use. |
+| Invalidation / TTL | Remove an outdated cached entry / time to live before it expires; like replacing an obsolete notice / stamping an expiry time. | Product cache expires after five minutes; expiry alone is not a universal freshness guarantee. |
+| Queue / worker | Waiting storage for work / a program performing it; like orders waiting for a cook. | Queue video conversions; delay and recovery need tracking. |
+| Retry / timeout | Try again / stop waiting after a limit; like redialling after a failed call. | Repeat a payment request after two seconds; the original may have succeeded. |
+| Idempotency | Repeating the same operation has the same intended effect as doing it once; like redeeming the same uniquely numbered voucher only once. | Reuse an order's payment key; retries must not create extra charges. |
+| Table / record / field | Collection of similarly shaped data / one entry / one attribute; like a ledger / one row / its amount column. | Orders table has an order record with an amount field; structure supports rules. |
+| Identifier / reference | A label distinguishing an item / a link using that label; like a membership number on a receipt. | An order refers to customer 42; links avoid copying every fact. |
+| Query / join / index | Ask for data / combine related records / lookup structure; like requesting files / pairing receipts with customers / using a catalog. | Join orders with customers using identifiers; indexes can avoid scanning every row. |
+| Data model | Rules for representing information and relationships; like designing ledger columns. | Customers, orders, and products; changing representation later can be costly. |
+| Transaction / atomicity | A grouped change / all-or-nothing completion; like moving money between two envelopes as one agreed action. | Debit and credit both commit or neither does; partial completion can violate rules. |
+| Commit | Accept a transaction as completed according to configured guarantees; like signing the final ledger entry. | An order commits; what survives a crash depends on the durability setting. |
+| Isolation / serializable | Rules for concurrent transactions / results equivalent to some one-at-a-time ordering; like cashiers behaving as if they take turns. | Competing seat reservations produce one winner; conflicting transactions may need retries. |
+| Lock / contention | Restrict competing access / competition for a shared resource; like one key for a stock cabinet. | Updates wait for an item lock; popular items may limit throughput. |
+| Partition / shard | Communication separation / a subset of data assigned elsewhere; like disconnected offices / dividing files among offices. | A broken network separates regions; sharding distributes capacity. These are different meanings of “partition.” |
+| Source of truth / derived data | Authoritative facts / information calculated or copied from them; like the signed ledger / its dashboard summary. | Orders are authoritative, daily totals derived; know what can be rebuilt. |
+| Reconciliation | Compare records and repair differences; like balancing receipts against the till. | Compare payment-provider results with orders; silent mismatches need resolution. |
+
+## 3. What is a system-design trade-off?
+
+A **system-design trade-off** is a decision where improving one desirable property may reduce another, increase cost, or increase complexity.
+
+Three durable copies can survive failures that would destroy one copy, but require more storage and a procedure for selecting the surviving copy. Waiting for agreement before replying can make conflicting updates easier to control, but may add delay. These are possible effects, not automatic outcomes. Three machines in the same failed building do not provide three independent protections.
+
+There is rarely a free improvement: look for money, latency, complexity, engineering time, operational work, storage, bandwidth, weaker promises, slower delivery, or reduced freedom. Yet eliminating unnecessary work can improve several goals together. Measure rather than assume a fixed law.
+
+## 4. Requirement, trade-off, decision, and technology
+
+A **requirement** states an outcome the product needs: like “carry six passengers”; in software, “95% of searches finish within 300 ms.” A **trade-off** identifies competing goals: speed versus freshness. A **decision** selects an approach under constraints: permit search results up to 30 seconds old. A **technology choice** selects a product that may implement the approach: a named database or cache. The distinction prevents selecting a favourite tool and inventing its justification afterwards.
+
+A **percentile** describes a point in sorted measurements, like ranking 100 wait times. **p95 latency** is the 95th-percentile response time: approximately 95% of measured requests are no slower than it. It exposes slow experiences that an average can conceal. Specify the interval, traffic, and treatment of failures.
+
+| Requirement | Constraint | Trade-off | Decision | Resulting architecture |
+|---|---|---|---|---|
+| Search p95 under 300 ms; results ≤30 s old | Large catalog | Latency vs consistency | Maintain a derived search view | Application plus search index |
+| Do not oversell the last unit | Concurrent buyers | Guarantees vs throughput | Reserve with an atomic conditional update | Authoritative inventory database |
+| Saved orders survive one machine loss | Two locations available | Durability vs latency | Wait for required durable copies | Replicated order store |
+| Send receipt within five minutes | Email sometimes fails | Sync vs async | Send after order acceptance using durable jobs | Order store plus worker |
+| Five staff need an admin tool | Two engineers | Simplicity vs flexibility | Use fixed screens with clear modules | One application |
+| Custom approval flows for 200 customers | Frequent variation | Simplicity vs flexibility | Add validated configurable rules | Configuration and audit records |
+| Secure sign-in by launch | No identity specialist | Build vs buy | Use an evaluated identity provider | Provider plus application integration |
+| Database operation without overnight staffing | Small team | Managed vs self-hosted | Rent database operations | Managed database plus team monitoring |
+| Accurate totals from completed orders | Frequent updates | Normalize vs denormalize | Keep order facts authoritative | Related database tables |
+| Dashboard p95 under one second; ≤1 h old | Repeated expensive aggregation | Precompute vs on-read | Publish hourly totals | Background computation and summary table |
+| Live game updates within 50 ms | Frequent session changes | Stateful vs stateless | Assign a game to a stateful host | Game host plus recovery checkpoints |
+| Restore critical service within 20 minutes | Limited budget | Cost vs reliability | Test failover and recovery first | Redundancy with operational procedures |
+
+The reasoning sequence is: requirement, constraints, competing goals, options, decision, architecture, measurement. There may be several valid architectures satisfying the same requirements.
+
+## 5. Eight questions before choosing
+
+1. **What are we optimizing?** Name an outcome and a measure: checkout success, p95 latency, monthly total cost. “Fast” alone cannot decide anything.
+2. **What gets worse?** Identify storage, update work, failure behavior, or human effort. Faster product reads may require keeping extra copies fresh.
+3. **How important is each side?** Separate mandatory rules from preferences. A slightly stale popularity count is different from selling one ticket twice.
+4. **What does the business require?** Ask about losses, user harm, deadlines, and obligations. Technical elegance has no independent priority over product needs.
+5. **What scale?** Estimate reads, writes, data volume, bursts, geography, and concurrent users. A small dataset can make an apparently inefficient approach entirely adequate.
+6. **What failures must we survive?** Specify a crash, location loss, mistaken deletion, overloaded dependency, or disconnected network. Protection is meaningful only against named failures.
+7. **What is the simplest acceptable solution?** Try the design with the fewest necessary mechanisms and measure it. Simplicity includes clear data ownership, not merely fewer boxes.
+8. **Can we change later?** Record migration work, data compatibility, and contractual restrictions. More difficult exits deserve more evidence up front.
+
+**Practice:** “We need the fastest possible catalog.” What is missing?
+
+**Solution:** A response-time target, catalog size, traffic, allowed staleness, geography, and budget. “Under 300 ms for 95% of requests at 1,000 requests/s, product descriptions ≤30 s old” makes comparison possible. Inventory reservation needs its own requirement.
+
+## 6. Reversibility and context
+
+A **reversible decision** is relatively easy to change: like adjusting a thermostat; a cache TTL can change from five to two minutes. Check the extra database load before rollout. A **hard-to-reverse decision** needs substantial coordinated change: like moving a city's roads; choosing a data model used by hundreds of services requires data migration, compatibility, and testing. Reversibility matters because uncertainty is unavoidable.
+
+An **architecture decision record**, or ADR, is a short record of a design's context and reasoning, like a dated explanation attached to a purchase. It preserves why a decision made sense and when to revisit it.
+
+| Product | Often important | What may be relaxed | Boundary to protect |
+|---|---|---|---|
+| Bank | Correct ledger, durable records | Informational display freshness | Transfers cannot invent or lose money |
+| Social network | Fast browsing, continued interaction | Reaction-count freshness | Access control and account security |
+| Video streaming | Smooth playback, efficient delivery | View-count freshness | Permissions and paid entitlements |
+| Analytics | Explainable totals, efficient aggregation | Immediate updates for some reports | Authoritative financial reporting may differ |
+| Internal admin tool | Clear behavior, low human effort | Extreme traffic capacity | Sensitive permissions and auditability |
+
+Do not transfer one product's priorities to another. Even within a bank, promotional banners and ledger writes need different guarantees.

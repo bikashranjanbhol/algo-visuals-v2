@@ -1,0 +1,113 @@
+---
+title: "Fifty Flashcards"
+description: "Fifty question-and-answer flashcards for recalling trade-off vocabulary and reasoning after practice (Section 43)."
+difficulty: beginner
+updated: 2026-10-08
+---
+
+*[System Design Trade-offs](/tutorials/system-design/trade-offs) · Part VII — Flashcards · Section 43 of 55.* New to the topic? Start with [Trade-off Fundamentals](/tutorials/system-design/trade-offs/fundamentals).
+
+## 43. Fifty flashcards
+
+Use these for recall after practicing reasoning. Definitions alone are not enough to choose a design.
+
+1. **Q:** What is a trade-off?  
+   **A:** Improving something desirable may cost another goal, money, or complexity.
+2. **Q:** Why do engineering trade-offs exist?  
+   **A:** Resources, time, physical limits, uncertainty, and coordination constrain choices.
+3. **Q:** What is a requirement?  
+   **A:** A needed outcome or limit, ideally measurable.
+4. **Q:** What is an architecture decision?  
+   **A:** A chosen structure or behavior for meeting requirements under constraints.
+5. **Q:** What is a technology choice?  
+   **A:** Selecting a particular product to implement an approach.
+6. **Q:** What is latency?  
+   **A:** Time an operation takes from its defined start to finish.
+7. **Q:** What is throughput?  
+   **A:** Completed work per unit time.
+8. **Q:** What is p95 latency?  
+   **A:** Approximately 95% of measured requests have latency at or below that value.
+9. **Q:** What is consistency?  
+   **A:** Rules governing observations of shared data and updates.
+10. **Q:** What does linearizability add?  
+    **A:** Operations appear atomic and respect real-time order of non-overlapping operations.
+11. **Q:** What is eventual consistency?  
+    **A:** Copies converge when updates cease and propagation/repair succeeds under their rules.
+12. **Q:** Does “eventual” promise a fixed delay?  
+    **A:** No; a time bound needs an additional guarantee.
+13. **Q:** What is read-your-writes?  
+    **A:** A user sees their own completed updates in later reads.
+14. **Q:** Why can stronger consistency add latency?  
+    **A:** Required communication, agreement, or authority can add waiting.
+15. **Q:** What is practical availability?  
+    **A:** Delivering the required service successfully within defined conditions and deadlines.
+16. **Q:** What is a network partition?  
+    **A:** Parts cannot communicate reliably although machines may remain alive.
+17. **Q:** What does CAP rule out?  
+    **A:** Guaranteed linearizable shared reads/writes and completion at every non-failing node during indefinite partitions.
+18. **Q:** Why is “pick two forever” misleading?  
+    **A:** Partitions are operating conditions, and choices differ by operation and failure state.
+19. **Q:** What is durability?  
+    **A:** Acknowledged data survives specified failures under stated assumptions.
+20. **Q:** Why does “saved in memory” differ from durable save?  
+    **A:** Memory can disappear with process or power loss.
+21. **Q:** What is replication?  
+    **A:** Maintaining additional copies of data.
+22. **Q:** Why is replication not a backup?  
+    **A:** Live copies can propagate accidental deletion or corruption.
+23. **Q:** What is reliability?  
+    **A:** Dependable correct behavior over time despite expected problems.
+24. **Q:** What is redundancy?  
+    **A:** Extra capacity or alternatives for failures or maintenance.
+25. **Q:** Why do extra nines usually cost more?  
+    **A:** Rarer failures, dependencies, change risk, and fast recovery need additional investment.
+26. **Q:** What is simplicity?  
+    **A:** Fewer necessary concepts and interactions to understand and operate.
+27. **Q:** What is flexibility?  
+    **A:** Ability to support real variation and change.
+28. **Q:** What is premature flexibility?  
+    **A:** Adding general mechanisms for needs that are not demonstrated.
+29. **Q:** What does build mean?  
+    **A:** Create and maintain a capability yourself.
+30. **Q:** What does buy mean?  
+    **A:** Adopt an outside software product or service.
+31. **Q:** When is building attractive?  
+    **A:** Valuable custom behavior and sustainable expertise justify lifetime costs.
+32. **Q:** What is vendor lock-in?  
+    **A:** Switching is difficult because of interfaces, data, behavior, or contracts.
+33. **Q:** What is managed infrastructure?  
+    **A:** A provider operates agreed infrastructure responsibilities.
+34. **Q:** What is self-hosting?  
+    **A:** Your team operates the deployed software and infrastructure.
+35. **Q:** What is TCO?  
+    **A:** Total cost of ownership including operation, people, maintenance, and exit.
+36. **Q:** What is general-purpose infrastructure?  
+    **A:** Infrastructure serving a broad set of workloads.
+37. **Q:** What is specialized infrastructure?  
+    **A:** Infrastructure optimized for particular workloads or features.
+38. **Q:** When is specialization justified?  
+    **A:** A measured or required gap outweighs integration and operating cost.
+39. **Q:** What is state?  
+    **A:** Information remembered between interactions.
+40. **Q:** What is stateful architecture?  
+    **A:** Components retain relevant state across interactions.
+41. **Q:** What is a stateless handler?  
+    **A:** It does not require private per-client memory of earlier requests to handle the next.
+42. **Q:** When is local state useful?  
+    **A:** Work such as game sessions needs frequent low-latency access and ownership.
+43. **Q:** What is synchronous communication?  
+    **A:** The caller waits for the operation result.
+44. **Q:** What is asynchronous communication?  
+    **A:** Submission is separated from final completion.
+45. **Q:** What extra problems does async introduce?  
+    **A:** Backlog, retries, duplicates, ordering, status, and recovery.
+46. **Q:** What is normalization?  
+    **A:** Organizing facts around dependencies to avoid unnecessary duplication and anomalies.
+47. **Q:** What is denormalization?  
+    **A:** Deliberately duplicating/combining data for selected reads.
+48. **Q:** What is precomputation versus on-read computation?  
+    **A:** Compute before demand versus when requested; compare reuse, age, and update cost.
+49. **Q:** What is operational complexity?  
+    **A:** Effort to deploy, monitor, diagnose, change, and recover a system.
+50. **Q:** When should a decision be revisited?  
+    **A:** When measured targets, workload, failure needs, staffing, cost, or real variation change.
