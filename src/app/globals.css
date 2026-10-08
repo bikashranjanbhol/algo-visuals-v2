@@ -213,6 +213,22 @@
   padding-inline-start: 0.9rem;
 }
 
+/* Wide tables scroll sideways. Edge shadows show there is more to see; the
+   background-matching covers scroll with the table and hide a shadow once
+   that edge is reached. */
+.table-scroll {
+  background-color: var(--background);
+  background-image:
+    linear-gradient(to right, var(--background) 30%, transparent),
+    linear-gradient(to left, var(--background) 30%, transparent),
+    radial-gradient(farthest-side at 0 50%, color-mix(in oklch, var(--foreground) 22%, transparent), transparent),
+    radial-gradient(farthest-side at 100% 50%, color-mix(in oklch, var(--foreground) 22%, transparent), transparent);
+  background-position: left center, right center, left center, right center;
+  background-size: 2.5rem 100%, 2.5rem 100%, 1rem 100%, 1rem 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
 /* ---------- Code blocks (rehype-pretty-code) ---------- */
 [data-rehype-pretty-code-figure] {
   position: relative;

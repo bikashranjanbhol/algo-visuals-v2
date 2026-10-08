@@ -56,7 +56,7 @@ function Anchor({ href = "", children, ...props }: ComponentProps<"a">) {
 
 function Table(props: ComponentProps<"table">) {
   return (
-    <div className="my-6 overflow-x-auto rounded-xl border border-border">
+    <div className="table-scroll my-6 overflow-x-auto rounded-xl border border-border">
       <table {...props} />
     </div>
   );
