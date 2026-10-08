@@ -148,7 +148,7 @@
   --tw-prose-td-borders: var(--border);
 }
 
-.prose-article :where(p, li) {
+.prose-article :where(p, li):not(:where(.not-prose, .not-prose *)) {
   line-height: 1.75;
 }
 
