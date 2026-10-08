@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 /**
  * Renders a ```mermaid code block as a diagram. The Mermaid library is large,
@@ -18,8 +18,12 @@ const isDark = () => document.documentElement.classList.contains("dark");
 
 // Mermaid's configuration is global, so render one diagram at a time.
 let queue: Promise<unknown> = Promise.resolve();
+// Mermaid removes any element that already has the id it renders with, so
+// every render gets a new id rather than reusing the one on screen.
+let renders = 0;
 
-function renderDiagram(id: string, chart: string, dark: boolean) {
+function renderDiagram(chart: string, dark: boolean) {
+  const id = `mermaid-${++renders}`;
   const task = queue.then(async () => {
     const { default: mermaid } = await import("mermaid");
     mermaid.initialize({
@@ -46,16 +50,18 @@ const diagramNames: Record<string, string> = {
 };
 
 export function Mermaid({ chart }: { chart: string }) {
-  const reactId = useId();
   const dark = useSyncExternalStore(subscribeToTheme, isDark, () => false);
-  const [svg, setSvg] = useState<string | null>(null);
+  const [diagram, setDiagram] = useState<{ key: string; svg: string } | null>(null);
+  const key = `${dark ? "dark" : "light"}\n${chart}`;
+  const shownKey = diagram?.key;
 
   useEffect(() => {
+    // Effects run again when a hidden page is shown again; the diagram is still there.
+    if (shownKey === key) return;
     let cancelled = false;
-    const id = `mermaid-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}-${dark ? "dark" : "light"}`;
-    renderDiagram(id, chart, dark).then(
+    renderDiagram(chart, dark).then(
       (result) => {
-        if (!cancelled) setSvg(result.svg);
+        if (!cancelled) setDiagram({ key, svg: result.svg });
       },
       () => {
         // Invalid diagram: keep showing the source text.
@@ -64,13 +70,17 @@ export function Mermaid({ chart }: { chart: string }) {
     return () => {
       cancelled = true;
     };
-  }, [chart, dark, reactId]);
+  }, [chart, dark, key, shownKey]);
+
+  const svg = diagram?.svg;
 
   const kind = chart.trim().split(/\s+/)[0];
   const label = diagramNames[kind] ?? "Diagram";
 
   return (
-    <figure className="not-prose my-8 overflow-x-auto rounded-2xl border border-border bg-card p-4 sm:p-6">
+    // overflow-anchor: the figure grows when the diagram replaces the source text; it must
+    // not be the scroll anchor, or a jump to a heading just below it ends up too far down.
+    <figure className="not-prose my-8 overflow-x-auto rounded-2xl border border-border bg-card p-4 [overflow-anchor:none] sm:p-6">
       {svg ? (
         <>
           <div
