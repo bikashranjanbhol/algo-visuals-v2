@@ -5,7 +5,14 @@ import { useEffect, useState } from "react";
 import type { Heading } from "@/lib/content-types";
 import { cn } from "@/lib/utils";
 
-const OFFSET = 112;
+/**
+ * How far below the top of the viewport a heading sits after a jump to it
+ * (the page's scroll-padding plus the heading's scroll-margin).
+ */
+function landingOffset(heading: Element) {
+  const padding = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+  return padding + (parseFloat(getComputedStyle(heading).scrollMarginTop) || 0);
+}
 
 /** Tracks which heading the reader is currently looking at. */
 function useActiveHeading(headings: Heading[]) {
@@ -20,9 +27,13 @@ function useActiveHeading(headings: Heading[]) {
     const update = () => {
       frame = 0;
       let current = ids[0];
+      // A heading becomes current once it reaches the spot a jump to it lands on,
+      // so clicking an entry highlights that entry. Headings share one style.
+      const first = document.getElementById(ids[0]);
+      const offset = first ? landingOffset(first) + 2 : 0;
       for (const id of ids) {
         const el = document.getElementById(id);
-        if (el && el.getBoundingClientRect().top - OFFSET <= 0) current = id;
+        if (el && el.getBoundingClientRect().top - offset <= 0) current = id;
       }
       // At the very bottom, highlight the last heading even if it is short.
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
