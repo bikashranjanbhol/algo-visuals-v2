@@ -1,5 +1,6 @@
 import { Clock } from "lucide-react";
 import Link from "next/link";
+import { PendingHint } from "@/components/ui/pending-hint";
 import type { TopicMeta } from "@/lib/content-types";
 import { TopicStatus } from "./progress";
 
@@ -22,6 +23,7 @@ export function TopicList({ topics, startIndex = 0 }: { topics: TopicMeta[]; sta
                 </span>
               </span>
             </span>
+            <PendingHint className="mt-1 size-4" />
             <TopicStatus id={topic.id} />
           </Link>
         </li>

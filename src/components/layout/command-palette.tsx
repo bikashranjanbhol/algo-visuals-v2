@@ -1,8 +1,8 @@
 "use client";
 
-import { CornerDownLeft, FileText, Hash, Layers, Search, Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
+import { CornerDownLeft, FileText, Hash, Layers, LoaderCircle, Search, Sparkles } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import type { SearchEntry, TutorialSummary } from "@/lib/content-types";
 import { useLockBodyScroll } from "@/lib/hooks";
@@ -97,8 +97,19 @@ function search(query: string, entries: SearchEntry[], tutorials: TutorialSummar
 
 export function CommandPalette({ entries, tutorials }: { entries: SearchEntry[]; tutorials: TutorialSummary[] }) {
   const router = useRouter();
+  const pathname = usePathname();
   const isMac = useIsMac();
-  const [open, setOpen] = useState(false);
+  // Remember which page the palette was opened on. After choosing a result it
+  // stays open with a spinner until the new page arrives (tutorial pages load
+  // their data on navigation), then closes by itself when the URL changes.
+  const [openAt, setOpenAt] = useState<string | null>(null);
+  // Forget it once the URL changes, so coming back to the same page (Back/
+  // Forward) doesn't reopen it. Adjusting state during render is React's
+  // recommended way to reset state when an input changes.
+  if (openAt !== null && openAt !== pathname) setOpenAt(null);
+  const open = openAt === pathname;
+  const [isPending, startTransition] = useTransition();
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
@@ -111,27 +122,45 @@ export function CommandPalette({ entries, tutorials }: { entries: SearchEntry[];
       const typing = target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
       if ((event.key === "k" && (event.metaKey || event.ctrlKey)) || (event.key === "/" && !typing)) {
         event.preventDefault();
-        setOpen((o) => !o);
+        if (open) {
+          setOpenAt(null);
+        } else {
+          setQuery("");
+          setActive(0);
+          setOpenAt(pathname);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [open, pathname]);
 
   useEffect(() => {
     listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
   }, [active]);
 
+  function openPalette() {
+    setQuery("");
+    setActive(0);
+    setOpenAt(pathname);
+  }
+
   function close() {
-    setOpen(false);
+    setOpenAt(null);
     setQuery("");
     setActive(0);
   }
 
   function go(result: Result | undefined) {
     if (!result) return;
-    close();
-    router.push(result.href);
+    if (new URL(result.href, window.location.href).pathname === pathname) {
+      // Same page (e.g. a section heading): the URL path won't change, so close now.
+      close();
+      router.push(result.href);
+      return;
+    }
+    setPendingKey(result.key);
+    startTransition(() => router.push(result.href));
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -153,7 +182,7 @@ export function CommandPalette({ entries, tutorials }: { entries: SearchEntry[];
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openPalette}
         className="hidden h-9 w-56 items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground lg:flex xl:w-64"
       >
         <Search className="size-4" />
@@ -164,7 +193,7 @@ export function CommandPalette({ entries, tutorials }: { entries: SearchEntry[];
       </button>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openPalette}
         aria-label="Search"
         className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
       >
@@ -242,7 +271,11 @@ export function CommandPalette({ entries, tutorials }: { entries: SearchEntry[];
                             <span className="block truncate text-xs text-muted-foreground">{result.subtitle}</span>
                           )}
                         </span>
-                        {i === active && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />}
+                        {isPending && pendingKey === result.key ? (
+                          <LoaderCircle className="size-4 shrink-0 animate-spin text-muted-foreground" aria-label="Opening" />
+                        ) : (
+                          i === active && <CornerDownLeft className="size-4 shrink-0 text-muted-foreground" />
+                        )}
                       </div>
                     </li>
                   );

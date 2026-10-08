@@ -2,8 +2,10 @@
 
 import { ArrowRight, Check, ChevronsUpDown, Search } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useId, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useId, useLayoutEffect, useRef, useState, type FocusEvent } from "react";
 import { TutorialIcon } from "@/components/icons";
+import { PendingHint } from "@/components/ui/pending-hint";
 import type { TutorialSummary } from "@/lib/content-types";
 import { useDismiss } from "@/lib/hooks";
 import { accentStyles, cn } from "@/lib/utils";
@@ -19,32 +21,53 @@ export function TutorialSwitcher({
 }: {
   current: TutorialSummary;
   tutorials: TutorialSummary[];
-  onNavigate?: () => void;
+  /** Called with the href of any link the reader clicks (the mobile menu uses it). */
+  onNavigate?: (href: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  // Remember which page the dropdown was opened on. It stays open while a
+  // picked tutorial loads (its link shows a spinner) and closes by itself once
+  // the URL changes.
+  const [openAt, setOpenAt] = useState<string | null>(null);
+  // Forget it once the URL changes, so coming back to the same page (Back/
+  // Forward) doesn't reopen it. Adjusting state during render is React's
+  // recommended way to reset state when an input changes.
+  if (openAt !== null && openAt !== pathname) setOpenAt(null);
+  const open = openAt === pathname;
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const listId = useId();
   const close = useCallback(() => {
-    setOpen(false);
+    setOpenAt(null);
     setQuery("");
   }, []);
   useDismiss(ref, open, close);
+  // Next keeps visited routes mounted but hidden (<Activity>); don't come back
+  // to a tutorial with the dropdown still open.
+  useLayoutEffect(() => close, [close]);
 
   const accent = accentStyles[current.accent];
   const q = query.trim().toLowerCase();
   const visible = q ? tutorials.filter((t) => `${t.title} ${t.description}`.toLowerCase().includes(q)) : tutorials;
 
-  function select() {
-    close();
-    onNavigate?.();
+  function select(href: string) {
+    // Navigating elsewhere closes the dropdown when the URL changes; picking
+    // the current page doesn't change it, so close right away.
+    if (href === pathname) close();
+    onNavigate?.(href);
+  }
+
+  function onBlur(event: FocusEvent<HTMLDivElement>) {
+    // Keyboard focus leaving the switcher would otherwise land on controls
+    // hidden under the open dropdown.
+    if (open && event.relatedTarget && !ref.current?.contains(event.relatedTarget as Node)) close();
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative" onBlur={onBlur}>
       <button
         type="button"
-        onClick={() => (open ? close() : setOpen(true))}
+        onClick={() => (open ? close() : setOpenAt(pathname))}
         aria-expanded={open}
         aria-controls={listId}
         aria-label={`Current tutorial: ${current.title}. Switch tutorial`}
@@ -92,7 +115,7 @@ export function TutorialSwitcher({
                 <li key={t.slug}>
                   <Link
                     href={t.href}
-                    onClick={select}
+                    onClick={() => select(t.href)}
                     aria-current={isCurrent ? "true" : undefined}
                     className={cn(
                       "flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors",
@@ -108,7 +131,7 @@ export function TutorialSwitcher({
                         {t.level} · {t.topicCount} topics
                       </span>
                     </span>
-                    {isCurrent && <Check className="size-4 shrink-0 text-brand" aria-hidden />}
+                    {isCurrent ? <Check className="size-4 shrink-0 text-brand" aria-hidden /> : <PendingHint className="size-4" />}
                   </Link>
                 </li>
               );
@@ -116,7 +139,7 @@ export function TutorialSwitcher({
           </ul>
           <Link
             href="/tutorials"
-            onClick={select}
+            onClick={() => select("/tutorials")}
             className="flex items-center justify-between border-t border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Browse all tutorials <ArrowRight className="size-4" />

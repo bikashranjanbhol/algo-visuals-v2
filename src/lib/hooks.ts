@@ -2,7 +2,11 @@
 
 import { useEffect, type RefObject } from "react";
 
-/** Calls onClose on Escape or a pointer press outside `ref` while `open`. */
+/**
+ * Calls onClose on Escape or a pointer press outside `ref` while `open`.
+ * Escape is marked handled (preventDefault) so a surrounding dialog, like the
+ * mobile menu, can ignore the same key press.
+ */
 export function useDismiss(ref: RefObject<HTMLElement | null>, open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
@@ -10,7 +14,10 @@ export function useDismiss(ref: RefObject<HTMLElement | null>, open: boolean, on
       if (ref.current && !ref.current.contains(event.target as Node)) onClose();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
     };
     document.addEventListener("pointerdown", onPointer);
     document.addEventListener("keydown", onKey);

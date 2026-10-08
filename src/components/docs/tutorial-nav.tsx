@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronRight, CircleCheck, LayoutGrid, LoaderCircle, Search, X } from "lucide-react";
-import Link, { useLinkStatus } from "next/link";
+import { ChevronRight, CircleCheck, LayoutGrid, Search, X } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { PendingHint } from "@/components/ui/pending-hint";
 import type { NavTutorial, TutorialSummary } from "@/lib/content-types";
 import { countCompleted, useProgress } from "@/lib/progress";
 import { useRegisterTutorialNav } from "@/lib/tutorial-nav-store";
@@ -23,7 +24,8 @@ export function TutorialNav({
 }: {
   tutorial: NavTutorial;
   tutorials: TutorialSummary[];
-  onNavigate?: () => void;
+  /** Called with the href of any link the reader clicks (the mobile menu uses it). */
+  onNavigate?: (href: string) => void;
 }) {
   const pathname = usePathname();
   const progress = useProgress();
@@ -87,7 +89,7 @@ export function TutorialNav({
       {!query && (
         <Link
           href={tutorial.href}
-          onClick={onNavigate}
+          onClick={() => onNavigate?.(tutorial.href)}
           ref={overviewActive ? activeRef : undefined}
           aria-current={overviewActive ? "page" : undefined}
           className={cn(
@@ -96,7 +98,8 @@ export function TutorialNav({
           )}
         >
           <LayoutGrid className="size-4" aria-hidden />
-          Overview
+          <span className="flex-1">Overview</span>
+          <PendingHint />
         </Link>
       )}
 
@@ -127,7 +130,7 @@ export function TutorialNav({
                         <Link
                           ref={active ? activeRef : undefined}
                           href={topic.href}
-                          onClick={onNavigate}
+                          onClick={() => onNavigate?.(topic.href)}
                           aria-current={active ? "page" : undefined}
                           className={cn(
                             "relative flex items-center gap-2 rounded-md py-1.5 pr-2 pl-3 transition-colors",
@@ -152,12 +155,6 @@ export function TutorialNav({
       </ul>
     </nav>
   );
-}
-
-/** Spinner shown inside a link while its page loads (only visible if it wasn't prefetched). */
-function PendingHint() {
-  const { pending } = useLinkStatus();
-  return pending ? <LoaderCircle className="size-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden /> : null;
 }
 
 /** Desktop sidebar instance; also shares the tutorial with the mobile menu. */

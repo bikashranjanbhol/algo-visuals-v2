@@ -41,6 +41,7 @@ export function TopicCompleteButton({ id, href, title, nextHref }: { id: string;
         {done && nextHref && (
           <Link
             href={nextHref}
+            prefetch={true}
             className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-semibold hover:bg-muted"
           >
             Next topic <ArrowRight className="size-4" />

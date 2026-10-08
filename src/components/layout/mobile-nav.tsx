@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { TutorialNav } from "@/components/docs/tutorial-nav";
 import { LogoMark, TutorialIcon } from "@/components/icons";
+import { PendingHint } from "@/components/ui/pending-hint";
 import type { TutorialSummary } from "@/lib/content-types";
 import { useLockBodyScroll } from "@/lib/hooks";
 import { primaryNav, siteConfig } from "@/lib/site";
@@ -18,26 +19,41 @@ import { ThemeSwitcher } from "./theme-toggle";
 const LIST_LIMIT = 8;
 
 export function MobileNav({ tutorials }: { tutorials: TutorialSummary[] }) {
-  const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  // Remember which page the menu was opened on. After a tap it stays open,
+  // with a spinner on the tapped link, until the new page arrives; then the
+  // URL changes and it closes by itself.
+  const [openAt, setOpenAt] = useState<string | null>(null);
+  // Forget it once the URL changes, so coming back to the same page (Back/
+  // Forward) doesn't reopen it. Adjusting state during render is React's
+  // recommended way to reset state when an input changes.
+  if (openAt !== null && openAt !== pathname) setOpenAt(null);
+  const open = openAt === pathname;
   // Set by the tutorial layout while a tutorial is open.
   const current = useCurrentTutorialNav();
   useLockBodyScroll(open);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      // A popup inside the menu (the tutorial switcher) may have handled it.
+      if (e.key === "Escape" && !e.defaultPrevented) setOpenAt(null);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const close = () => setOpen(false);
+  const close = () => setOpenAt(null);
+  // Links to the page already shown don't change the URL, so close for those.
+  const closeIfCurrent = (href: string) => {
+    if (href === pathname) close();
+  };
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpenAt(pathname)}
         aria-label="Open menu"
         aria-expanded={open}
         className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
@@ -55,7 +71,7 @@ export function MobileNav({ tutorials }: { tutorials: TutorialSummary[] }) {
               className="absolute inset-y-0 left-0 flex w-[min(20rem,88vw)] animate-slide-in-left flex-col border-r border-border bg-background shadow-2xl"
             >
               <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
-                <Link href="/" onClick={close} className="flex items-center gap-2 font-bold">
+                <Link href="/" onClick={() => closeIfCurrent("/")} className="flex items-center gap-2 font-bold">
                   <LogoMark className="size-7" />
                   {siteConfig.name}
                 </Link>
@@ -77,13 +93,14 @@ export function MobileNav({ tutorials }: { tutorials: TutorialSummary[] }) {
                         <li key={item.href}>
                           <Link
                             href={item.href}
-                            onClick={close}
+                            onClick={() => closeIfCurrent(item.href)}
                             className={cn(
-                              "block rounded-lg border px-3 py-2 text-sm font-medium",
+                              "flex items-center justify-between gap-1 rounded-lg border px-3 py-2 text-sm font-medium",
                               active ? "border-brand/40 bg-brand-soft text-brand" : "border-border hover:bg-muted",
                             )}
                           >
                             {item.title}
+                            <PendingHint />
                           </Link>
                         </li>
                       );
@@ -92,10 +109,10 @@ export function MobileNav({ tutorials }: { tutorials: TutorialSummary[] }) {
                 </nav>
                 {current ? (
                   <div className="mt-6 md:mt-0">
-                    <TutorialNav tutorial={current.tutorial} tutorials={current.tutorials} onNavigate={close} />
+                    <TutorialNav tutorial={current.tutorial} tutorials={current.tutorials} onNavigate={closeIfCurrent} />
                   </div>
                 ) : (
-                  <TutorialList tutorials={tutorials} onNavigate={close} />
+                  <TutorialList tutorials={tutorials} onNavigate={closeIfCurrent} />
                 )}
               </div>
               <div className="shrink-0 border-t border-border p-4">
@@ -109,7 +126,7 @@ export function MobileNav({ tutorials }: { tutorials: TutorialSummary[] }) {
   );
 }
 
-function TutorialList({ tutorials, onNavigate }: { tutorials: TutorialSummary[]; onNavigate: () => void }) {
+function TutorialList({ tutorials, onNavigate }: { tutorials: TutorialSummary[]; onNavigate: (href: string) => void }) {
   return (
     <div className="mt-6 md:mt-0">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tutorials</p>
@@ -118,20 +135,21 @@ function TutorialList({ tutorials, onNavigate }: { tutorials: TutorialSummary[];
           <li key={t.slug}>
             <Link
               href={t.href}
-              onClick={onNavigate}
+              onClick={() => onNavigate(t.href)}
               className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm font-medium hover:bg-muted"
             >
               <span className={cn("grid size-7 shrink-0 place-items-center rounded-md bg-gradient-to-br text-white", accentStyles[t.accent].gradient)}>
                 <TutorialIcon name={t.icon} className="size-4" />
               </span>
-              <span className="truncate">{t.title}</span>
+              <span className="flex-1 truncate">{t.title}</span>
+              <PendingHint />
             </Link>
           </li>
         ))}
       </ul>
       <Link
         href="/tutorials"
-        onClick={onNavigate}
+        onClick={() => onNavigate("/tutorials")}
         className="mt-2 flex items-center justify-between rounded-lg px-2 py-2 text-sm font-medium text-brand hover:bg-brand-soft"
       >
         {tutorials.length > LIST_LIMIT ? `Browse all ${tutorials.length} tutorials` : "Browse all tutorials"}

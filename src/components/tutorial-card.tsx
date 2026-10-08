@@ -2,6 +2,7 @@ import { ArrowRight, BookOpen, Clock } from "lucide-react";
 import Link from "next/link";
 import { TutorialProgress } from "@/components/docs/progress";
 import { TutorialIcon } from "@/components/icons";
+import { PendingHint } from "@/components/ui/pending-hint";
 import type { TutorialMeta } from "@/lib/content-types";
 import { accentStyles, cn, formatMinutes } from "@/lib/utils";
 
@@ -51,7 +52,8 @@ export function TutorialCard({ tutorial, detailed = false }: { tutorial: Tutoria
           <span className="inline-flex items-center gap-1.5">
             <Clock className="size-3.5" /> {formatMinutes(tutorial.readingMinutes)}
           </span>
-          <ArrowRight className="ml-auto size-4 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
+          <PendingHint className="ml-auto size-4" />
+          <ArrowRight className="size-4 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
         </div>
         <TutorialProgress topics={topics} compact />
       </div>
