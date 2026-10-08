@@ -1,6 +1,6 @@
 {
   "title": "System Design",
-  "description": "Learn to design software systems step by step: first functional requirements (what a system must do), then non-functional requirements (how well it must do it).",
+  "description": "Learn system design step by step: functional and non-functional requirements, then characterizing a problem's workload, state, trust and scale before choosing a design.",
   "order": 5,
   "level": "Beginner",
   "icon": "boxes",
@@ -30,6 +30,18 @@
         "exercises-and-mock-interviews",
         "practice-and-knowledge-check",
         "capstone-and-revision"
+      ]
+    },
+    {
+      "slug": "requirement-characterization",
+      "title": "Requirement Characterization",
+      "description": "Understand the problem before designing: classify requirements along 13 dimensions, from workload and state to trust, geography and tenancy, and reason about their consequences.",
+      "topics": [
+        "fundamentals",
+        "dimensions",
+        "combining-dimensions",
+        "applied-practice",
+        "quiz-and-revision"
       ]
     }
   ]

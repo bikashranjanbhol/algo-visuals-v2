@@ -1,0 +1,515 @@
+---
+title: "Quiz, Flashcards and Revision"
+description: "A classification quiz, 48 flashcards, a cheat sheet, the final mental model, a learning progression and a final completeness review (Sections 98–103)."
+difficulty: beginner
+updated: 2026-10-08
+---
+
+*Part 5 of 5 of [Requirement Characterization](/tutorials/system-design/requirement-characterization) · Sections 98–103.* Finish with assessment and revision. New to the topic? Start with [Requirement Characterization Fundamentals](/tutorials/system-design/requirement-characterization/fundamentals).
+
+## 98. Classification quiz
+
+Write your answers before scrolling to the answer key. Each multiple-choice question has exactly one best answer under its stated assumptions. True/false questions test the whole statement. Short answers and scenarios can admit alternative designs if justified by explicit assumptions.
+
+### Twenty multiple-choice questions
+
+**MC1. What does requirement characterization primarily produce?**
+
+A. A list of technology brands  
+B. A description of problem and workload properties  
+C. The completed application source code  
+D. A final infrastructure invoice
+
+**MC2. A requirement permits specified exceptions but greatly affects sales. Which description fits?**
+
+A. Soft and potentially important  
+B. Hard because sales are involved  
+C. Optional because exceptions exist  
+D. Functional because it is important
+
+**MC3. Which is primarily a functional requirement?**
+
+A. 95% of lookups finish within 300 ms  
+B. Covered records remain in the agreed territory  
+C. Customers can cancel eligible orders  
+D. Sensitive stored fields are encrypted
+
+**MC4. A necessary search feature has a flexible normal response target. Which statement fits?**
+
+A. It is nice-to-have with a hard speed guarantee  
+B. It is optional whenever searches are slow  
+C. It cannot have separate scope and speed labels  
+D. It is must-have with a soft performance target
+
+**MC5. A workflow performs 900 reads and 100 writes in the same interval. What is the ratio?**
+
+A. 1:9  
+B. 9:1  
+C. 10:1  
+D. 1:10
+
+**MC6. Which operation is a write at the profile-data boundary?**
+
+A. View a saved address  
+B. Retrieve the displayed name  
+C. Delete a saved photograph  
+D. Read a public biography
+
+**MC7. Every request can go to any application server, which consults shared cart storage. What follows?**
+
+A. App servers can be stateless while cart data persists  
+B. The entire system contains no remembered data  
+C. Shared storage makes each server locally session-dependent  
+D. Adding app servers automatically removes storage limits
+
+**MC8. A locally stored sign-in session disappears when its server fails. Which response addresses recovery rather than only normal routing?**
+
+A. Always route to the failed server  
+B. Rename the session stateless  
+C. Remove the user's next request  
+D. Preserve required state in recoverable shared storage
+
+**MC9. A clerk submits payroll and continues other work while monthly calculations run. What best describes calculation?**
+
+A. Interactive lookup with final synchronous completion  
+B. Batch work with asynchronous final completion  
+C. Stateless work because no clerk is waiting  
+D. Public processing because salaries go to people
+
+**MC10. Readings are grouped and processed every five seconds. What is that grouping called?**
+
+A. Local session state  
+B. Content delivery  
+C. Micro-batching  
+D. Tenant isolation
+
+**MC11. Equipment alarms are evaluated as measurements arrive; no human requested and waits for the evaluation. Which description fits?**
+
+A. Online processing without necessarily interactive behavior  
+B. Offline processing because no person is waiting  
+C. Batch processing because measurements are numbers  
+D. B2C processing because machines produce results
+
+**MC12. Which statement about online and offline is accurate in this chapter?**
+
+A. Online always means public internet access  
+B. Offline work cannot use a network  
+C. Batch work is always offline  
+D. Offline work can use internet-connected computers
+
+**MC13. An export API returns “queued” before preparing a file. What has been confirmed?**
+
+A. The file has finished downloading  
+B. Acceptance, not final completion  
+C. The final result cannot fail  
+D. The worker has completed all processing
+
+**MC14. A payment request times out. What is the safest interpretation of that fact alone?**
+
+A. No debit was performed  
+B. A debit definitely completed  
+C. The caller lacks a confirmed outcome  
+D. The next request must use a new operation identity
+
+**MC15. A verified employee browser sends an invalid transfer amount. What should the server do?**
+
+A. Apply server-side validation despite employee identity  
+B. Accept because internal clients cannot be altered  
+C. Accept because authentication validates every field  
+D. Rely on the browser's original input restriction
+
+**MC16. A platform sells to five companies, each running 100,000 devices. Which conclusion is justified?**
+
+A. B2C because devices are individual  
+B. Small workload because there are five buyers  
+C. Multi-tenant database sharing is mandatory  
+D. B2B, with workload requiring separate estimation
+
+**MC17. A user is signed in but lacks permission for a document. Which missing check decides access?**
+
+A. Latency measurement  
+B. Authorization  
+C. Geographic distance  
+D. Batch scheduling
+
+**MC18. Global customers use one deployment region. Which statement fits?**
+
+A. The customers cannot be global  
+B. Every database must immediately become multi-region  
+C. Audience scope is global; deployment remains single-region  
+D. A single deployment proves every latency target is met
+
+**MC19. Application servers serve many companies, with a separate database per company. Which description is accurate?**
+
+A. Shared multi-tenant application with dedicated tenant data stores  
+B. No resource is shared across tenants  
+C. Every company must use the same database tables  
+D. B2C because application servers are shared
+
+**MC20. One tenant's workload delays other tenants. What problem is demonstrated?**
+
+A. Authentication failure  
+B. Offline connectivity  
+C. Stateful session migration  
+D. Noisy-neighbor interference
+
+### Ten true/false questions
+
+**TF1.** A requirement can be non-functional, hard, and must-have simultaneously.  
+**TF2.** A stateless application server cannot use a database.  
+**TF3.** A queue alone solves sustained arrival rates higher than processing rates.  
+**TF4.** An interactive screen can show a report computed offline.  
+**TF5.** A signed-in mobile client can still be untrusted about submitted prices.  
+**TF6.** Global users imply writes must be accepted in every region.  
+**TF7.** A batch job can have a hard completion deadline.  
+**TF8.** B2B determines the application's tenancy model.  
+**TF9.** Returning an accepted-job identity proves eventual success.  
+**TF10.** The same product can combine synchronous requests and asynchronous notifications.
+
+### Ten short-answer questions
+
+**SA1.** Explain requirement characterization in one plain sentence.  
+**SA2.** How does a constraint differ from an assumption?  
+**SA3.** Explain latency versus throughput using a coffee shop.  
+**SA4.** Give a must-have feature with a soft target.  
+**SA5.** Why does stateless application handling not imply a stateless whole system?  
+**SA6.** Distinguish interactive from online with a machine example.  
+**SA7.** What outcomes must an asynchronous export expose?  
+**SA8.** Explain authentication versus authorization.  
+**SA9.** Name three questions about geography besides “where are users?”  
+**SA10.** Give two tenancy models and one trade-off of each.
+
+### Ten scenario questions
+
+**SC1.** A catalog has 10 million views and 100,000 updates/day. Characterize workload and name one freshness question.  
+**SC2.** A user signs in on A; only A remembers the session; the next request reaches B. Diagnose and propose two remedies with limits.  
+**SC3.** A video is accepted immediately but takes two minutes to prepare. Characterize acceptance and completion and define visible states.  
+**SC4.** An employee browser submits a price of ₹1 for a ₹1,000 product. Explain checks and trust.  
+**SC5.** A global service must keep covered records in one country and wants extremely low delay everywhere. Identify the tension without choosing a brand.  
+**SC6.** A company sells payroll software with a dedicated deployment per customer. Describe market, audience, tenancy, and processing.  
+**SC7.** Tenant A guesses the identifier of B's private report. Explain required access decisions.  
+**SC8.** 2,000 sensors each send four readings/s. Calculate average arrival rate and identify two missing capacity facts.  
+**SC9.** A payment succeeds but its response is lost. Explain how careless retries can violate a hard requirement.  
+**SC10.** Characterize browsing, ordering, notification, and daily analytics in food delivery; give one architecture need for each.
+
+### Answer key: read after completing all questions
+
+#### Multiple-choice answers
+
+| Question | Answer | Explanation |
+|---|---|---|
+| MC1 | B | Characterization describes the problem before implementation choices |
+| MC2 | A | Explicit exceptions make the target flexible; importance is independent |
+| MC3 | C | Cancellation is behavior; the other statements concern quality or constraints |
+| MC4 | D | Feature scope and performance negotiability are different axes |
+| MC5 | B | Divide 900 and 100 by 100: 9 reads for each write |
+| MC6 | C | Deletion changes stored profile data |
+| MC7 | A | Required cart state can live outside individual app servers |
+| MC8 | D | Recoverable shared state can survive a specified server failure; routing alone cannot |
+| MC9 | B | Grouped monthly calculation proceeds before final results are returned |
+| MC10 | C | Frequent small groups are micro-batches |
+| MC11 | A | Active event evaluation is online even without a waiting person |
+| MC12 | D | Offline describes deferred operational timing here, not absence of networking |
+| MC13 | B | Queued work is accepted; file preparation still has an outcome to discover |
+| MC14 | C | Timeout only establishes that the caller stopped waiting without confirmation |
+| MC15 | A | Identity does not prove submitted values satisfy rules |
+| MC16 | D | Organizational customers establish B2B; device activity determines load |
+| MC17 | B | Authorization checks the specific requested permission |
+| MC18 | C | Geography of users does not dictate number of deployment regions |
+| MC19 | A | Sharing at the application boundary coexists with dedicated databases |
+| MC20 | D | One tenant consumes capacity that other tenants need |
+
+#### True/false explanations
+
+1. **True.** Encryption can be a quality constraint, an acceptance condition, and required for release.
+2. **False.** Stateless application handling can consult persistent shared data.
+3. **False.** Waiting work grows whenever arrivals exceed processing for a sustained period.
+4. **True.** Computing and viewing a report are different operations.
+5. **True.** Identity proof does not make a client-controlled price authoritative.
+6. **False.** A global service may keep authoritative writes in selected locations.
+7. **True.** Monthly payroll can require completion before payday.
+8. **False.** B2B products may use shared, dedicated, or hybrid deployments.
+9. **False.** Acceptance must be followed by a reported success or failure; retries may not succeed.
+10. **True.** These are independent workflow choices within one product.
+
+#### Short-answer models
+
+1. Describe important properties of the problem and its work so the design matches actual needs.
+2. A constraint limits acceptable solutions; an assumption is an unconfirmed belief used provisionally. Validate assumptions and identify consequences if false.
+3. Latency is one person's order-to-coffee wait. Throughput is coffees completed per minute. High throughput does not guarantee short individual waits.
+4. A shop must offer search, while a normally sub-500-ms search target permits occasional agreed delay. Search remains in scope despite a missed target.
+5. Local session independence says nothing about removing cart, account, or order records from shared storage.
+6. An arriving sensor reading can trigger online alarm evaluation without a human interacting and awaiting the result. Interactive additionally describes active caller participation.
+7. At minimum, accepted/queued, running, complete with access to the result, and failed with an understandable next step. Define expiry or cancellation when relevant.
+8. Authentication establishes identity; authorization checks permission for an action on a resource. A valid identity can lack document access.
+9. Where may data be stored and processed? What latency is needed in each area? What recovery geography is allowed? Other valid answers include time zones and local language needs.
+10. Shared app/data store lowers per-tenant resource cost but requires pervasive tenant checks. Dedicated deployment improves resource separation but increases environments and operating cost. Shared app/separate databases is another valid model.
+
+#### Scenario solutions
+
+1. Ratio = 10,000,000:100,000 = **100:1**, read-heavy by logical count. Ask how stale a product price or description may be and which reads must be authoritative. Read cost and images still need measurement.
+2. Local session dependence was hidden by normal routing. Sticky routing can preserve ordinary placement but fails if A dies; shared recoverable sessions can serve B but add capacity and recovery obligations. Validated request-carried proof is another possibility with expiry and revocation considerations.
+3. Synchronous acceptance, asynchronous preparation. Display queued, processing, ready, and failed, with a way to obtain final status. Readiness latency is two minutes, not the acknowledgment time.
+4. The browser remains untrusted despite being used by an employee. Authenticate, authorize the purchase, calculate the applicable server-side price, and check quantities and discounts. A submitted ₹1 total is not the pricing rule.
+5. Distance to the required data location creates a lower bound on remote round trips. Clarify covered data, targets, and permitted processing; nearby public or permitted content may help. If targets remain contradictory, stakeholders must relax or rescope a demand.
+6. B2B market and external customer access, with single-tenant application deployments. Payroll calculation is batch/offline and often asynchronously submitted; viewing results is interactive/online. Persistent records remain stateful even with replaceable workers. Customer browser trust still requires checks.
+7. Identify the caller, establish authorized tenant membership and active scope, verify report ownership or explicit sharing, and check the requested permission. Existence of an identifier is not access permission.
+8. 2,000 × 4 = **8,000 readings/s**. Missing facts include reading size, synchronized peaks, reads, retention, per-reading processing, and required completion delay. Average alone cannot size capacity.
+9. A fresh operation identity can trigger a second charge. Resolve the original result or retry using the same agreed identity with duplicate-effect protection. A timeout did not undo successful work.
+10. Browsing: read-heavy interactive online synchronous, suggesting efficient fresh-enough reads. Ordering: online interactive writes with synchronous acceptance, requiring validated durable records and duplicate handling. Notifications: async, requiring final delivery/failure tracking. Analytics: offline batch, requiring scheduled capacity and safe reruns. Each need admits multiple implementations.
+
+Use incorrect answers to choose sections to revisit. A strong answer names assumptions and consequences. Memorizing a label without defining its scope is insufficient.
+
+## 99. Forty-eight flashcards
+
+Cover the answer and recall it aloud before checking.
+
+**Q1: What is a software system?**  
+**A:** Cooperating software, computers, and information that accomplish a purpose.
+
+**Q2: What is a requirement?**  
+**A:** A capability, quality, or condition an acceptable solution must satisfy.
+
+**Q3: What is requirement characterization?**  
+**A:** Describing problem and workload properties to guide design.
+
+**Q4: Why characterize before architecture?**  
+**A:** Different needs require different arrangements and trade-offs.
+
+**Q5: What is a hard requirement?**  
+**A:** A condition that cannot be relaxed within the agreed acceptance scope.
+
+**Q6: What is a soft requirement?**  
+**A:** A target permitting specified acceptable deviations.
+
+**Q7: Does soft mean optional?**  
+**A:** No. A flexible target can still be important and in scope.
+
+**Q8: What is a functional requirement?**  
+**A:** A statement of behavior the system must provide.
+
+**Q9: What is a non-functional requirement?**  
+**A:** A quality or constraint under which behavior must operate.
+
+**Q10: What is must-have?**  
+**A:** Essential to the purpose or agreed scope of this product version.
+
+**Q11: What is nice-to-have?**  
+**A:** Valuable but postponable without defeating that version's purpose.
+
+**Q12: Is must-have the same as hard?**  
+**A:** No. Scope and negotiability are different questions.
+
+**Q13: What is MVP?**  
+**A:** Minimum Viable Product: the smallest useful, acceptable product scope.
+
+**Q14: What is a read?**  
+**A:** Retrieving existing data.
+
+**Q15: What is a write?**  
+**A:** Creating, changing, or deleting data.
+
+**Q16: What does read-heavy mean?**  
+**A:** Reads dominate the stated measurement at a defined boundary.
+
+**Q17: What does write-heavy mean?**  
+**A:** Writes dominate the stated measurement at a defined boundary.
+
+**Q18: What is a read/write ratio?**  
+**A:** A comparison of read and write quantities over the same scope and period.
+
+**Q19: Can one product contain both workload types?**  
+**A:** Yes; browsing and ingestion may have different patterns.
+
+**Q20: What is state?**  
+**A:** Remembered information about prior work or current condition that affects behavior.
+
+**Q21: What is locally stateful handling?**  
+**A:** Handling that depends on information privately remembered by a particular server.
+
+**Q22: What is stateless application handling?**  
+**A:** Requests do not require that app server's private history from earlier requests.
+
+**Q23: Can a stateless app use a database?**  
+**A:** Yes. Persistent state can live in shared storage.
+
+**Q24: What is a sticky session?**  
+**A:** Routing related requests to the same server.
+
+**Q25: What is interactive processing?**  
+**A:** Processing for an active caller waiting for a useful result.
+
+**Q26: What is batch processing?**  
+**A:** Processing a collection of work as a group.
+
+**Q27: What is micro-batching?**  
+**A:** Processing frequent small groups, with grouping delay.
+
+**Q28: What is online processing here?**  
+**A:** Work on the active operational path with results needed reasonably soon.
+
+**Q29: What is offline processing here?**  
+**A:** Deferred work outside the immediate operational request path.
+
+**Q30: What is synchronous completion?**  
+**A:** The dependent caller waits for the operation's result.
+
+**Q31: What is asynchronous completion?**  
+**A:** Acceptance and final outcome occur separately; the caller can continue.
+
+**Q32: Does accepted mean completed?**  
+**A:** No; final work can still be running or fail.
+
+**Q33: What is an internal system?**  
+**A:** A system mainly used within an organization.
+
+**Q34: What is an external system?**  
+**A:** A system serving customers, partners, or the public.
+
+**Q35: What is B2B?**  
+**A:** Business-to-business: serving organizations as customers.
+
+**Q36: What is B2C?**  
+**A:** Business-to-consumer: serving individual consumers.
+
+**Q37: What is a trusted client?**  
+**A:** A client with stronger justified control and identity assurances for specified actions.
+
+**Q38: What is an untrusted client?**  
+**A:** A client whose behavior or claims are not reliably controlled by the service.
+
+**Q39: What is a trust boundary?**  
+**A:** A crossing between areas with different trust or control assumptions.
+
+**Q40: What is authentication?**  
+**A:** Checking identity.
+
+**Q41: What is authorization?**  
+**A:** Checking permission for a particular action or resource.
+
+**Q42: What is a regional system?**  
+**A:** One primarily serving a defined geographic scope.
+
+**Q43: What is a global system?**  
+**A:** One serving users across widely separated geographic areas.
+
+**Q44: Does global mean multi-region deployment?**  
+**A:** No. Audience geography and infrastructure placement differ.
+
+**Q45: What is a tenant?**  
+**A:** A customer boundary for data, configuration, and access, often an organization.
+
+**Q46: What are single-tenancy and multi-tenancy?**  
+**A:** Serving one versus several tenant boundaries at a specified deployment or resource scope.
+
+**Q47: What is tenant isolation?**  
+**A:** Preventing improper access and interference across customer boundaries.
+
+**Q48: What is a noisy neighbor?**  
+**A:** A tenant whose resource use degrades service for others sharing capacity.
+
+## 100. Summary cheat sheet
+
+| Characterization | Core question | Possible implication | Useful clarification | Frequent mistake |
+|---|---|---|---|---|
+| Hard / soft | What deviations are acceptable? | Strong checks or negotiated exceptions | What happens if missed? | Soft means unimportant |
+| Functional / non-functional | What, how well, or under what conditions? | Behaviors plus measured quality | How do we verify it? | Arguing labels instead of clarity |
+| Must / nice | Is this version viable without it? | Scope control | What is needed at launch? | Must-have equals absolute guarantee |
+| Read / write-heavy | Which operations dominate? | Read copies or write capacity | Counts, cost, bytes, peaks? | Read-heavy means no writes |
+| Stateful / stateless | Where does required history live? | Placement or shared access | Must the same server handle the next request? | Stateless means no database |
+| Interactive / batch | Who waits, and are items grouped? | Delay or grouped efficiency | Immediate result or deadline? | All product workflows match |
+| Online / offline | Active operation or deferred work? | Live path or prepared results | How fresh must it be? | Offline means no internet |
+| Sync / async | Wait for final result or accept now? | Direct answer or job tracking | How are failures and duplicates exposed? | Accepted means successful |
+| Internal / external | Who accesses this part? | Identity and exposure policies | Users versus dependencies? | Internal means secure by default |
+| B2B / B2C | Who buys, uses, and administers? | Organization or consumer workflows | Users/devices per customer? | B2B means low scale |
+| Trusted / untrusted | Which caller claims can be justified? | Server-enforced checks | Who controls the device? | Sign-in makes all input trustworthy |
+| Regional / global | Where are users and obligations? | Selected proximity and recovery | Where may data live? | Global means writes everywhere |
+| Single / multi-tenant | Which customer boundaries share resources? | Isolation and fair-use controls | App, store, or deployment shared? | Multi-tenant requires one table set |
+
+Always state the scope, evidence, and assumptions behind a label. A useful one-paragraph characterization can be:
+
+> The launch food-delivery browsing path is read-heavy, interactive, online, and synchronous; menu-copy freshness needs agreement. Order acceptance writes durable records and starts a persistent workflow with hard ownership, price, and duplicate-effect rules. Notifications can finish asynchronously; daily analytics is offline batch work. The platform serves consumers and restaurant organizations through untrusted external clients, with protected internal administration. It starts regionally. Restaurant administration shares application resources across tenant boundaries; private orders require participant-specific permissions. These findings motivate efficient reads, authoritative order handling, job outcomes, and tenant-aware access before technology selection.
+
+## 101. Final mental model
+
+Before designing a system, ask:
+
+| Ask | Dimension it reveals |
+|---|---|
+| WHAT must it do? | Functional requirements |
+| HOW WELL must it work, and under what constraints? | Non-functional requirements |
+| WHICH conditions cannot be compromised? | Hard versus soft |
+| WHAT is essential to this product version? | Must-have versus nice-to-have |
+| WHAT does the workload look like? | Read-heavy versus write-heavy |
+| WHERE does required state live? | Stateful versus stateless at each layer |
+| IS someone waiting, and is work grouped? | Interactive versus batch |
+| WHEN must work happen? | Online versus offline |
+| DOES the caller wait for final completion? | Synchronous versus asynchronous |
+| WHO accesses the system? | Internal versus external |
+| WHO buys and uses it? | B2B versus B2C and other models |
+| HOW MUCH can we trust each caller claim? | Trusted versus untrusted clients |
+| WHERE are users, computation, and permitted data? | Regional versus global |
+| HOW MANY customer boundaries share which resources? | Single-tenant versus multi-tenant |
+
+Problem → requirement → characterization → architectural implication → technology choice. Revisit assumptions when evidence changes.
+
+## 102. Recommended learning progression
+
+A **back-of-the-envelope estimate** is a rough calculation used to test plausibility, like estimating meals needed from guest count; workload rates and storage estimates are software examples. It matters because even approximate numbers can rule out unsuitable designs.
+
+| Next topic | Why it follows |
+|---|---|
+| Functional requirements | Make user actions and outcomes explicit |
+| Non-functional requirements | Turn quality goals into checkable conditions |
+| Requirement characterization | Combine requirements into a coherent problem picture |
+| Back-of-the-envelope estimation | Put approximate quantities behind that picture |
+| Read/write workloads | Understand which operations consume capacity |
+| Stateful/stateless architecture | Decide where remembered information belongs |
+| Synchronous/asynchronous systems | Decide when results and failures become visible |
+| APIs | Specify agreements between callers and services |
+| Networking | Understand message travel, delay, and partial failure |
+| Databases | Organize persistent records and controlled updates |
+| Caching | Safely reuse data while meeting freshness needs |
+| Queues and messaging | Coordinate delayed work and burst handling |
+| Scalability | Grow capacity while preserving the promised behavior |
+| Distributed systems | Reason about coordination among independently failing computers |
+
+These topics overlap. Return to earlier concepts as later examples make them concrete. Study implementation tools only after you can explain which requirement would justify them.
+
+## 103. Completeness review and final practical task
+
+Before considering the module complete, answer these aloud without looking. The section references identify where to revisit uncertain answers.
+
+| Can you explain… | Revisit |
+|---|---|
+| What characterization means and why it precedes architecture? | 3–5, 80, 83 |
+| Hard versus soft, including soft versus optional? | 6–7, 9 |
+| Functional versus non-functional, including ambiguous protection rules? | 8 |
+| Must-have versus nice-to-have and MVP scope? | 9–11 |
+| Reads, writes, dominant workloads, and mixed products? | 12–17, 74 |
+| State, stateful handling, stateless servers, and persistent databases? | 18–22, 76 |
+| Interactive, batch, online, and offline with counterexamples? | 23–28 |
+| Synchronous, asynchronous, background work, acceptance, and completion? | 29–34, 75 |
+| Internal/external audiences and why internal still needs security? | 35–37 |
+| B2B, B2C, mixed markets, and independent scale/tenancy? | 38–41 |
+| Trusted/untrusted clients, why browsers are untrusted, and trust boundaries? | 42–46 |
+| Authentication, authorization, validation, and encryption? | 8, 45–46 |
+| Regional/global users and why that does not dictate deployment regions? | 47–51, 78 |
+| Tenant, sharing models, isolation, and noisy neighbors? | 52–56, 77 |
+| Architectural consequences without choosing tools prematurely? | 57–63, 80–85 |
+| Useful interview clarification questions and how to prioritize them? | 59–61, 88–90 |
+| Different workflows in one food-delivery platform? | 81–82, 98 SC10 |
+
+**Final task:** take the vague prompt “Design a food-delivery platform.” Fill the Section 79 template without naming any technology. Mark unknowns, characterize at least browsing, ordering, restaurant fulfillment, notifications, and analytics, and write one need and one potential cost for each design implication. Then compare your reasoning with Sections 81–82.
+
+**Self-check rubric:** a good answer identifies actors and boundaries; separates feature scope from strictness; gives workload evidence or labeled assumptions; states where data and local session state live; separates acceptance from completion; checks caller and tenant permissions; distinguishes user geography from deployment choices; and connects every design candidate to a requirement. An alternative architecture can be valid if it meets the same defined conditions with justified trade-offs.
+
+### Primary-source notes and optional further reading
+
+The teaching scenarios and calculations are authored examples. The links below support three narrower technical distinctions; they are optional reading, not prerequisites.
+
+- [IETF RFC 9110, HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html): HTTP is specified as a stateless request/response protocol. That protocol description does not establish whether application servers keep session state; Section 21 distinguishes the scopes.
+- [AWS, SaaS tenant isolation strategies](https://docs.aws.amazon.com/whitepapers/latest/saas-tenant-isolation-strategies/core-isolation-concepts.html): isolation concerns tenant-resource access and spans different architectural models. Sections 53–54 use resource-specific sharing boundaries rather than equating SaaS with one shared database.
+- [PostgreSQL documentation, introduction to indexes](https://www.postgresql.org/docs/17/indexes-intro.html): indexes can accelerate retrieval while adding storage and data-change overhead. Section 15 introduces the trade-off without assuming every workload needs more indexes.
+
+You are ready to move from characterization to architecture when you can explain the workload, constraints, uncertainty, and consequences in plain language—and justify a proposed component from those needs.

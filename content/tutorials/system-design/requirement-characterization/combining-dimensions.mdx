@@ -1,0 +1,241 @@
+---
+title: "Combining Dimensions: Discovery and Case Studies"
+description: "How characterizations interact, a reusable matrix, discovery and clarification questions, architectural implications and six case studies (Sections 57–69)."
+difficulty: intermediate
+updated: 2026-10-08
+---
+
+*Part 3 of 5 of [Requirement Characterization](/tutorials/system-design/requirement-characterization) · Sections 57–69.* These sections combine the dimensions. New to the topic? Start with [Requirement Characterization Fundamentals](/tutorials/system-design/requirement-characterization/fundamentals).
+
+## 57. Characterizations influence one another
+
+| Combination | Likely concern | What still needs confirmation? |
+|---|---|---|
+| Public B2C with untrusted clients | Abuse and unexpected volume | Actual traffic and harmful actions |
+| Global users with short response targets | Geographic communication delay | Which data and work may move nearby |
+| Write-heavy ingestion | Storage and processing capacity | Peak rate, item size, retention |
+| Shared multi-tenancy | Privacy and fair resource use | Isolation obligations and per-tenant load |
+| Interactive payment with hard correctness | Fast feedback without duplicate financial effects | Provider behavior and failure recovery |
+
+These combinations change priorities, not universal rules. A quiet public site may need little capacity; a large internal sensor service may need substantial protection and scale.
+
+## 58. Reusable characterization matrix
+
+| Dimension | Option A | Option B | Key question |
+|---|---|---|---|
+| Strictness | Hard | Soft | What deviation is acceptable? |
+| Requirement type | Functional | Non-functional | Behavior, quality, or constraint? |
+| Product priority | Must-have | Nice-to-have | Is this version viable without it? |
+| Workload | Read-heavy | Write-heavy | Which operations dominate at which boundary? |
+| Application state | Stateful | Stateless | Is private local history required? |
+| Processing | Interactive | Batch | Who waits, and are items grouped? |
+| Timing | Online | Offline | Is this on the active operational path? |
+| Completion contract | Synchronous | Asynchronous | Is acceptance or final completion returned? |
+| Audience | Internal | External | Who uses or accesses this part? |
+| Market | B2B | B2C | Who buys, uses, and administers? |
+| Client trust | Trusted | Untrusted | Who controls the caller, and what claims are checked? |
+| Geography | Regional | Global | Where are users, computation, and permitted data? |
+| Tenancy | Single | Multi | Which customer boundaries share which resources? |
+
+For every row add scope, evidence, assumptions, uncertainty, and implications. Mixed models are valid. A requirement may have labels on the first three axes while a workflow has labels on the others.
+
+## 59. Interview and discovery process
+
+1. Restate the product goal so everyone solves the same problem.
+2. Identify users, buyers, administrators, and machine callers.
+3. Describe core actions and their visible outcomes.
+4. Identify nonnegotiable rules and acceptable exceptions.
+5. Agree what the first version includes.
+6. Estimate reads, writes, data sizes, and peaks for major workflows.
+7. Locate remembered data and any required local session state.
+8. Identify people waiting and grouped processing.
+9. Determine online needs, deferred work, and completion contracts.
+10. Separate internal audience, external audience, and external dependencies.
+11. Confirm business relationships and organization boundaries.
+12. Mark trust boundaries and server-enforced rules.
+13. Confirm geographic scope and data-location obligations.
+14. Confirm what tenants share and what must be isolated.
+15. Summarize possible design needs and unresolved questions before selecting tools.
+
+The output is a reasoned picture of the problem. You can begin with estimates, but label them as estimates and identify which answers might change the design.
+
+## 60. Clarification questions and why they matter
+
+| Ask | What the answer changes |
+|---|---|
+| Which conditions cannot be violated? | Correctness, failure handling, acceptance criteria |
+| What must the first usable release do? | Product scope and effort |
+| How often is each operation performed? | Read/write capacity and priorities |
+| How big is one request or record? | Storage, network, and processing cost |
+| What happens during the busiest minute? | Burst capacity and admission decisions |
+| How fresh must a read be? | Whether copies or caches are acceptable |
+| Must the same server remember an earlier interaction? | Session placement and recovery |
+| Who waits, and for which result? | Responsiveness and completion contract |
+| Can acceptance be returned before all work finishes? | Async processing and status reporting |
+| What happens if work fails or is repeated? | Recovery, duplicates, user-visible uncertainty |
+| Who controls clients and who may access each record? | Validation and permissions |
+| Where are users and where may their data be handled? | Geography and location constraints |
+| Does one deployment serve several customer organizations? | Tenant isolation and fairness |
+| Which existing systems must we cooperate with? | Dependency behavior and constraints |
+
+## 61. Do not ask every question blindly
+
+Interview time is limited. Ask questions that distinguish plausible designs. For a public URL shortener, the dominant redirect workload, acceptable latency, mapping correctness, public misuse, and geographic reach usually matter first. Tenancy is less urgent unless enterprise accounts are part of the product.
+
+A **URL** is a web address, like a postal address for a page; a shortener turns a long address into a shorter alias. A **redirect** tells a browser to visit another address, like a forwarding notice. Those two actions matter because creation changes data while redirect lookup reads it.
+
+For payroll, deadlines, correct calculations, approval, and re-running jobs matter more than worldwide consumer signup. Say why you ask, record provisional assumptions, and return to unknowns that could alter the design.
+
+## 62. Possible architectural implications
+
+| Characterization | Possible response | Check before selecting it |
+|---|---|---|
+| Read-heavy | Cache or serve reads from replicas | Freshness, repeated access, actual cost |
+| Write-heavy | Group writes, buffer bursts, partition work | Durable acceptance, peak rates, ordering |
+| Stateless app | Distribute requests among servers | Shared-store capacity and identity handling |
+| Local stateful app | Sticky routing, shared state, or recovery plan | Which state must survive and move? |
+| Interactive | Keep immediate work short and bounded | Full result needed now? |
+| Batch | Schedule groups and resume incomplete work | Deadline and safe repetition |
+| Offline | Separate deferred work from live paths | Freshness and resource competition |
+| Async | Track work and process later | Duplicates, delay, failure reporting |
+| Untrusted client | Server-side identity, permission, and value checks | Which client claims are unsafe? |
+| Global | Nearby delivery or selected regional work | Data location, consistency, cost |
+| Multi-tenant | Tenant-aware access and fair-use controls | Sharing boundaries and resource variability |
+| Hard correctness | Durable records and checked transitions | Failure conditions and acceptance evidence |
+
+These are candidate responses. Characterization explains needs; measurement and trade-offs select a design.
+
+## 63. Requirement versus architecture: 20 pairs
+
+**Durable** means retained despite defined failures, like ink in a safeguarded ledger rather than erasable chalk; a durable accepted order must survive the specified restart. A **transaction** groups data changes into a controlled unit, like recording both sides of a transfer together; it can help prevent partial financial updates. **Consistency** concerns which valid and fresh view of data different operations observe, like whether branch ledgers agree; specify the required behavior rather than using the word alone.
+
+For each row, the left is a need; the right is a possible implementation, not proof that the need is satisfied.
+
+| # | Requirement or characterized need | Possible design decision |
+|---|---|---|
+| 1 | Many repeated product reads | Cache product descriptions |
+| 2 | Fast image delivery across countries | Use a CDN |
+| 3 | One accepted purchase creates one order | Record operation identity and deduplicate repeats |
+| 4 | Accepted orders survive a restart | Use durable storage |
+| 5 | Short interactive lookup delay | Keep required request-path work small |
+| 6 | Long export may finish later | Store jobs and use workers |
+| 7 | Process temporary sensor bursts | Use bounded buffering |
+| 8 | Reject invalid quantities | Validate on the server |
+| 9 | Only owners read private documents | Check authorization per access |
+| 10 | Keep tenant data separated | Enforce tenant scope or dedicate storage |
+| 11 | One tenant cannot monopolize capacity | Apply quotas and fair scheduling |
+| 12 | Recover after losing a location | Prepare and verify a recovery deployment |
+| 13 | Covered data stays in agreed territory | Choose permitted locations for storage and copies |
+| 14 | Any app server handles a request | Keep required session state shared or request-carried |
+| 15 | Maintain a live match | Assign a stateful game server with recovery rules |
+| 16 | Finish reports by morning | Schedule batch processing with deadline capacity |
+| 17 | Reconstruct administrative changes | Store protected audit records |
+| 18 | Handle rising data volume | Partition by an appropriate key |
+| 19 | Correct related balance changes | Use a transaction mechanism appropriate to scope |
+| 20 | Protect sensitive transmission | Use encrypted communication |
+
+“Use three servers” is a design decision unless an external constraint explicitly requires it. “Meet 99.9% measured availability” is a requirement; three servers alone do not demonstrate it.
+
+## 64. Case study: URL shortener
+
+Assume a public service lets users create short links and lets visitors follow them. Assume 100 redirects for each creation, but verify this estimate. The **mapping** is the association between a short address and its destination, like a forwarding register.
+
+| Dimension | Characterization and reason |
+|---|---|
+| Hard / soft | Correct mapping is hard; a normally fast redirect can be a soft target unless fixed by agreement |
+| Functional / non-functional | Create and follow links; meet measured capacity, availability, and protection constraints |
+| Must / nice | Create and redirect are must-have; detailed statistics and custom themes may wait |
+| Reads / writes | Redirect path is read-heavy under the 100:1 assumption; creation writes mappings |
+| State | Mappings persist; application servers can avoid private session dependence |
+| Interactive / batch | Redirect and creation are interactive; aggregated statistics can be batch |
+| Online / offline | Redirect is online; historical analysis can be offline |
+| Sync / async | Redirect returns destination synchronously; visit analysis can be asynchronous |
+| Audience | Public paths are external; moderation tools may be internal |
+| Business model | Consumer, enterprise, or both; depends on product requirements |
+| Trust | Public browsers and API callers are untrusted |
+| Geography | Regional or global; depends on intended users and targets |
+| Tenancy | Depends on customer boundaries; enterprise workspaces may introduce tenancy |
+
+Possible implications: quickly accessible mappings; safe creation rules; abuse protection; and deferred statistics. Cache only within acceptable expiry and change rules. Correctness might include refusing expired or blocked links, not merely returning the originally stored destination.
+
+**Pause:** must every redirect wait for visit statistics to finish?
+
+<details>
+<summary>Solution</summary>
+
+Only if exact statistics are part of the immediate completion requirement. Otherwise record or send a visit event asynchronously under an agreed loss and delay policy. Separating statistics can shorten redirects.
+
+</details>
+
+## 65. Case study: messaging application
+
+Assume a consumer messaging product with mobile clients and potentially international users. Avoid inferring its operation ratio just from the phrase “messaging.” Every message can produce reads, acknowledgments, and copies for several recipients. A **connection** is an ongoing communication link, like an open phone line; maintaining active delivery connections can require state even when other requests are stateless.
+
+| Dimension | Characterization and reason |
+|---|---|
+| Hard / soft | Agreed privacy and accepted-message retention are hard; normal delivery speed may be soft |
+| Functional / non-functional | Send, receive, and view messages; specify delay, protection, and loss behavior |
+| Must / nice | Basic delivery is core; cosmetic themes can wait |
+| Workload | High writes from sending, significant reads and distribution; measure per workflow |
+| State | Message history and delivery progress persist; active connections and conversations may be stateful |
+| Interactive / batch | Conversation is interactive; history processing can be batch |
+| Online / offline | Live delivery is online; an absent recipient can receive later |
+| Sync / async | Synchronous durable acceptance can precede asynchronous recipient delivery |
+| Audience | External users; internal operations and support tools |
+| Market | B2C in this assumed version; enterprise variants could be B2B |
+| Trust | User-controlled mobile clients remain untrusted |
+| Geography | Global if that is the agreed audience; regional rollout is possible |
+| Tenancy | Consumer account boundaries; organization tenancy depends on product scope |
+
+Acceptance, delivery to a device, and reading by a person are different outcomes. Preserve order only where the product requires it, and clarify duplicate handling and how users see delayed or failed delivery. Offline recipients do not make all message processing offline in the system-design sense.
+
+## 66. Case study: daily sales analytics
+
+Assume a company wants a report each morning about yesterday's sales. **Analytics** means examining data for patterns or summaries, like comparing a shop's weekly sales; it helps decisions rather than directly completing a sale.
+
+The report pipeline is internal, batch-heavy, offline, and asynchronous. Ingestion writes sales data; report calculation reads many records and writes summaries. Stored history is stateful data, while replaceable workers may avoid private session state. Accurate agreed totals and the morning deadline may be hard; decorative charts may be nice-to-have. B2B and multi-tenancy arise if sold as a service to several companies, not merely because one company runs it.
+
+| Daily pipeline | Interactive dashboard |
+|---|---|
+| Finish by a scheduled deadline | Answer each query promptly |
+| Group many sales | Read a selected view |
+| Deferred computation | Online viewing |
+| Throughput and safe reruns matter | Latency and freshness matter |
+
+Both can coexist: an interactive dashboard serves offline-computed summaries. “Fresh within one minute” would alter the pipeline requirement substantially.
+
+## 67. Case study: payments
+
+Assume customers initiate purchases and the platform cooperates with a payment provider. **Authorization of payment** here means a provider approving a financial operation; it is distinct from access authorization. **Settlement** is the later final movement or accounting of funds, like completing the financial paperwork after a sale. **Reconciliation** compares records to find disagreement, like checking receipts against a bank statement.
+
+Hard requirements usually concern allowed amounts, ownership, no duplicate financial effects for one operation, and auditable records. Functional needs include initiate payment and discover its status. Measured response targets can be soft or contractual. Payment and auditability are must-have under these assumptions; recommendation features are not.
+
+The flow mixes reads and writes. Authorization can be interactive, online, and synchronous within a bounded waiting period. Settlement and reconciliation can be asynchronous or batch. The financial workflow carries persistent state even if API servers are stateless. Clients are external and untrusted; provider requests also need verified identity and permission. The product might serve consumers, merchants, or both; tenancy and geography require explicit answers.
+
+When a provider does not answer, return or record uncertainty rather than inventing success or failure. A **timeout** is a limit on how long a caller waits, like hanging up after a defined interval; it tells us waiting ended, not whether the remote work happened. Resolve uncertain operations using their identities before creating fresh financial effects.
+
+## 68. Case study: B2B project-management SaaS
+
+Assume companies subscribe; each company is a tenant with several employees; shared application servers serve all companies. Creating tasks, assigning work, and viewing projects are must-have functions. Accurate tenant access is hard; a normal page-response target may be soft.
+
+| Dimension | Characterization |
+|---|---|
+| Workload | Project viewing may be read-heavy; task editing writes; measure both |
+| State | Project and membership data persist; app request handling can be stateless |
+| Processing and timing | Interactive online tasks; offline batch summaries |
+| Communication | Synchronous task acceptance; async notifications and exports |
+| Audience | External customer application; internal support and operations tools |
+| Market | B2B |
+| Trust | Browser clients are untrusted; staff tools still need checks |
+| Geography | Regional or global according to customer contracts |
+| Tenancy | Shared multi-tenant application; database model remains a separate choice |
+
+Company administrators can manage their own organization without becoming platform administrators. Internal support access should be specifically authorized and recorded. Custom approval rules and contractual obligations may influence isolation or dedicated deployment options.
+
+## 69. Case study: banking statements versus balance checks
+
+Generating monthly statements is batch, offline relative to a live balance request, and normally asynchronous. It reads transaction history and writes statement files. Whether it is read- or write-heavy depends on counts, bytes, and cost. A million generated files alone does not prove writes dominate computation. Correct account ownership, agreed contents, and delivery boundaries are hard. Generation workers may be stateless although account records persist.
+
+Processing is mainly internal; customers viewing or downloading statements are external. The institution may offer B2C personal and B2B business accounts. Tenant boundaries depend on the banking platform's model; do not assume every account is a tenant. Geographic and record-location obligations need discovery.
+
+Checking a current balance is interactive, online, and usually synchronous. Its freshness requirement may be stricter than a monthly historical statement. The same organization contains several workload types; neither “banking is batch” nor “banking is interactive” sufficiently characterizes it.
