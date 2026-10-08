@@ -142,3 +142,19 @@ Provide one `<Tab>` per label, in the same order.
 | `<StackQueueVisualizer mode="stack" />`           | `mode`: `stack`, `queue`                                         |
 
 Place a visualizer on its own line, with blank lines around it.
+
+### Diagrams (Mermaid)
+
+A fenced code block with the language `mermaid` is rendered as a diagram, for example
+flowcharts and state diagrams. It follows the site's light or dark theme, and readers without
+JavaScript see the diagram source instead.
+
+````mdx
+```mermaid
+flowchart TD
+    Customer -->|"Places an order"| Store["Shopping system"]
+    Store -->|"Requests payment"| Payment["Payment provider"]
+```
+````
+
+See the [Mermaid syntax reference](https://mermaid.js.org/intro/syntax-reference.html).

@@ -8,6 +8,7 @@ import { SortingVisualizer } from "@/components/visualizers/sorting-visualizer";
 import { StackQueueVisualizer } from "@/components/visualizers/stack-queue-visualizer";
 import { Callout } from "./callout";
 import { CodeBlock } from "./code-block";
+import { Mermaid } from "./mermaid";
 import { Quiz } from "./quiz";
 import { Tab, Tabs } from "./tabs";
 
@@ -71,6 +72,7 @@ export const mdxComponents: MDXComponents = {
   Tabs,
   Tab,
   Quiz,
+  Mermaid,
   SortingVisualizer,
   BinarySearchVisualizer,
   GraphTraversalVisualizer,

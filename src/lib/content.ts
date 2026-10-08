@@ -6,6 +6,8 @@ import { compile } from "@mdx-js/mdx";
 import GithubSlugger from "github-slugger";
 import matter from "gray-matter";
 import type { Root } from "hast";
+import type { Root as MdastRoot } from "mdast";
+import type { MdxJsxFlowElement } from "mdast-util-mdx-jsx";
 import { toString } from "hast-util-to-string";
 import { cacheLife } from "next/cache";
 import rehypePrettyCode, { type Options as PrettyCodeOptions } from "rehype-pretty-code";
@@ -222,6 +224,22 @@ export function getSearchIndex(): SearchEntry[] {
   );
 }
 
+/** Turns ```mermaid code blocks into <Mermaid chart="…" /> so they render as diagrams. */
+function remarkMermaid() {
+  return (tree: MdastRoot) => {
+    visit(tree, "code", (node, index, parent) => {
+      if (node.lang !== "mermaid" || !parent || index === undefined) return;
+      const element: MdxJsxFlowElement = {
+        type: "mdxJsxFlowElement",
+        name: "Mermaid",
+        attributes: [{ type: "mdxJsxAttribute", name: "chart", value: node.value }],
+        children: [],
+      };
+      parent.children.splice(index, 1, element);
+    });
+  };
+}
+
 function rehypeCollectHeadings({ headings }: { headings: Heading[] }) {
   return (tree: Root) => {
     visit(tree, "element", (node) => {
@@ -257,7 +275,7 @@ export async function getTopicContent(tutorialSlug: string, chapterSlug: string,
 
   const compiled = await compile(content, {
     outputFormat: "function-body",
-    remarkPlugins: [remarkGfm],
+    remarkPlugins: [remarkGfm, remarkMermaid],
     rehypePlugins: [rehypeSlug, [rehypeCollectHeadings, { headings }], [rehypePrettyCode, prettyCodeOptions]],
   });
 
