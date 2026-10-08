@@ -1,0 +1,663 @@
+---
+title: "Practice Questions and Knowledge Check"
+description: "Classification and rewrite exercises, scenario practice, a 50-question interview bank, 52 flashcards and a knowledge check (Sections 90–96)."
+difficulty: beginner
+updated: 2026-10-08
+---
+
+*Part 6 of 7 of [Non-Functional Requirements](/tutorials/system-design/non-functional-requirements) · Sections 90–96.* These sections provide further practice with answers, flashcards, and a knowledge check. New to the topic? Start with [Non-Functional Requirements Fundamentals](/tutorials/system-design/non-functional-requirements/fundamentals).
+
+## 90. Classification exercises: 40 statements
+
+Use **FR** functional; **NFR** quality/operating outcome; **I** proposed implementation; **C** business/solution constraint; **V** vague. Some statements span categories; the primary reading is provided in the key.
+
+**Kubernetes** is a platform for operating packaged software workloads; **Redis** is an in-memory information store often used for caches; **WebSockets** provide a continuing two-way client/server connection. These are examples of possible mechanisms, not evidence of qualities. A **jurisdiction** is the territory or authority whose rules apply; exact obligations need confirmation.
+
+### Statements—attempt before reading the answer key
+
+1. Users can upload videos.
+2. The video-upload API supports 20,000 eligible requests/second while defined timing/error targets hold.
+3. Use Kubernetes in the proposed deployment design.
+4. The contract requires scoped personal information and backups to remain within the EU.
+5. The platform must be fast.
+6. Customers can request password reset.
+7. Sign-in meets the defined 99.9% 30-day good-request objective.
+8. Use Redis as the proposed product cache.
+9. The solution must use the company’s existing payment provider.
+10. The application should be secure.
+11. Customers can view their own order history.
+12. Acknowledged orders survive the defined single-disk failure drill without loss.
+13. Use three database replicas in the proposed design.
+14. The project’s approved operating budget is ₹200,000/month.
+15. Scale well.
+16. Administrators can suspend eligible accounts.
+17. Restore the defined checkout service within 30 minutes of the scoped failure.
+18. Use nightly backups as the proposed recovery technique.
+19. Hosting must use the organization’s approved cloud account.
+20. Make logs useful.
+21. Users can send text messages.
+22. Accepted connected-recipient messages meet the defined 500-ms delivery percentile target.
+23. Use WebSockets in the proposed client communication design.
+24. Integration must follow the existing partner’s named contract/version.
+25. Make reliability excellent.
+26. Owners can delete their videos.
+27. All core checkout tasks pass the named keyboard/assistive evaluation.
+28. Use asynchronous notification workers in the proposed design.
+29. Supported client operating systems must include the two named environments.
+30. Keep private information private.
+31. Customers can submit refund requests.
+32. Every privileged approval has the required protected accountable evidence in the audit completeness check.
+33. Deploy a second region as the proposed failure response.
+34. The contract forbids processing specified information outside the named jurisdiction.
+35. The interface should be nice.
+36. Members can reserve a library title.
+37. Maintain p95 search ≤ 300 ms at workload W3 within the stated resource ceiling.
+38. Split orders/payments into microservices in the proposed design.
+39. The organization mandates its existing identity system for sign-in.
+40. Reduce measured energy per successful reference transaction by 15% without relaxing agreed quality.
+
+### Answer key
+
+| # | Label | Explanation |
+|---|---|---|
+| 1 | FR | Enables an action; supported inputs still need detail |
+| 2 | NFR | Defines capacity tied to quality and scope |
+| 3 | I | Selects a proposed operating mechanism |
+| 4 | C | A contractual location restriction, supporting compliance/privacy needs |
+| 5 | V | No operation, boundary, target, or conditions |
+| 6 | FR | Enables reset request behavior |
+| 7 | NFR | Defines measured service quality over a window |
+| 8 | I | Selects a cache product |
+| 9 | C | Mandates a partner and limits solution choices |
+| 10 | V | Protection scope, threats, and checks absent |
+| 11 | FR | Enables owned-information retrieval |
+| 12 | NFR | Specifies survival under a defined failure |
+| 13 | I | Selects replication count without establishing outcome |
+| 14 | C | Approved resource limit; a workload-scoped efficiency target can separately be an NFR |
+| 15 | V | No growth, workload, quality, or cost condition |
+| 16 | FR | Enables authorized management behavior |
+| 17 | NFR | Recovery quality with scope and deadline |
+| 18 | I | Names a technique, not a verified loss/restoration result |
+| 19 | C | Mandates operating environment |
+| 20 | V | No diagnostic goal or evidence criteria |
+| 21 | FR | Enables messaging |
+| 22 | NFR | Measures delivery timing with scope |
+| 23 | I | Selects communication mechanism |
+| 24 | C | Mandates an integration contract; derived behavior tests still required |
+| 25 | V | No correctness definition, interval, or failure conditions |
+| 26 | FR | Enables removal; meaning must be refined |
+| 27 | NFR | Accessibility of specified journeys |
+| 28 | I | Chooses a work-processing organization |
+| 29 | C | Mandates compatibility scope; quality/portability NFRs can be derived |
+| 30 | V | No access/purpose/retention rules specified |
+| 31 | FR | Enables a request action |
+| 32 | NFR, with linked FR | Specifies audit evidence quality/completeness; emitting records is behavior |
+| 33 | I | Proposed geographic arrangement |
+| 34 | C | Mandated processing boundary |
+| 35 | V | Subjective and untestable without criteria |
+| 36 | FR | Enables a reservation |
+| 37 | NFR | Measured performance at capacity/resource limits |
+| 38 | I | Selects deployment/responsibility organization |
+| 39 | C | Mandated identity integration |
+| 40 | NFR | Defines comparative useful-work efficiency with preserved quality |
+
+If a proposed technique is explicitly mandated, it becomes a constraint. Classification aids clarity; it is not a substitute for preserving all actual obligations.
+
+## 91. Rewrite exercises: 25 vague NFRs
+
+Cover the right columns. Supply scope, conditions, and evidence; example numbers below are proposed for practice, not inferred stakeholder agreement.
+
+A **hold** temporarily reserves something, like a clerk setting a seat aside while a customer pays; a ticket hold prevents another allocation during its eligible period. It matters because expiration and pending payment need explicit behavior.
+
+| # | Vague statement | Worked rewrite | Why clearer |
+|---|---|---|---|
+| 1 | Site fast | Keyword-search API p95 ≤ 250 ms under benchmark W1 | Boundary, operation, load |
+| 2 | Always available | Checkout good-request fraction ≥ 99.95% over rolling 30 days under the defined eligibility rules | Scope/window/denominator |
+| 3 | Scales a lot | Preserve defined search latency/errors at 10,000 requests/second and data set D1 within budget B1 | Growth/capacity linked to quality |
+| 4 | Reliable | Correct order-submission outcomes ≥ 99.95% over 30 days with the named fault checks | Correctness and evidence |
+| 5 | Durable | Acknowledged order records survive the named single-disk/server failures without loss | Promise and failure scope |
+| 6 | Consistent | A read started after completed order update sees that update or later under the named model | Allowed observations |
+| 7 | High throughput | Complete 2,000 supported jobs/second for one hour under stated error/time limits | Useful completed work |
+| 8 | Responsive | Supported clients show useful submission status within 150 ms in the local interaction test | Feedback boundary |
+| 9 | Fault tolerant | Meet checkout targets after one instance fails at the defined peak | Named fault and service |
+| 10 | Resilient | Optional recommendation failure does not prevent core browse/checkout in the drill | Specific degraded behavior |
+| 11 | Recoverable | Restore verified order retrieval within 30 minutes of the defined site-loss start | RTO scope/clock |
+| 12 | Secure | All expected authorization cases pass and secrets meet approved storage/logging policy | Checks rather than slogan |
+| 13 | Private | Every collected personal field has an approved necessary purpose and retention rule | Use/retention evidence |
+| 14 | Maintainable | Complete the named price-rule change in two working days without unrelated regression | Change scenario |
+| 15 | Easy operation | A trained responder completes verified rollback within ten minutes in drill O1 | Operator/action/verification |
+| 16 | Extensible | Add the specified second provider within five working days while existing provider tests pass | Relevant extension |
+| 17 | Modular | Named shipping-rule change affects only its documented responsibility/interface checks | Observable boundary effect |
+| 18 | Portable | Pass acceptance checks on environments E1/E2 within the documented adaptation budget | Explicit destination/effort |
+| 19 | Interoperable | All version V1 partner contract cases pass, including currency and error cases | Meaning and supported version |
+| 20 | Testable | All hold-expiry boundary cases can be run repeatably with controlled time and dependencies | Reproducible verification |
+| 21 | Observable | Diagnose slow-checkout drill D2 within fifteen minutes using privacy-safe correlated evidence | Diagnostic result |
+| 22 | Auditable | All privileged approvals have complete, protected required fields in the action-to-record comparison | Completeness/protection |
+| 23 | Accessible | Core journeys pass the specified WCAG/assisted evaluation scope on supported clients | Concrete evaluation |
+| 24 | Affordable | At workload W1, monthly attributed operating cost ≤ ₹200,000 while quality objectives hold | Cost scope/workload |
+| 25 | Sustainable | Energy/successful reference transaction improves 15% from baseline under comparable conditions | Measured comparison |
+
+An unresolved named workload or policy must be supplied before final verification. Placeholder labels make dependencies visible; they do not complete the specification.
+
+## 92. Scenario exercises: ten systems
+
+For each, identify top qualities, possible flexibility, trade-offs, and measurements before reading. Each solution assumes the stated context and preserves security/applicable obligations.
+
+**Tick**, in a game context, is one scheduled state-update step, like a repeated beat; **divergence** means views disagree under the model. These matter for timing and state correctness, not just page-loading speed.
+
+| System/context | Worked priorities | Flexibility/trade-off | Measurements |
+|---|---|---|---|
+| Banking transfers | Correctness, durability, authority, consistency, auditability | Delay or pending state may be preferable to incorrect rapid completion | Wrong/duplicate outcomes, retained records, access matrix, RTO/RPO |
+| Private chat | Delivery reliability, history survival, privacy, latency | Offline delivery has different timing; diagnostic content restricted | Connected delivery percentiles, acceptance-to-retrieval, duplicate counts |
+| Public social feed | Useful availability, latency, scale, visibility safety | Informational counts may be stale; quality versus transfer cost | Journey latency, good-request fraction, freshness, peak capacity |
+| Real-time game | Interaction delay, responsiveness, state integrity | Geographic distribution versus cost/coordination | Tick/action timing, divergence checks, cheating-risk controls, concurrent sessions |
+| Healthcare appointment/records | Access, privacy, reliable records, recovery | Appointment booking and urgent care contexts differ | Role/relationship tests, record survival, audit completeness, recovery drills |
+| Video viewing | Playback start/stalls, throughput, scale, cost | Adaptive media quality and distributed copies versus cost | Startup distribution, stall fraction, bytes/useful minute, unit cost |
+| IoT meters | Reliable ingestion, device identity, capacity, recovery | Delay may be tolerable for reporting; safety-related controls differ | Accepted/retained readings, duplicates, freshness, device connection recovery |
+| Online store sale | Checkout correctness, protected orders, capacity, access | Optional recommendations can degrade; spare capacity costs money | Inventory/charge tests, p95, good checkout fraction, cost at peak |
+| Weekly analytics | Correct reports, access, recovery, cost | Longer processing/freshness delay often acceptable | Completion by deadline, reconciled totals, query costs |
+| Internal permissions tool | Authorization, auditability, safe changes, operability | Small scale can avoid expensive geographic redundancy | Action matrix, audit completeness, rollback/diagnosis, actual usage |
+
+For every scenario, ask what happens when measurements are missed and what evidence supports the target. A reasonable priority without measurable scope is still incomplete.
+
+## 93. Interview question bank: 50 questions
+
+Answer aloud first. Strong answers show definitions, context, and evidence. Weak answers below are intentionally inadequate.
+
+### Fifteen beginner questions
+
+| ID | Question | Strong answer | Weak answer | Evaluating | Follow-up |
+|---|---|---|---|---|---|
+| B01 | What is an NFR? | A quality/operating outcome required of behavior, such as scoped response time under load | A list of servers | Needs versus means | Make “fast” testable |
+| B02 | FR versus NFR? | Uploading is behavior; a supported-upload completion target is quality | FR matters, NFR optional | Basic distinction | Is access refusal functional? |
+| B03 | What is a client? | The party requesting work, such as a phone app | A database | Interaction model | Can one service be another’s client? |
+| B04 | What is latency? | Elapsed time between defined operation boundaries | Requests per second | Units/boundaries | Does server time include network? |
+| B05 | What is throughput? | Completed work per period with explicit unit | One request’s wait | Rate reasoning | What if arrivals exceed it? |
+| B06 | What is availability? | Useful service under specified success/time rules when needed | Machine has power | Outcome scope | Time-based versus request-based? |
+| B07 | What is reliability? | Correct performance across specified conditions/time | Always reachable | Correctness | Can an available service be unreliable? |
+| B08 | What is durability? | Acknowledged information survives stated failures/retention | We bought disks | Survival promise | What acknowledgement matters? |
+| B09 | What is consistency? | Rules about permitted observations and update order | Every number equals every other | Data semantics | What can be stale safely? |
+| B10 | What is scalability? | Accommodate growth while preserving targets and viable resource use | More servers | Growth/quality | What dimension grows? |
+| B11 | What is fault tolerance? | Preserve specified service under named part faults | Never fail under anything | Failure scope | Does one-server tolerance cover site loss? |
+| B12 | Security versus privacy? | Protection against harm versus appropriate personal-data use | Same thing | Information obligations | Can unnecessary data be encrypted? |
+| B13 | What is observability? | Ability to infer/investigate behavior from useful outputs | Logging everything | Diagnostic outcomes | What does a trace add? |
+| B14 | What is accessibility? | Intended functions usable by people with differing abilities | Larger text only | Inclusive journeys | Test without a mouse? |
+| B15 | What is a constraint? | A restriction on choices, such as mandated residency/provider | Any optional design | Classification | Derive a related NFR |
+
+A **quota** is an allowed resource/usage limit, like a venue occupancy limit. A **request body** is the submitted message content; it may contain private information. These details matter when diagnosing growth or deciding what not to retain.
+
+### Fifteen intermediate questions
+
+| ID | Question | Strong answer | Weak answer | Evaluating | Follow-up |
+|---|---|---|---|---|---|
+| M01 | Why p95/p99 instead of mean alone? | Tail waits and missing/failed attempts can be hidden by average; define collection | Mean is always wrong | Distribution reasoning | What percentile method? |
+| M02 | What is RTO? | Target restoration elapsed time for defined acceptable service and incident start | Allowed lost records | Recovery semantics | Does file copy completion finish recovery? |
+| M03 | What is RPO? | Allowed update-loss time span for defined data/failure | Recovery duration | Loss semantics | Do five-minute backups prove it? |
+| M04 | Strong consistency implication? | Defined order/real-time observations may require waiting/refusal during separation | Data appears everywhere instantly | Coordination | What operation needs it? |
+| M05 | Eventual consistency guarantee? | Convergence under quiescence and successful propagation/repair, not a universal deadline | Always updates in one second | Model precision | How add a freshness bound? |
+| M06 | SLI/SLO/SLA? | Measurement, target/window, and customer agreement with consequences | Three names for uptime | Service measurement | Define the denominator |
+| M07 | What is an error budget? | Allowed bad fraction/count under an SLO, for disciplined risk/change planning | Permission to ignore safety | Objective reasoning | Fixed versus rolling window? |
+| M08 | Why backups differ from replicas? | Dated recoverable copies can protect against copied mistakes; current copies support serving/survival | Both identical | Recovery design | Can deletion propagate? |
+| M09 | What makes monitoring useful? | Measures user outcome and actionable predictors; verifies evidence gaps | Many dashboards | Operation | Which alert requires action? |
+| M10 | Why idempotency? | Repeated same intended action must not produce additional business effects | Network sends only once | Retry correctness | What identity is preserved? |
+| M11 | Modularity versus microservices? | Clear responsibilities can exist in one deployment; services add operating boundaries | More services means better modules | Organization | How measure change impact? |
+| M12 | How measure maintainability? | Defined change/diagnosis scenario with effort, touched responsibilities, and regressions | Count lines only | Quality scenario | Which engineer preparation? |
+| M13 | Why privacy-safe observability? | Evidence should diagnose without needless content exposure or retention | Log every request body | Multi-quality trade-off | What fields are sufficient? |
+| M14 | Does autoscaling prove scalability? | No; shared bottlenecks, startup delays, burst duration, and quotas remain | Yes, add instances | Capacity | What target stays satisfied? |
+| M15 | How review compliance? | Confirm applicable scope/owner, derive requirements, collect control evidence | Encrypt and declare compliance | Obligations | Which data routes are in scope? |
+
+### Ten scenario questions
+
+| ID | Question | Strong answer | Weak answer | Evaluating | Follow-up |
+|---|---|---|---|---|---|
+| S01 | Three servers, one database: highly available? | Only if the full dependency design/evidence supports the objective; DB can defeat it | Three means yes | Failure points | What if routing fails? |
+| S02 | Payment times out. Next? | Preserve pending outcome and request identity; reconcile; avoid duplicate effect | Charge again | Uncertainty | What does user see? |
+| S03 | Database disk lost after “Saved” | Evaluate acknowledgement survival model, restore protected data, verify | Tell user to re-enter | Durability | What copies actually survived? |
+| S04 | Traffic grows 10× | Re-estimate mix/bursts, measure bottlenecks and targets, compare costed scaling | Multiply server count by ten | Growth | Storage/connection limits? |
+| S05 | Recommendations unavailable | Degrade optional function while preserving core purchase targets | Fail checkout too | Resilience | Was isolation tested? |
+| S06 | 2 AM latency incident | Alert owner, establish impact, inspect correlated evidence, act via safe runbook | Restart everything | Operability | How verify recovery? |
+| S07 | Backups succeed but restore fails | Recovery requirement unmet; test integrity/access/keys/procedures | Backup green means fine | Evidence | What actual RTO/RPO? |
+| S08 | Keyboard user cannot submit | Core accessibility unmet; fix interaction/labels/focus and verify | Add mouse instructions | Inclusion | Are errors announced? |
+| S09 | Partner reads cents as dollars | Interoperability/correctness contract failure; define units/version and reconcile | JSON parsed successfully | Semantics | What tests catch it? |
+| S10 | Monitoring spend doubles | Measure value and volume; right-size retention/sampling without losing required evidence | Disable all evidence | Cost/operation | Which records cannot be sampled? |
+
+### Ten trade-off questions
+
+| ID | Question | Strong answer | Weak answer | Evaluating | Follow-up |
+|---|---|---|---|---|---|
+| T01 | Availability versus consistency in separation? | Define affected operations; preserve critical ordering even if refusing/waiting, permit stale informational reads where agreed | Pick two forever | CAP context | Monthly availability meaning? |
+| T02 | Latency versus durable acknowledgement? | Count required protected work before promising save; optimize without weakening promise | Acknowledge instantly | Integrity of promise | Which failures must survive? |
+| T03 | Reliability versus cost? | Prioritize harm, scoped failure tolerance, and verified options within lifecycle budget | Maximize everything | Judgment | Cheapest adequate alternative? |
+| T04 | Security versus usability? | Match verification to action risk; minimize unnecessary friction without bypassing authority | Remove login | Risk-based design | Sensitive account change? |
+| T05 | Portability versus provider features? | Compare credible move needs against optimized capability/lifecycle savings | Never use any managed feature | Constraints | Test migration effort? |
+| T06 | Extensibility versus simplicity? | Build boundaries for likely justified change; avoid speculative framework complexity | Predict every future feature | Evolution | Define one extension scenario |
+| T07 | Modularity versus operation? | Internal modules may suffice; separate services only where independent needs justify network/release burden | One service per entity | Simplicity | What ownership problem is solved? |
+| T08 | Audit depth versus privacy/cost? | Retain necessary accountable fields under justified access/retention; avoid needless content | Keep all bodies forever | Competing information goals | What must be reconstructable? |
+| T09 | Energy versus failure headroom? | Measure total useful-work efficiency while retaining required surviving capacity | Remove spare servers | Outcome-preserving efficiency | Survive peak plus one fault? |
+| T10 | Video consistency versus transfer speed? | Metadata count can be stale; visibility/ownership safety still applies; distribute media under access rules | All video data eventual | Per-operation reasoning | Removed/private content? |
+
+## 94. Common interview follow-ups
+
+| Follow-up | Strong response pattern |
+|---|---|
+| Why 99.99%? | Link to user/business consequence and agreed measurement window; if merely assumed, say so and compare a lower target’s impact/cost |
+| Can reads be stale? | Identify operation/data and consequence; define allowed freshness and read-after-write behavior rather than a system-wide slogan |
+| What happens during region loss? | State which useful functions/acknowledged information must survive, surviving capacity, RTO/RPO, routing, and tested evidence |
+| What if traffic grows 10×? | Recalculate work/storage, find shared bottlenecks, preserve quality limits, compare incremental scaling costs |
+| What if infrastructure cost is too high? | Identify costly work/copies/transfers, remove unjustified overhead, consider bounded deferral/staleness, preserve critical obligations |
+| Why add a cache? | Name the measured repeated-read problem, freshness/security rules, hit/miss behavior, and full cost |
+| Why not stronger consistency everywhere? | Explain critical guarantees and unnecessary coordination costs for relaxed informational operations |
+| How know the design works? | Cite representative benchmarks, outcome checks, fault/recovery drills, operational evidence, and unresolved assumptions |
+| What if a dependency is down? | Define time limits, safe pending/retry behavior, degraded functionality, and business correction |
+| What if targets conflict? | State consequence/priority, propose measurable scope or alternative designs, and seek agreement on unresolved policy |
+
+The general answer pattern is **requirement → assumption/evidence → choice → trade-off → verification**. It keeps the discussion about solving the actual problem.
+
+## 95. Flashcards: 52 cards
+
+**Q1:** What is an NFR?  
+**A:** A required quality or operating condition of a system or its behavior.
+
+**Q2:** What is an FR?  
+**A:** A required observable behavior: what the system must do.
+
+**Q3:** What is a software system?  
+**A:** Connected software and resources providing a purpose through inputs, work, and outputs.
+
+**Q4:** What is a client?  
+**A:** A party requesting work, such as a phone application.
+
+**Q5:** What is a server?  
+**A:** Software accepting requests; the word also refers to the computer running it.
+
+**Q6:** What is a request/response?  
+**A:** A request asks for work; a response communicates an outcome or information.
+
+**Q7:** What is scalability?  
+**A:** Accommodating growth while preserving defined qualities within a viable resource strategy.
+
+**Q8:** Scale up versus out?  
+**A:** Make a machine more capable versus distribute work across more machines.
+
+**Q9:** What is a bottleneck?  
+**A:** A limiting resource or step restricting the system’s useful work.
+
+**Q10:** What is availability?  
+**A:** The ability to provide acceptable scoped service when needed.
+
+**Q11:** Time availability formula?  
+**A:** Uptime divided by total measured time, multiplied by 100 for percentage.
+
+**Q12:** Request availability formula?  
+**A:** Good eligible requests divided by all eligible requests under the chosen criteria/window.
+
+**Q13:** What is reliability?  
+**A:** Correct specified performance over the relevant conditions and time.
+
+**Q14:** Availability versus reliability?  
+**A:** Usable service now versus correct performance across conditions/time; measurements can overlap.
+
+**Q15:** What is durability?  
+**A:** Acknowledged stored information survives the stated failures for the stated retention.
+
+**Q16:** Durability versus backup?  
+**A:** An outcome guarantee versus one possible recovery-copy technique.
+
+**Q17:** Backup versus replica?  
+**A:** A retained recoverable point-in-time copy versus a maintained copy often used for serving/survival.
+
+**Q18:** What is consistency?  
+**A:** Rules about allowed observations and update ordering across operations and copies.
+
+**Q19:** What does linearizability require?  
+**A:** Operations appear in a single order respecting real-time completion-before-start relationships.
+
+**Q20:** What does eventual consistency promise?  
+**A:** Convergence after updates stop and propagation/repair proceeds; not a universal time bound.
+
+**Q21:** What is stale data?  
+**A:** A view reflecting an older update rather than the required latest observation.
+
+**Q22:** What is latency?  
+**A:** Elapsed time between specified operation start and finish boundaries.
+
+**Q23:** What is throughput?  
+**A:** Completed useful work per unit time.
+
+**Q24:** Latency versus throughput?  
+**A:** One operation’s time versus completed amount per period.
+
+**Q25:** What is p95?  
+**A:** A threshold covering 95% of measured observations under the stated computation method.
+
+**Q26:** Why not average alone?  
+**A:** It can conceal tail delays, failures, and uneven user experiences.
+
+**Q27:** What is responsiveness?  
+**A:** Prompt, useful interface reaction and feedback, distinct from final completion time.
+
+**Q28:** What is fault tolerance?  
+**A:** Maintaining specified useful service despite named component faults.
+
+**Q29:** What is resilience?  
+**A:** Withstanding, adapting to, and recovering from disruption while providing useful service.
+
+**Q30:** What is recoverability?  
+**A:** Restoring acceptable operation and information after disruption.
+
+**Q31:** What is RTO?  
+**A:** Target maximum elapsed time to restore the defined acceptable service after the chosen starting event.
+
+**Q32:** What is RPO?  
+**A:** Target maximum acceptable update-loss time span for defined information/failures.
+
+**Q33:** What does a timeout prove?  
+**A:** A timely response was not received; outside work may still have succeeded.
+
+**Q34:** Why safe retry behavior?  
+**A:** Repeated attempts must not cause unintended duplicate business effects or overload recovery.
+
+**Q35:** What is security?  
+**A:** Protection against unauthorized actions and relevant threats to systems/information.
+
+**Q36:** What is privacy?  
+**A:** Appropriate collection, use, sharing, and retention of personal information.
+
+**Q37:** Authentication versus authorization?  
+**A:** Identity checking versus checking permission for an action.
+
+**Q38:** What is least privilege?  
+**A:** Grant only the access needed for a responsibility.
+
+**Q39:** What is maintainability?  
+**A:** How effectively a system can be understood, diagnosed, modified, and verified.
+
+**Q40:** What is operability?  
+**A:** How safely and effectively people can run the system for real users.
+
+**Q41:** What is extensibility?  
+**A:** Adding a relevant capability with bounded disruption and effort.
+
+**Q42:** What is modularity?  
+**A:** Clear responsibility boundaries among parts, including within one application.
+
+**Q43:** Cohesion versus coupling?  
+**A:** How well responsibilities belong together versus how much parts depend on one another’s details.
+
+**Q44:** Portability versus interoperability?  
+**A:** Moving among environments versus correctly exchanging/using information with other systems.
+
+**Q45:** What is testability?  
+**A:** How readily expected behavior and qualities can be verified reproducibly.
+
+**Q46:** Observability versus monitoring?  
+**A:** Investigating behavior from outputs versus checking selected known measurements/conditions.
+
+**Q47:** Auditability versus ordinary logging?  
+**A:** Accountable reconstruction under required protection/retention versus event recording generally.
+
+**Q48:** What is accessibility?  
+**A:** Intended functions usable by people with differing abilities.
+
+**Q49:** Compliance versus security?  
+**A:** Applicable obligation/evidence fulfillment versus protection against relevant threats.
+
+**Q50:** Cost versus energy efficiency?  
+**A:** Useful outcomes per justified spending versus useful outcomes per energy/resources; both preserve required quality.
+
+**Q51:** SLI versus SLO versus SLA?  
+**A:** Chosen measurement, target over a window, and customer agreement with obligations/consequences.
+
+**Q52:** What makes an NFR testable?  
+**A:** Defined quality, target, scope, conditions, measurement, rationale, and verification evidence.
+
+## 96. Knowledge check
+
+Complete every group before reading the answer key. Each multiple-choice item has exactly one intended answer. Use the nearest-rank percentile convention when requested.
+
+### Twenty multiple-choice questions
+
+**MC1. Which is primarily an NFR?**
+
+A. Users can create notes.  
+B. Note retrieval p95 is at most 300 ms under the named workload.  
+C. Use Redis in the proposed design.  
+D. Users can delete notes.
+
+**MC2. What is throughput?**
+
+A. The time one request takes.  
+B. The number of accounts ever registered.  
+C. Completed work per unit time.  
+D. The time since the last failure.
+
+**MC3. A service was down 43.2 minutes during a 30-day period. Its time availability is:**
+
+A. 99%.  
+B. 99.99%.  
+C. 99.999%.  
+D. 99.9%.
+
+**MC4. A payment request times out. The sound conclusion is:**
+
+A. Its actual outcome may be unknown.  
+B. It definitely failed without charging.  
+C. It definitely succeeded.  
+D. Its history should be deleted.
+
+**MC5. What does RPO define?**
+
+A. Time spent deploying software.  
+B. Acceptable update-loss time span for defined information/failures.  
+C. Number of spare servers.  
+D. Maximum user-interface delay.
+
+**MC6. What does RTO define?**
+
+A. Average query latency.  
+B. Budget for extra storage.  
+C. Target time to restore defined acceptable service.  
+D. Fraction of requests from a cache.
+
+**MC7. Which best describes durability?**
+
+A. Every request finishes instantly.  
+B. Every region sees every update instantly.  
+C. Every developer can modify the system.  
+D. Acknowledged information survives the specified failures and retention conditions.
+
+**MC8. Why might three servers still have poor availability?**
+
+A. They can depend on one failed shared component.  
+B. Redundancy can never help.  
+C. Availability counts machines only.  
+D. More than two servers is forbidden.
+
+**MC9. Which best distinguishes privacy from security?**
+
+A. Privacy only concerns passwords.  
+B. Privacy concerns appropriate personal-information handling; security concerns protection against unauthorized harm.  
+C. Security permits unnecessary collection.  
+D. They always mean exactly the same thing.
+
+**MC10. What does eventual consistency establish by itself?**
+
+A. All updates are visible within one second.  
+B. Every read is immediately current.  
+C. Copies converge under the defined update/propagation conditions.  
+D. Financial correctness is unnecessary.
+
+**MC11. Which is a proposed design response rather than a quality outcome?**
+
+A. Restore checkout within 30 minutes.  
+B. Preserve acknowledged orders through one disk failure.  
+C. Search p95 at most 200 ms at workload W1.  
+D. Deploy a second region.
+
+**MC12. Sorted latencies are 10, 20, 30, 40, 50, 60, 70, 80, 90, 1,000 ms. Nearest-rank p95 is:**
+
+A. 1,000 ms.  
+B. 145 ms.  
+C. 55 ms.  
+D. 90 ms.
+
+**MC13. An SLI is:**
+
+A. A spare server.  
+B. The chosen service measurement.  
+C. Always a legal contract.  
+D. A backup schedule.
+
+**MC14. Which best supports auditability?**
+
+A. One debug message saying “OK.”  
+B. A shared staff password without individual identity.  
+C. Protected approval evidence linking actor, object, amount, time, reason, and outcome.  
+D. A faster cache lookup.
+
+**MC15. What is graceful degradation?**
+
+A. Delete failed operations.  
+B. Make every function fail together.  
+C. Hide all errors indefinitely.  
+D. Preserve essential useful functions while reducing unavailable extras.
+
+**MC16. What is horizontal scaling?**
+
+A. Add processing instances and distribute suitable work.  
+B. Increase one machine’s memory only.  
+C. Reduce the number of requirements.  
+D. Increase response time.
+
+**MC17. What makes a performance requirement complete enough to evaluate?**
+
+A. A word such as “fast.”  
+B. Operation, target, boundary, workload/conditions, and measurement method.  
+C. A famous database name.  
+D. A count of development staff only.
+
+**MC18. 600 completed requests in ten seconds gives:**
+
+A. 600 requests/second.  
+B. Six requests/second.  
+C. 60 requests/second.  
+D. Ten requests/second.
+
+**MC19. Which best describes modularity?**
+
+A. Always one service per information type.  
+B. Every part knows every other part’s internals.  
+C. Every module uses a different database.  
+D. Clear responsibilities and interaction boundaries among parts.
+
+**MC20. Which is a defensible energy-efficiency claim?**
+
+A. Measured energy per useful reference-workload operation fell while required quality remained satisfied.  
+B. We reduced CPU utilization, so total energy must fall.  
+C. We renamed the application sustainable.  
+D. We stopped serving users, so the service is more efficient.
+
+### Ten true/false questions
+
+1. A reachable server can return incorrect results.
+2. Nightly backups necessarily prove RPO = 0.
+3. Average latency alone can hide bad tail experiences.
+4. All components of a distributed system have zero communication delay.
+5. Authorization checks can be functional behavior supporting security.
+6. A single deployment can contain well-designed modules.
+7. A successful log collector proves the system is diagnosable.
+8. Cost-efficient changes must still satisfy critical requirements.
+9. Compliance and security are identical guarantees.
+10. A 30-day request-based availability target needs an eligible-attempt denominator.
+
+### Ten short-answer questions
+
+1. Define a software system using an everyday analogy.
+2. Give an FR/NFR pair for photo upload.
+3. Explain availability versus reliability.
+4. Explain durability versus recoverability.
+5. Explain latency versus responsiveness.
+6. Give the meaning of p95 and one measurement caveat.
+7. Define RTO/RPO with a concrete scenario.
+8. Explain monitoring versus observability.
+9. Explain portability versus interoperability.
+10. List the fields needed for a testable NFR and why its rationale matters.
+
+### Ten scenario questions
+
+1. A shopping site fails when traffic grows from 100 to 5,000 requests/second. What do you investigate and require?
+2. A bank transfer shows success but its record disappears after restart. What promise failed and what evidence is needed?
+3. A like count is stale while a private-message permission is also stale. Are the same guarantees acceptable?
+4. A backup is five minutes old but restoration takes two hours. Which targets might be met or missed?
+5. Recommendations fail; checkout shares their error path and also fails. What requirement could prevent this?
+6. Diagnostic logs contain complete private message bodies. What competing requirements arise?
+7. A login page cannot be submitted by keyboard. Define a quality requirement and verification.
+8. A shared employee credential approves a refund. What is missing from accountability?
+9. A second region raises costs and latency but meets no agreed failure target. How do you review it?
+10. A cache improves p95 but serves obsolete prices during checkout. Is the design satisfactory?
+
+### Answer key—read after all attempts
+
+#### Multiple-choice explanations
+
+| Item | Answer | Explanation |
+|---|---|---|
+| MC1 | B | A measured retrieval quality is an NFR; A/D are actions and C is a mechanism |
+| MC2 | C | Throughput is completed amount/time, not one wait, total accounts, or failure interval |
+| MC3 | D | Total 43,200 minutes; 43.2/43,200 = 0.001 down; availability = 0.999 = 99.9% |
+| MC4 | A | A missing response does not establish the external payment outcome |
+| MC5 | B | RPO scopes possible update loss; it is not recovery duration or latency |
+| MC6 | C | RTO measures restoration of acceptable service, including its stated verification |
+| MC7 | D | Durability concerns acknowledged retained information under a failure/retention promise |
+| MC8 | A | Shared required dependencies can make multiple servers unusable together |
+| MC9 | B | Protection and appropriate use are related but distinct obligations |
+| MC10 | C | Convergence requires stated conditions; it supplies neither a universal deadline nor permission to violate rules |
+| MC11 | D | Another region is a technique whose benefits must be verified against outcomes |
+| MC12 | A | Rank = ceiling(0.95 × 10) = 10; the tenth value is 1,000. Other options are mean, median, or p90 |
+| MC13 | B | SLI names what is measured; SLO supplies a target and SLA is an agreement |
+| MC14 | C | Accountable protected context supports reconstruction; a vague debug reply does not |
+| MC15 | D | Reduce optional functionality while keeping essential service, rather than hiding or expanding failure |
+| MC16 | A | Scale-out adds cooperating capacity; scale-up enlarges one machine |
+| MC17 | B | The outcome needs scope and measurement conditions to be meaningfully checked |
+| MC18 | C | 600/10 = 60 completed requests/second |
+| MC19 | D | Responsibility boundaries can exist inside one application; separate products/databases are not required |
+| MC20 | A | Comparable useful work with maintained quality supports the claim; proxies or stopped service do not establish it |
+
+#### True/false explanations
+
+1. **True:** response delivery does not establish correct content or business effects.
+2. **False:** the latest backup may omit acknowledged updates; copies must also be usable.
+3. **True:** a small number of long waits may be masked by many quick results.
+4. **False:** networks have delay and possible interruption; assumptions must reflect that.
+5. **True:** allow/refuse behavior implements a protection policy.
+6. **True:** modularity concerns responsibilities and dependencies, not deployment count.
+7. **False:** relevant context, linked evidence, and diagnostic ability still require evaluation.
+8. **True:** efficiency does not mean discarding the promised outcome.
+9. **False:** passing scoped obligations does not eliminate all relevant threats.
+10. **True:** without the whole count, a good fraction is uninterpretable or misleading.
+
+#### Short-answer sample solutions
+
+1. A restaurant’s connected staff/tools turn an order into a meal or explanation; software/resources similarly turn requests into results.
+2. FR: users submit supported photos and receive acceptance/rejection. NFR: 95% become viewable within two seconds under named file/network/load conditions. Separate behavior and timing.
+3. Availability is useful access when needed; reliability is correct performance over conditions/time. Metrics can overlap if good requests include correctness.
+4. Durability is retained acknowledged information surviving specified faults; recoverability is restoring acceptable operation/information. Safely retained files may take too long to restore.
+5. Latency is measured elapsed time for an operation; responsiveness is prompt useful interface reaction. Immediate honest progress can coexist with longer completion.
+6. p95 covers 95% of observations at its threshold under the specified method. Scope failures/outstanding attempts, measurement window, and interpolation/nearest-rank choice.
+7. RTO ≤ one hour means verified restoration within that interval from the defined incident start. RPO ≤ five minutes allows no more than five minutes’ relevant update-loss span in that failure model.
+8. Monitoring watches chosen conditions; observability supports investigating behavior, including unexpected situations, from useful outputs. Tools overlap but outcomes differ.
+9. Portability concerns moving to named environments; interoperability concerns correct exchanges with other systems. Both require semantics and verified compatibility.
+10. ID, attribute, description, target, metric, scope, conditions, method, priority, rationale, owner/source, open decisions. Rationale justifies the target and guides trade-offs/change.
+
+#### Scenario sample solutions
+
+1. Estimate representative mix, burst duration, information size, arrival/completion rates, queues, and resource/dependency limits. Require preserved latency/error/correctness at 5,000/second within budget; identify bottleneck before choosing expansion.
+2. The success acknowledgement’s durability/reliability promise failed if it covered restart. Compare retained accepted operations against reliable financial evidence; preserve/reconcile pending differences and fix acknowledgement protection.
+3. Informational likes may tolerate agreed staleness. Permission staleness may expose private content; establish access guarantees separately. One consistency slogan cannot decide both.
+4. The recovery point could meet five-minute RPO if usable and complete; two-hour restoration misses any tighter RTO, such as 30 minutes. Include verification and dependencies.
+5. Define graceful degradation: optional recommendation failure must not block supported browse/checkout. Isolate dependency/failure paths and verify a fault drill.
+6. Diagnostic value competes with privacy/security, retention, and cost. Require sufficient status/correlation evidence without unnecessary content; preserve justified audit information under its own rules.
+7. Core sign-in/recovery is keyboard-operable with meaningful labels, visible focus, accessible error/status feedback under the adopted evaluation scope. Verify manually plus appropriate automated checks.
+8. Reliable individual actor identity, authorization context, order/amount/currency, time, reason, request identity, and protected outcome evidence. A shared credential cannot by itself establish who acted.
+9. Ask which geography/failure/recovery outcome it serves; evaluate measured latency, independence, operating effort, and lifecycle cost. Remove or redesign unjustified complexity while preserving actual obligations.
+10. No, if it violates the authoritative confirmed-price rule. Cache suitable browsing information, revalidate/reconfirm agreed checkout amounts, and assess all requirements rather than p95 alone.

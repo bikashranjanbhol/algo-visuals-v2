@@ -1,0 +1,484 @@
+---
+title: "The 26 Quality Attributes"
+description: "Scalability, availability, reliability, durability, consistency, latency, security, privacy, observability, cost and the other qualities (Sections 8–33)."
+difficulty: beginner
+updated: 2026-10-08
+---
+
+*Part 2 of 7 of [Non-Functional Requirements](/tutorials/system-design/non-functional-requirements) · Sections 8–33.* These sections teach the quality attributes. New to the topic? Start with [Non-Functional Requirements Fundamentals](/tutorials/system-design/non-functional-requirements/fundamentals).
+
+## 8. Scalability
+
+A restaurant may serve twenty customers well but struggle with two hundred. **Scalability** is the ability to accommodate growing work or information while preserving the required qualities, with a viable resource-growth strategy. A store handling more checkout requests without exceeding its timing/error targets is the software example. It matters because growth can turn an otherwise useful application into an unusable one.
+
+**Load** is the work imposed: users, requests, stored information, messages, money operations, or geographical coverage. A **transaction** is a business operation such as a payment; later database contexts may use that word for grouped information operations, so specify the meaning.
+
+### Scale up and scale out
+
+A **CPU**, or central processing unit, performs instructions, like kitchen workers doing tasks. **Memory** holds currently used information, like a workbench; it is usually temporary unless specially designed otherwise. A **disk** is persistent storage hardware, like a cabinet. More of each can increase capacity, but only if that resource limits the work.
+
+**Vertical scaling**, or scale-up, makes one server more capable. **Horizontal scaling**, or scale-out, adds servers and distributes work. Think of a bigger kitchen versus several kitchens.
+
+| Aspect | Scale up | Scale out |
+|---|---|---|
+| Cost | Larger machine may become disproportionately expensive | More machines plus coordination and operation costs |
+| Limits | Bound by available machine size | Bound by partitionability, shared dependencies, coordination, and budget |
+| Complexity | Often simpler initially | More routing and shared-information coordination |
+| Availability | One larger machine can remain a single failure point | Can improve survival if independent capacity and dependencies support it |
+| Operations | Fewer units to operate | More units, updates, observations, and failure scenarios |
+
+A **bottleneck** limits total work, like one cashier slowing a supermarket. Adding cooks does not fix a cashier bottleneck; adding application servers does not fix a saturated database.
+
+### Dimensions and growth example
+
+| Dimension | What grows | Potential limit |
+|---|---|---|
+| Users | Active people | Identity checks, live connections |
+| Traffic | Requests and bursts | Processing/network capacity |
+| Data | Retained information | Storage, search/index maintenance |
+| Geography | Distant audiences | Communication time and operating boundaries |
+| Teams | People changing software | Ownership and coordination |
+
+1,000 registered users might need one modest setup. At 10,000, shared queries may dominate. At one million, storage growth or hot items may dominate. At 100 million, geographical and operational issues may matter. User count alone does not justify any specific architecture; calculate work first.
+
+**QPS** means queries per second, often used loosely for requests per second; define what is counted. **Utilization** is the fraction of resource capacity used, like occupied seats. **Database connections** are active communication sessions to a database, like open service-desk conversations. **Bandwidth** is a communication capacity/rate, like how many parcels a route carries each second. Measure CPU/memory utilization, active connections, stored-byte growth, and traffic; no one metric proves scalability.
+
+Questions: How many active users? Peak request mix? Burst duration? Growth rate? Retained information after one year? What latency/error/budget targets must remain satisfied?
+
+**Try:** Ten added servers barely improve search. What should you investigate?
+
+**Solution:** The bottleneck: database work, a shared lock, a hot item, network capacity, or another constrained dependency. More servers can increase pressure on it.
+
+## 9. Availability
+
+An ATM can have correct software yet be unusable when the bank connection fails. **Availability** asks whether the scoped function can provide acceptable service when needed. An available sign-in function must return useful outcomes under its chosen success criteria; a reachable machine returning errors is not automatically available.
+
+**Time availability = uptime / total measured time.** Multiply by 100 for a percentage. For 24 hours with 30 minutes of downtime: total 1,440 minutes; uptime 1,410; availability = 1,410/1,440 × 100 ≈ 97.9167%.
+
+Another valid approach is **request-based availability = good eligible requests / all eligible requests**. These are different measurements. A ten-minute outage during a traffic peak may consume more request-based budget than a longer quiet outage.
+
+### Nines, using a 365-day year
+
+| Target | Unavailable fraction | Approximate annual downtime budget |
+|---|---|---|
+| 99% | 0.01 | 3.65 days = 87.6 hours |
+| 99.9% | 0.001 | 8.76 hours |
+| 99.99% | 0.0001 | 52.56 minutes |
+| 99.999% | 0.00001 | 5.256 minutes |
+
+These are arithmetic budgets, not permission to fail users. Specify whether maintenance counts; count user impact rather than hiding it by definition. Each additional nine reduces the budget tenfold, often requiring more prevention, independent capacity, automation, and drills. The cost increase is contextual, not a fixed multiplier.
+
+A **crash** stops a program unexpectedly, like a desk suddenly closing. A **dependency** is something required for another operation, like the supplier needed by the kitchen. A **deployment** puts a new software version into operation. Causes of unavailability include crashes, database/network problems, faulty deployments, dependency outages, and site-wide failures.
+
+| Technique | Definition and analogy | Example and limitation |
+|---|---|---|
+| Redundancy | Extra capacity or parts, like a spare pump | Another server helps only if it is usable and sufficiently independent |
+| Replication | Maintaining multiple copies, like copies of a register | Database copies need rules for updates and promotion |
+| Replica | One such copy | A stale replica may not be eligible to serve every operation |
+| Failover | Switching work to a working replacement | Move traffic after failure; detection and switching take time |
+| Health check | Check whether a part can do the expected work | Test a server; a shallow “process running” check can miss database failure |
+| Load balancing | Distribute work among resources, like a host assigning tables | A load balancer also needs suitable failure handling |
+
+A **region** is a geographical hosting area; an **availability zone** is a provider-defined area designed to isolate some local infrastructure failures within a region. Think of branches in different cities versus separated buildings in one city. The real independence depends on provider and design; names alone do not guarantee it. A **data center** is a facility housing computing equipment.
+
+**Try:** Three servers share one required database. Does three imply high availability?
+
+**Solution:** No. Loss of the required database may make all three unable to serve useful requests.
+
+## 10. Reliability
+
+A cashier always at the desk but repeatedly returning wrong change is available in one narrow sense and unreliable. **Reliability** is the ability to perform the specified behavior correctly over the specified conditions and time. In probabilistic use, it can mean the probability of failure-free operation during an interval. It matters because reachability alone does not protect outcomes.
+
+| Concept | Main question | Example |
+|---|---|---|
+| Availability | Can the needed function provide acceptable service now? | Order viewing is usable |
+| Reliability | Does it perform correctly across specified operations/time? | Totals and ownership checks are consistently correct |
+
+Definitions and measurements can overlap: a good-request availability metric may count incorrect responses as failures. Keep the scope explicit instead of claiming a perfect universal boundary.
+
+A **bug** is a software mistake, like an incorrect calculation rule. **Corruption** is unintended damage to information, like altered ledger digits. Hardware failure, bugs, corrupt information, and calculation errors affect reliability. Measure eligible-operation success, incorrect outcomes, failed work, and failures over the specified mission interval, not only whether a process is running.
+
+**Try:** A store returns a reply to every checkout but charges the wrong total in 1% of them. What is wrong?
+
+**Solution:** Correctness/reliability, and possibly its good-request availability objective. Define a successful checkout as the correct intended outcome, not merely any reply.
+
+## 11. Durability
+
+If a clerk signs “filed” and later throws away your document, the acknowledgement was misleading. **Durability** means acknowledged stored information survives the stated failures for the stated retention period. Saved bank entries, photos, documents, and messages need different promises. It matters because people act on “Saved” or “Payment recorded.”
+
+A **process** is a running program, like an active clerk following procedures. A process crash, server crash, and disk failure are different failure conditions. Specify which the save must survive; “never lost” without a failure scope cannot be demonstrated.
+
+| Technique | Plain definition and analogy | Software implication |
+|---|---|---|
+| Persistent storage | Storage intended to retain information across restarts, like a cabinet | Not every disk failure is survived automatically |
+| Replication | More than one current copy, like duplicate registers | Can survive some hardware failures, but may copy mistakes/deletions |
+| Backup | A separately retained recoverable copy from a point in time, like a dated photocopy | Freshness, independence, and restoration matter |
+| Write-ahead log | Record intended changes before applying them to the main stored information, like a clerk’s transaction journal | Helps reconstruct after crashes; the journal must itself be protected |
+
+**Restore** means recover information from a retained copy, like rebuilding a register from a photocopy. A successful backup job is not proof of successful restore.
+
+Durable but unavailable: a photo is safely retained while a network outage prevents access. Reliable service but inadequate durability: current calculations work, but acknowledged history is lost after a disk fails. Durability is one part of overall reliable behavior.
+
+**Optional advanced estimate:** If each retained item has a modeled annual loss probability of 0.000001 and there are one million items, expected lost items = 1,000,000 × 0.000001 = 1 per year. “Expected” is an average over hypothetical repetitions, not a promise that exactly one is lost. Do not infer an actual system’s loss probability merely by counting replicas; independence, correlated failures, deletion, and repair all matter.
+
+**Try:** Do nightly backups guarantee zero loss of today’s acknowledged orders?
+
+**Solution:** No. The latest copy may omit today’s work, and restoration may fail. Need an acknowledgement and recovery design meeting the specified loss objective.
+
+## 12. Consistency
+
+Two bank notebooks contain ₹10,000. After a ₹1,000 withdrawal, one shows ₹9,000 and the other still ₹10,000. **Consistency** describes which observations and updates are permitted across users, operations, and copies. Like rules for updating shared notebooks, it matters because incompatible views can lead to wrong decisions.
+
+**Stale data** reflects an older value. A **latest value** must be defined relative to ordering and successful completion. **Conflicting writes** attempt incompatible changes, like two withdrawals both using an old balance.
+
+### Strong consistency, carefully stated
+
+A common strong model is **linearizability**: each operation appears to happen at one point between its start and finish, and the order respects operations that completed before others began. Analogy: one clerk records actions in a single authoritative order. A read beginning after a successful balance update observes that update or a later one, within the same defined object/model. It does not mean information crosses the world instantaneously; the operation may wait or be refused when the guarantee cannot be maintained.
+
+### Eventual consistency
+
+Copies can temporarily disagree but converge if updates stop and communication/repair proceeds. Analogy: branch offices exchange updates later. A profile or like counter may tolerate temporary stale views. **Convergence** means the copies eventually agree under the defined update rules, not that the newest value appears within a known deadline unless a separate bound is promised.
+
+A **DNS**, or Domain Name System, maps website names to addressing information, like a directory service. Its cached information illustrates propagation and freshness considerations; it is not proof that every DNS aspect fits one simplistic consistency model. A **cache** retains a reusable copy to avoid repeating work, like keeping a frequently used directory page at the desk; it matters because a reused copy can be stale.
+
+Stronger observations may need **coordination**, meaning parts exchange information to agree, like clerks checking a shared register before approval. This may add time and reduce the ability to serve during communication failures. Eventual behavior still needs conflict resolution, permission safety, and business rules.
+
+**Optional advanced preview—CAP:** In a distributed system, whose parts run on separate computers communicating over a network, a network partition prevents some parts from communicating. During that partition, linearizable consistency and the CAP definition of availability cannot both be guaranteed for the affected operations. CAP availability is a technical property about responses from nonfailed nodes, not the same as a monthly uptime target. It is not “pick any two forever,” and it does not excuse overselling seats. Optional primary reading: [Gilbert and Lynch on CAP](https://www.comp.nus.edu.sg/~gilbert/pubs/BrewersConjecture-SigAct.pdf).
+
+**Try:** Can a feed’s like count be stale while ticket inventory must prevent overselling?
+
+**Solution:** Yes. Choose guarantees by operation and business consequence, not one slogan for the entire application.
+
+## 13. Latency
+
+Ask a clerk a question and time how long until the useful answer arrives. **Latency** is elapsed time for a specified operation between defined start and finish points. It matters because users wait for results and because internal measurements can omit much of that wait.
+
+| Type | Example boundary | Why distinguish it? |
+|---|---|---|
+| User-observed request latency | Click/request initiation to usable result | Includes client work and communication |
+| Network latency | Defined communication path and direction | One-way time differs from round-trip time |
+| Database latency | Query submission to its completion | Only one part of request time |
+| Application latency | Defined server work boundary | May exclude network/client and queueing |
+
+A **query** is a request for information, like asking the clerk to find a record. **Queueing time** is waiting before work begins, like standing in line. Both matter because a fast query does not prove a fast whole journey.
+
+1 second = 1,000 ms = 1,000,000 **microseconds**, or µs. A microsecond is one millionth of a second. Avoid confusing units.
+
+A **percentile** describes the threshold at or below which a specified fraction of measured observations falls. Sort the times, like lining up meal tickets from fastest to slowest. **p50** is the median threshold; **p90**, **p95**, and **p99** cover 90%, 95%, and 99%. For a chosen empirical calculation, p95 = 300 ms means at least 95% of observations meet that threshold. Use a named computation method; tools interpolate differently.
+
+An **average**, or arithmetic mean, is sum divided by count. A **median** is the middle of sorted observations, averaging the middle two for an even count under the usual convention. An **outlier** is a value far from the main cluster. Ninety-nine 100-ms requests and one 10-second request average 199 ms; one user still waited ten seconds. Tail percentiles and failure/time-limit counts matter.
+
+**Try:** Is backend p95 + database p95 guaranteed to equal whole-request p95?
+
+**Solution:** No. Percentiles do not generally add. Measure the whole-request distribution; overlap, linked timing patterns, and different slow requests change the result.
+
+## 14. Throughput
+
+A restaurant serving 100 meals per hour has a throughput of 100 meals/hour. **Throughput** is completed work per unit time, such as requests, messages, transactions, or bytes per second. It matters because quick individual work may still be insufficient for many simultaneous customers.
+
+| Concept | Measures | Restaurant | Software |
+|---|---|---|---|
+| Latency | One operation’s elapsed time | One customer’s meal wait | One search’s response time |
+| Throughput | Completed amount per time | Meals served/hour | Searches completed/second |
+| Arrival rate | Incoming amount per time | Orders received/hour | Searches submitted/second |
+
+If 1,000 requests arrive/second but only 800 complete/second, pending work grows unless requests are refused or arrivals fall. Good latency at low load does not establish capacity at peak load. **Capacity** is the sustainable work the system can support under the defined quality targets.
+
+**Try:** 600 requests complete in ten seconds. Throughput?
+
+**Solution:** 600 ÷ 10 = 60 requests/second. This says nothing about the individual latency distribution.
+
+## 15. Responsiveness
+
+A waiter says “I’ve received your order” promptly while cooking takes several minutes. **Responsiveness** is how promptly and usefully an interface reacts to an action. An upload may take five seconds but display real progress immediately. It matters because people need to know their action registered and whether to wait, correct it, or retry.
+
+A **frontend** is the user-facing part, like the ordering desk; a **backend** performs supporting work, like the kitchen. **Perceived performance** is the experience of waiting and control, not merely server time. A **progress indicator** communicates work status. **Asynchronous work** completes separately from the initial interaction, like a parcel delivered after the desk accepts it. Define both initial feedback and actual completion targets.
+
+A **state** is an item’s current meaningful condition, like a form marked Pending or Approved. A **state transition** changes that condition under defined rules, such as approving an eligible refund. These matter because verification must cover valid and invalid next actions.
+
+A **UI**, or user interface, is the means a person interacts with software, such as screens and controls—like the buttons and signs at a desk. It matters because interface feedback is separate from final processing.
+
+**Optimistic UI** means an interface temporarily shows the intended result before the operation is confirmed, like pencilling in a booking while approval is pending. It can feel quick but must show failure/correction when needed; never represent an unconfirmed payment or scarce seat as definitively complete.
+
+Candidate: “The client displays upload acceptance or a clear error within 150 ms of local submission under the supported-device test; completion has a separate end-to-end target.” This local target does not claim the server accepted within that time.
+
+**Try:** Does showing an endless spinner make the app responsive?
+
+**Solution:** Not sufficiently. Useful feedback includes current status, honest uncertainty, progress if known, and a safe next action; actual completion must still meet its requirement.
+
+## 16. Fault tolerance
+
+An aircraft’s independent backup instruments illustrate continuing despite part failure. **Fault tolerance** means maintaining specified useful service despite defined component faults. A site continues serving if one server fails. It matters when recovery delay itself would harm the user.
+
+A **fault** is a problem in a part; it may cause a service failure, but need not if tolerated. Redundancy, replicas, failover, and standby components are potential responses. A **standby** is a replacement kept ready, like a substitute worker. Redundant parts need enough capacity, acceptable information freshness, and independence.
+
+Candidate: “During loss of one application instance, the checkout function maintains its good-request objective at the defined peak, with no duplicate purchase.” An **instance** is one running copy, like one operating service desk. Tolerating server loss is not automatically tolerating database or region loss.
+
+**Try:** Two replicas on the same failed disk—fault tolerant against disk failure?
+
+**Solution:** No. The copies share the failure cause.
+
+## 17. Resilience
+
+A restaurant switches to a limited menu during a supply interruption. **Resilience** is the broader ability to withstand disruption, adapt, keep useful service, and recover. Fault tolerance focuses on continuing under specified faults; resilience also considers overload, unexpected disruption, degraded operation, and recovery.
+
+| Technique | Definition and analogy | Benefit and caution |
+|---|---|---|
+| Graceful degradation | Preserve essential functions while reducing extras, like a limited menu | Shopping still works without recommendations; do not hide loss of critical payment safety |
+| Retry | Attempt work again, like redialling | Helps transient faults; can amplify load or duplicate effects |
+| Timeout | Stop waiting after a chosen interval, like a desk wait limit | Bounds waiting; does not establish whether outside work succeeded |
+| Circuit breaker | Temporarily stop requests to a persistently failing dependency, like closing a broken counter | Gives it recovery room; needs a controlled recheck |
+| Load shedding | Refuse some work to protect useful capacity, like stopping admission to an overcrowded room | Protects accepted work; prioritize and communicate refusals |
+
+A **transient fault** is temporary. **Backoff** spaces retries further apart; **jitter** varies their timing, like staggering returning customers. These matter because simultaneous repeated attempts can overload recovery. **Idempotent behavior** means repeating the same intended operation has no additional effect after its intended effect, like presenting the same receipt request without creating another purchase. A unique request identity can support this, but merely sending an identifier does not prove the behavior.
+
+**Try:** Recommendations fail. Must checkout fail too?
+
+**Solution:** Not if recommendations are optional and properly isolated. Preserve checkout and report/reduce only the unavailable extra function.
+
+## 18. Recoverability
+
+After a flood, a branch must reopen and restore its records. **Recoverability** is the ability to restore acceptable operation and information after disruption. It matters even when faults cannot be prevented or tolerated continuously.
+
+**Recovery time** is elapsed time to the defined acceptable service level. **Disaster recovery** is preparation and action for major disruption, like loss of a site. It includes people, permissions, copies, procedures, and rehearsals—not only a spare server.
+
+**RTO**, Recovery Time Objective, is the target maximum time to restore the defined service after the chosen starting event. **RPO**, Recovery Point Objective, is the maximum acceptable time span of information loss relative to the failure/reference time. Think of reopening a branch within 30 minutes while restoring records no older than five minutes before the failure.
+
+RTO = 30 minutes: meet the specified restoration target within 30 minutes of the defined incident start. RPO = five minutes: restoration must not lose more than the last five minutes’ relevant updates under the scenario. It does not mean “five lost records,” nor guarantee every five-minute backup finishes in time.
+
+Define restoration verification: account balances correct, eligible access restored, pending operations reconciled, and users not falsely told success. A target of RPO = 0 may require different acknowledgement/replication guarantees; it is not established by frequent backups alone.
+
+**Try:** A backup exists but its decryption key is inaccessible during recovery. Is the recovery plan adequate?
+
+**Solution:** No. Recoverability depends on usable copies, keys, access, procedures, and tested completion within the target.
+
+## 19. Security
+
+A locked clinic cabinet protects records from unauthorized access. **Security** protects systems and information against unauthorized actions and other relevant threats. A **threat** is a potential cause of harm, such as stolen credentials. Security matters because incorrect access or alteration can harm people even when the system is fast.
+
+The **CIA triad** groups three goals:
+
+- **Confidentiality:** only authorized parties can see protected information; like restricted patient files.
+- **Integrity:** information/actions are protected against improper alteration; like preventing forged ledger entries.
+- **Availability:** legitimate use remains possible under the defined conditions; like keeping the clinic operational.
+
+**Authentication** checks identity, like checking ID. **Authorization** checks allowed actions, like deciding whether that person may enter the record room. **Least privilege** grants only access needed for a responsibility. A **session** is the context in which the application treats requests as belonging to an authenticated person. An **encryption key** is secret information used by the protection operation. **In transit** means moving between parties; **at rest** means retained in storage. **Secure communication** uses agreed protections for information moving between parties, rather than assuming a private-looking network is safe.
+
+**Password hashing** creates a one-way verifier for checking a password rather than storing the original text; think of checking a derived fingerprint rather than retaining a recoverable secret. A **salt** is a unique random value used with each password’s hash. OWASP recommends suitable password-specific hashing and salts, rather than plaintext storage or ordinary reversible encryption. These verifiers can still be attacked by guessing, so approved algorithms, work settings, and access controls matter. See [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+
+Testable candidates: unauthorized message reads are refused across every access route; raw passwords and secrets never appear in logs; sensitive communication follows the approved protection policy; privileged access is reviewed; sessions are invalidated according to policy. **Multi-factor authentication** uses more than one independent proof category, like a password and possession of a trusted device; consider it for sensitive access under the actual threat model.
+
+**Try:** Does encrypted storage alone prevent a logged-in customer reading another customer’s order?
+
+**Solution:** No. The application also needs correct authorization. Protection must be matched to threats and access paths.
+
+## 20. Privacy
+
+A hospital can lock its files yet collect unrelated details about every visitor. **Privacy** concerns appropriate collection, use, sharing, and retention of information about people. Security protects information; privacy governs what should be collected and done with it. Both matter.
+
+| Concept | Analogy | Software example |
+|---|---|---|
+| Personal data | Information relating to a person, like a named patient form | Address or identifying activity history |
+| Consent | Informed permission for a specific use where appropriate | Optional marketing permission; not the universal basis for all processing |
+| Purpose limitation | Use information for the stated permitted purpose | Delivery address used for shipping, not unrelated profiling without an appropriate basis |
+| Data minimization | Collect only what is needed, like a short relevant intake form | Do not request birth date merely to deliver a parcel |
+| Retention | How long information is kept | A documented schedule for diagnostic records |
+| Deletion | Remove information from specified systems under policy | Account deletion processing with defined exceptions and backup handling |
+
+Privacy targets may be testable field inventories, access reviews, deletion checks, and verified retention schedules. An **inventory** here is a complete list of relevant items, like a list of collected fields. A **policy** is an agreed rule or approach; legal applicability must be established by responsible specialists rather than copied from another product.
+
+**Try:** Can a perfectly protected database containing unnecessary tracking information still present a privacy problem?
+
+**Solution:** Yes. Preventing unauthorized access does not justify unnecessary collection or inappropriate use.
+
+## 21. Maintainability
+
+A neatly organized appliance is easier to repair than one with tangled wires. **Maintainability** is how effectively engineers understand, diagnose, modify, and verify a system. Changing a price rule without breaking messaging is a software example. It matters because products keep changing and defects need fixing.
+
+**Code** is written instructions for software. **Documentation** explains intended behavior and operation. **Automated tests** are checks software runs rather than requiring a person to repeat every step. Clear code, documented responsibilities, focused modules, automated checks, and simple dependencies may improve maintainability. Architecture matters because changes spanning many unrelated components increase coordination and risk.
+
+Measure a defined change scenario: time, touched components, defects introduced, and verification effort. “Each module below 500 lines” is a possible design rule, not proof of maintainability.
+
+**Try:** A change in shipping fees requires editing six unrelated features. What should be investigated?
+
+**Solution:** Responsibility boundaries, duplicated rules, and dependencies. Do not automatically split into separately operated services; that could create more work.
+
+## 22. Operability
+
+A restaurant manager needs to open, check supplies, detect trouble, and close safely. **Operability** is how safely and effectively people can run software in its real operating environment.
+
+**Production** is the environment serving actual users. **Configuration** is adjustable operating information, such as a connection address or limit. **Monitoring** checks known conditions and measurements over time, like watching gauges. **Troubleshooting** investigates a problem’s cause. **Rollback** restores an earlier acceptable software/configuration version. An **incident** is a disruption requiring coordinated response; **incident response** is recognizing, managing, and resolving it. An **alert** draws an operator’s attention to a condition requiring action. These matter because a problem no one notices or can fix continues harming users.
+
+Candidates: Operators can perform a verified rollback within ten minutes in the defined deployment drill; critical user-impact failures alert the responsible responder within two minutes; operating changes have recorded ownership and recovery instructions. A **runbook** is a practical operating procedure, like an emergency checklist. Include prerequisites and verification, not just “restart it.”
+
+**Try:** A service works perfectly until 2 AM, but no one can identify its responsible team. Which quality is missing?
+
+**Solution:** Operability, supported by ownership, actionable alerts, and response procedures.
+
+## 23. Extensibility
+
+A shop can add a payment method without rebuilding its checkout desk. **Extensibility** is the ability to add a relevant capability with bounded disruption. Software might add UPI, PayPal, a wallet, or bank transfer after supporting cards. **UPI** is an Indian payment system; **PayPal** is a payment provider; a **wallet** holds a payment balance or payment credentials in a product. The examples illustrate different integration behavior, not interchangeable payment guarantees.
+
+A **plugin** is an add-on using an agreed extension interface, like a compatible appliance attachment. Not every product needs a plugin platform. Extensibility matters when likely near-term changes have clear value.
+
+Measure a specific extension: add a supported second payment provider within the trial’s effort budget, preserving existing payment tests. Costs include abstraction, compatibility testing, and operating extra paths. **Overengineering** means adding complexity beyond justified needs, like building a banquet hall for a two-person shop. Do not predict every future feature.
+
+**Try:** Should a single-use task list include a general plugin marketplace?
+
+**Solution:** Only if its goals justify that extension. Otherwise simple, clear code is a better starting point.
+
+## 24. Modularity
+
+A restaurant separates kitchen, billing, delivery, and stock responsibilities. **Modularity** divides software into parts with clear responsibilities and boundaries. User management, orders, payments, and notifications are possible modules. This matters because understandable ownership helps change and testing.
+
+**Cohesion** describes how strongly a part’s responsibilities belong together, like keeping food preparation in the kitchen. **Coupling** describes how much parts depend on one another’s details, like every worker needing to understand the cashier’s notebook layout. Prefer cohesive responsibilities and limited, explicit dependencies, while recognizing some coupling is necessary.
+
+**Interface** means an agreed interaction boundary, like a numbered order ticket. An order module asking for payment via a defined operation need not manipulate the payment module’s internal records.
+
+Modules can live inside one application. **Microservices** are separately operated services with defined responsibilities. Separate deployment can add network failures, monitoring, security, and coordination. It is not a synonym for good modularity.
+
+**Try:** Is “each module deployed separately” necessary for modularity?
+
+**Solution:** No. Internal modules with clear interfaces can provide modularity with less operating complexity.
+
+## 25. Portability
+
+An appliance usable in two buildings without reconstruction is portable between those environments. **Portability** is the ability to move software to named environments with limited changes and acceptable outcomes.
+
+An **operating system** manages a computer’s resources; Windows and Linux are examples. A **cloud provider** supplies remotely hosted computing resources. **On-premises** means operated in the organization’s own facilities. Moving between operating systems, providers, or database environments may require very different work; define the intended move.
+
+Candidate: “The application passes the same functional and performance acceptance checks on the two supported operating environments after no more than the agreed configuration changes.” A **migration** moves software or information to a different arrangement; it is like relocating a branch and its records.
+
+Provider-specific capabilities can improve cost or operation but increase migration work. Portability has value when a credible move or constraint exists; universal portability may impose unnecessary lowest-common-denominator limits.
+
+**Try:** Does packaging an application identically make its provider-specific database portable?
+
+**Solution:** No. Dependencies, information formats, policies, and operating procedures also matter.
+
+## 26. Interoperability
+
+Two hospitals must agree what a transferred record means, not just connect a cable. **Interoperability** is the ability of systems to exchange and use information correctly. A bank and payment processor interpreting the same payment amount is an example.
+
+A **standard** is an agreed specification; a **protocol** defines communication rules, like a conversation procedure; a **data format** defines information representation, like a standardized form. **HTTP** is a common web request/response protocol. **JSON** is a text format representing named values and lists. **REST** is an architectural style for resource-oriented interactions, often used with HTTP; using JSON does not make an API RESTful. **OAuth** is an authorization framework for delegated access; it is not by itself a complete identity-verification protocol. These terms matter because names alone do not establish compatible meaning.
+
+Candidate: the partner integration correctly exchanges amounts, currencies, identifiers, timestamps, and error outcomes under a contract test using a named contract version. A **contract test** checks whether the agreed interaction rules are followed; like comparing an exchanged form against its specification, it matters for verifying partner compatibility. A **timestamp** records a point in time, like the date and time on a receipt; a payment timestamp needs a time-zone convention so different parties interpret the same moment. Compatible software must also agree on semantics: “100” might mean ₹100 or 100 minor currency units.
+
+**Try:** Both systems accept JSON. Are they automatically interoperable?
+
+**Solution:** No. Field meaning, units, required values, supported versions, and error rules can differ.
+
+## 27. Testability
+
+An appliance with safe test points is easier to verify. **Testability** is how easily and reliably expected behavior and qualities can be checked. It matters because unverified promises may silently fail.
+
+| Test type | Analogy | Software scope |
+|---|---|---|
+| Unit test | Check one calculator function | Small component in isolation |
+| Integration test | Check two desks exchanging forms | Real interaction among components |
+| End-to-end test | Complete an actual purchase journey | The important path across client/server/dependencies under controlled conditions |
+
+**Dependency injection** supplies a part’s dependencies explicitly rather than hiding their creation inside it; like testing a checkout desk with a substitute payment desk. A **test double** is a substitute used in a test; it cannot alone prove the real provider behaves identically. **Deterministic** behavior produces the same result for the same defined inputs/conditions; controlling the time source helps test expiration boundaries. Isolation and clear interfaces reduce setup difficulty.
+
+A **controlled clock** is a replaceable source of time, like setting a practice clock to a deadline; it matters for repeatable boundary checks.
+
+Candidate: all refund-state transitions can be tested using a controlled clock/provider substitute, with separate real-integration checks. Count useful outcome coverage rather than maximizing test count. A **benchmark** is a repeatable measurement exercise, like timing the same work under controlled conditions.
+
+**Try:** A test always depends on the real current time. What becomes difficult?
+
+**Solution:** Reproducing deadline cases. A controllable time source can make boundary verification repeatable.
+
+## 28. Observability
+
+A mechanic infers engine condition from gauges, sounds, and inspection outputs. **Observability** is the ability to infer and investigate internal system behavior from available outputs. It matters when an unexpected problem is not one of the conditions already watched by monitoring.
+
+| Output | Definition | Software example | Useful question |
+|---|---|---|---|
+| Logs | Event records | “Payment outcome pending for request X” | What happened? |
+| Metrics | Numerical measurements over time | Error rate and response-time distributions | How widespread and when? |
+| Traces | Records linking work for one interaction across parts | Request → order work → database query | Where did this request spend time? |
+
+A **trace span** records one portion of work, like one stop on a delivery route. A **correlation identifier** links relevant events for the same interaction. Observability may also use other outputs; three named tools do not automatically provide it.
+
+A **queue** holds work awaiting processing, like a line of order slips; it buys time only for bounded work and adequate eventual completion. If arrivals permanently exceed completions, it grows or rejects work.
+
+Four commonly used **golden signals** are latency, traffic, errors, and **saturation**, how near a resource is to its effective limit. Queue growth can reveal saturation before CPU reaches 100%. A **dashboard** is a visual collection of relevant measurements, like an instrument panel.
+
+Candidate: diagnose the defined slow-checkout scenario within fifteen minutes using available evidence, without recording private payment details. Balance diagnostic value against cost, privacy, and information volume.
+
+**Try:** Can all requests look fast in metrics because the measurement excludes requests that never finish?
+
+**Solution:** Yes. Include outstanding/time-limited attempts appropriately; otherwise the observations omit precisely the failures you need to see.
+
+## 29. Auditability
+
+A signed approval ledger lets a manager determine who authorized a refund. **Auditability** is the ability to reconstruct important actions, identities, times, and relevant reasons/outcomes. It matters for accountability, disputes, investigation, and applicable obligations.
+
+An **audit log** records accountable actions under a defined retention and protection policy. An application log might say “database retry”; an audit record says who changed a permission, what changed, when, and under what authority. **Actor identity** identifies the responsible person or system role, not merely the machine writing the record. **Change history** records relevant before/after values or actions.
+
+Candidate: all successful refund approvals contain actor, order, amount/currency, timestamp, reason, request identity, and outcome; unauthorized modification of the records is prevented or detectably evidenced under the threat model. **Tamper-evident** means alteration can be detected; it differs from impossible-to-alter.
+
+**Try:** Is a debug log containing only “refund OK” sufficient audit evidence?
+
+**Solution:** No. It lacks who, which order, amount, time, and approval context.
+
+## 30. Accessibility
+
+A building with clear signs and usable access routes serves more people. **Accessibility** means people with differing abilities can use the software’s intended functions. It matters to real task completion and may also be an applicable obligation.
+
+A **screen reader** presents interface information through speech or other accessible output. **Semantic structure** expresses meaning such as heading, label, and button rather than appearance alone. **Color contrast** is the visual difference between foreground and background. **Captions** represent speech and relevant sound in text. **Focus** identifies the currently targeted control, like a pointer showing which desk receives your next action. These support people with visual impairments, keyboard-only operation, and other access needs.
+
+**WCAG**, Web Content Accessibility Guidelines, provides testable web-accessibility criteria. Core examples include keyboard-operable interactions, informative text alternatives, and appropriately labeled controls. Specify version, conformance scope, and evaluation method rather than saying “WCAG compliant” without detail. See [W3C WCAG 2.2](https://www.w3.org/TR/WCAG22/).
+
+Candidate: all checkout steps can be completed using only keyboard input with visible focus and understandable errors, verified manually with the agreed assistive-technology combinations. Automated checks help but do not establish every criterion.
+
+**Try:** Does using green for success and red for failure communicate enough to everyone?
+
+**Solution:** No. Include text or another meaningful indicator and check contrast and assistive output.
+
+## 31. Compliance
+
+A restaurant must follow applicable rules; software organizations must also meet applicable laws, standards, contracts, and organizational policies. **Compliance** means satisfying those obligations and producing relevant evidence. It matters because the applicable requirement is more specific than “use secure technology.”
+
+| Example | What it is concerned with | Important boundary |
+|---|---|---|
+| GDPR | European Union personal-data protection regulation | Applicability and specific obligations depend on the processing context; not every deletion request overrides every retention obligation |
+| PCI DSS | Payment Card Industry Data Security Standard: technical and operational controls protecting payment account data | Scope depends on payment-data handling and related systems |
+| HIPAA-related requirements | United States health-information rules applying to defined covered entities and relevant business associates | Not every health-related app is automatically subject to the same obligations |
+| SOC 2 | An assurance examination/report about service-organization controls against relevant trust-services criteria | It is not a blanket law or guarantee that every security risk is solved |
+| Data residency | A requirement about where information resides or is processed | Define which data, backups, logs, support access, and transfers are covered |
+
+Primary references: [European Commission](https://commission.europa.eu/law/law-topic/data-protection/legal-framework-eu-data-protection_en), [PCI SSC](https://www.pcisecuritystandards.org/standards/pci-dss/), [HHS HIPAA overview](https://www.hhs.gov/hipaa/for-professionals/privacy/laws-regulations/index.html), and [AICPA SOC resources](https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services). These descriptions identify categories; responsible legal/compliance specialists establish the applicable obligations for a real project.
+
+Translate confirmed obligations into scoped controls, behaviors, retention rules, evidence, and review procedures. A system can pass a particular assessment and still have unaddressed vulnerabilities. Compliance and security reinforce each other but are not identical.
+
+**Try:** Does “Use encryption” establish compliance?
+
+**Solution:** No. Applicability, access, retention, operation, evidence, and other required controls remain to be established.
+
+## 32. Cost efficiency
+
+A cheap appliance that breaks daily may cost more overall than a dependable one. **Cost efficiency** means meeting required outcomes without unnecessary total spending. It matters because users, reliability, staff effort, and budget all affect viability.
+
+**Compute** is processing capacity, such as CPU time. Costs may include compute, storage, network transfer, databases, backups, monitoring, support, and incident response. **Cost per request** = attributed cost / counted requests; define successful versus all attempts. Similar measures apply per active user or completed transaction.
+
+Example: ₹20,000 monthly attributed cost / 10,000,000 completed requests = ₹0.002 per completed request. Another service costs ₹15,000 but completes only 5,000,000 = ₹0.003 each. Lower total spending is not automatically better unit efficiency or a better product.
+
+Include workload and cost scope; otherwise shifting work to an uncounted service can fake improvement. Prices in this chapter are invented arithmetic examples, not vendor quotations.
+
+**Try:** Can cutting all backup costs be cost-efficient?
+
+**Solution:** Only if the required retention/recovery outcome is still met. Ignoring a critical requirement is not efficiency.
+
+## 33. Energy and sustainability efficiency
+
+A kitchen using less energy per safely prepared meal is more energy-efficient, but closing it saves energy by eliminating service. **Energy efficiency** means accomplishing required work with less unnecessary energy. **Sustainability efficiency** considers responsible resource use and relevant environmental effects within a defined boundary. Measure useful work and quality together.
+
+**Idle infrastructure** is provisioned capacity doing little useful work. **Overprovisioning** keeps more resources than a justified capacity/resilience need. **Right-sizing** matches resources to required work. **Autoscaling** adjusts capacity using measured conditions and rules. A **batch** groups work; **batch scheduling** may move deferrable work to suitable periods. An **algorithm** is a procedure for solving a task, like a recipe; inefficient procedures can repeat unnecessary work.
+
+Potential measures: CPU time per completed transaction, storage retained per necessary record, transferred bytes per useful video minute, measured energy per workload. **Power**, in watts, is energy rate; **energy**, such as watt-hours, is power accumulated over time. Transactions/watt alone needs a time-rate interpretation; prefer transactions/second per watt or transactions per watt-hour.
+
+Reduce duplicate computation, unnecessary transfers, and unjustified retention. Keep required recovery copies and headroom. **Headroom** is unused capacity reserved for bursts/failures, like spare seating. Lower CPU utilization is not automatically greener; more idle machines may use more energy.
+
+**Try:** A cache reduces database work but adds an always-on machine. Is energy use definitely lower?
+
+**Solution:** No. Measure total consumption and maintained quality over a comparable workload.

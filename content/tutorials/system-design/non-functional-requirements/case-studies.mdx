@@ -1,0 +1,354 @@
+---
+title: "Case Studies and NFR Discovery"
+description: "Case studies from online stores to video streaming, architecture implications, prioritization, and discovering NFRs in interviews (Sections 48–67)."
+difficulty: intermediate
+updated: 2026-10-08
+---
+
+*Part 4 of 7 of [Non-Functional Requirements](/tutorials/system-design/non-functional-requirements) · Sections 48–67.* These sections apply the ideas to systems and interviews, starting with case studies. New to the topic? Start with [Non-Functional Requirements Fundamentals](/tutorials/system-design/non-functional-requirements/fundamentals).
+
+## 48. Scalability case study: online store
+
+Assume 20 requests per daily customer, two stored orders per 100 customers/day, 2 kB per logical order record, and a 5× peak. These are teaching inputs. A **logical record** is the business information before copies, indexes, backups, and operating overhead. An **index** is supporting information for finding records efficiently, like a catalog index; it consumes storage and update work.
+
+| Stage | Traffic | New logical order information/day | Likely investigations | Requirement/design implications |
+|---|---|---|---|---|
+| 1,000 customers/day | 20,000 requests/day; 0.2315 average QPS; 1.1574 assumed peak | 20 orders × 2 kB = 40 kB | Correct behavior, basic storage, slow queries | A simple application may suffice; measure before expanding |
+| 100,000/day | 2 million/day; 23.1481 average; 115.7407 peak | 2,000 orders = 4 MB | Query mix, connection limits, promotional bursts | Set operation-specific targets; improve the measured bottleneck |
+| 10 million/day | 200 million/day; 2,314.8148 average; 11,574.0741 peak | 200,000 orders = 400 MB | Hot products, search, payment dependency, growth and recovery | Capacity tests, coordinated inventory, selective caching/distribution as justified |
+
+Annual order growth at the largest stage, if steady: 400 MB/day × 365 = **146 GB logical**. Add retained product media, indexes, replication, backups, and histories separately; orders alone do not represent all storage.
+
+A useful requirement preserves latency/error targets at each stage under its query mix and resource budget. One million customers doing one action differ from one million customers doing 100 actions.
+
+**Try:** Why not jump straight to dozens of services at stage one?
+
+**Solution:** The load may not justify the cost and operating complexity. Establish actual constraints and bottlenecks first.
+
+## 49. Availability case study: payments
+
+If payment processing is down ten minutes, attempted purchases may fail or become uncertain. Business impact depends on attempted volume, time of day, alternatives, and financial consequences. Define the affected function: accepting a payment instruction, determining its outcome, and displaying history are not necessarily the same availability scope.
+
+| Function | Possible ten-minute impact | Requirement implication |
+|---|---|---|
+| Online payments | Lost purchases, pending outcomes, unsafe retries | Prioritize honest status, outcome resolution, and appropriate availability |
+| Social recommendations | Less personalized browsing | Graceful fallback may preserve the core product |
+| Internal reporting | Delayed staff decisions | A recovery deadline may be more useful than expensive continuous availability |
+| Emergency-related medical communication | Potentially severe delayed care coordination | Establish responsible safety/clinical context, escalation, independent alternatives, and strict relevant objectives |
+
+These are context examples, not medical operating guidance. Do not infer an emergency system’s acceptable outage from a generic website target.
+
+**Try:** Should all four use 99.999%?
+
+**Solution:** No. Derive targets from consequence and feasible safeguards. A costly target without a reason can crowd out more important protection.
+
+## 50. Durability case study
+
+| Information | What loss means | Appropriate question |
+|---|---|---|
+| Temporary cache | Recomputable information disappears; requests may slow | Can authoritative information rebuild it within quality limits? |
+| Bank ledger | Committed financial history disappears | What failures must acknowledged entries survive, and how is recovery verified? |
+| Like-count display | Derived count may temporarily differ | Can it be recomputed from retained events, or is this count the only source? |
+| Uploaded personal photos | Potential irreversible loss | What acknowledgement, protection, retention, and recovery promise exists? |
+
+A **ledger** is a structured account of financial entries, like a bank’s transaction book. **Authoritative information** is the trusted source for a particular fact. **Derived information** is calculated from other facts. These distinctions matter: a “cache” storing the only copy is not safely recreatable merely because it is called a cache.
+
+Different information needs different survival requirements. Temporary inconsistency of a like count says nothing about whether the underlying accepted like can be permanently lost.
+
+## 51. Consistency case study
+
+For social likes, users may accept a count briefly showing 100 instead of 101, provided the agreed convergence and user-experience guarantees hold. For a bank balance deciding an authorized withdrawal, stale information may permit incorrect spending. A cached informational balance and an authoritative spending decision can have different models.
+
+Questions: Must a read after my write show it? Must all readers see one agreed order? What if two writes conflict? Is an old value acceptable for five seconds, indefinitely during an outage, or never for this operation? What happens during separation?
+
+Design implications: an authoritative coordinator or coordinated update may be appropriate for balance decisions; replicas/caches can support other reads under defined freshness rules. These are candidate responses, not a requirement to use one product.
+
+**Try:** Is eventual consistency always suitable for social products?
+
+**Solution:** No. Account permissions, private visibility, purchases, or unique reservations can require stricter behavior even inside a social product.
+
+## 52. Healthcare security/privacy case study
+
+Assume an appointment-and-record application with patients, clinicians, and administrative staff. **A clinician** is a care professional; the role label does not automatically authorize every patient’s information.
+
+Proposed requirements:
+
+- Identity verification appropriate to access risk; authorization based on established relationship and role.
+- Sensitive information protected in communication and storage under the approved policy.
+- Collect only fields needed for the stated uses; do not expose patient information in diagnostic outputs.
+- Relevant record access and changes produce accountable audit evidence.
+- Retention, deletion, correction, and exceptional access follow the applicable confirmed rules.
+- Operators can recover records and access safely after the specified failures.
+
+Example access check: a patient sees their own records; an unassigned clinician is refused unless an explicitly approved exceptional process applies. A **break-glass process** is controlled exceptional access for urgent circumstances, like an emergency key; if needed it requires explicit authority, evidence, and review. Do not add it without a real need.
+
+Security, privacy, auditability, recovery, and compliance reinforce each other but can conflict over retained evidence. Responsible specialists decide applicable rules; the software document then states enforceable behavior and quality checks.
+
+## 53. Operability case study: failure at 2 AM
+
+An **on-call engineer** is the assigned responder for a time period, like a night-shift duty officer. Imagine checkout failures start at 2 AM.
+
+| Need | Why | Example requirement |
+|---|---|---|
+| Alert | Discover actual user harm | Responsible responder notified within two minutes of defined sustained failures |
+| Dashboard | Establish scope/trend | Show good-request fraction, latency, traffic, and pending payments |
+| Logs | Inspect meaningful events | Correlate failures without exposing secrets |
+| Traces | Identify slow dependencies | Follow representative checkout work across components |
+| Runbook | Act safely | Document steps, access, risks, and verification |
+| Rollback | Reverse a bad change | Defined rollback drill meets ten-minute objective |
+| Health status | Distinguish failed parts | Checks reflect needed dependencies, not just running processes |
+| Ownership | Get accountable help | Each critical dependency has an escalation route |
+
+A **page**, in an operational context, is an urgent alert to a responder; an **escalation** transfers attention to further help when necessary. Too many unactionable alerts create fatigue. Measure actionable response and recovery, not raw alert count.
+
+## 54. Maintainability case study
+
+**Design A:** One large codebase with many components directly manipulating every information structure. **Design B:** Explicit modules and interfaces with documented ownership. A **codebase** is the collection of source instructions; it can contain good modules or tangled responsibilities.
+
+| Aspect | Design A risk | Design B opportunity and cost |
+|---|---|---|
+| Change | Hidden effects across unrelated work | Focused changes, but interfaces must remain understandable |
+| Testing | Difficult setup and isolation | Clear substitutes and contract checks |
+| Ownership | No one knows who decides a rule | Responsibility boundaries; cross-cutting rules still need coordination |
+| Debugging | A fault can originate almost anywhere | Local reasoning plus interaction evidence |
+| Effort | Quick initial shortcuts | Boundary design requires thought and upkeep |
+
+A **monolith** is one principal deployment unit. It can be modular and maintainable. A microservice system can be poorly separated and harder to operate. Compare concrete change/testing scenarios; do not infer quality from deployment style alone.
+
+**Try:** Which design is always better?
+
+**Solution:** Neither label guarantees the answer. Prefer the simplest organization meeting actual change, verification, scale, and operating needs.
+
+## 55. Architecture implications for all 26 attributes
+
+These are possible design responses, not the requirement itself. Evaluate their assumptions and added work.
+
+**Partitioning** divides work or information among parts, like distributing records across branches. It can improve capacity but introduces cross-part coordination and uneven-load issues. A **critical path** is the dependent sequence determining completion time, like steps that must finish before a meal is served. Optimizing unrelated work may not shorten it.
+
+| NFR | Possible architectural implications |
+|---|---|
+| Scalability | Remove measured bottlenecks; distribute independent work; partition information; cache suitable reads |
+| Availability | Independent useful capacity, health-based routing, safe failover, dependency isolation |
+| Reliability | Correctness boundaries, validation, controlled retries, verification, safe change procedures |
+| Durability | Protected persistent records, acknowledgement rules, replicas, backups, tested recovery |
+| Consistency | Explicit observation/order guarantees; coordinated updates where needed; freshness/conflict rules |
+| Latency | Reduce measured critical-path work, communication, and queueing |
+| Throughput | Sufficient processing/storage/network capacity; efficient work; overload controls |
+| Responsiveness | Prompt honest feedback, nonblocking interaction, clear pending/failure states |
+| Fault tolerance | Independent replacements, adequate surviving capacity, safe detection/promotion |
+| Resilience | Isolate optional dependencies, bound waits/retries, degrade and shed load appropriately |
+| Recoverability | Recoverable copies, accessible keys, restored dependencies, verified drills |
+| Security | Identity/permission enforcement, protected channels/storage, least privilege, secret management |
+| Privacy | Minimal fields, controlled purpose/access/retention, deletion and diagnostic-data boundaries |
+| Maintainability | Cohesive responsibilities, understandable code/interfaces, scenario-based checks |
+| Operability | Safe deployment/configuration, ownership, alerts, runbooks, rollback |
+| Extensibility | Targeted extension boundaries with compatibility checks |
+| Modularity | Clear responsibilities and limited explicit dependencies, possibly inside one application |
+| Portability | Named environment compatibility, replaceable mandated interfaces, tested migration |
+| Interoperability | Versioned interaction contracts, compatible units/meaning, partner tests |
+| Testability | Controlled time/dependencies, isolated checks, real integration validation |
+| Observability | Relevant event/measurement/request evidence linked to diagnostic goals |
+| Auditability | Accountable protected records with justified retention and access |
+| Accessibility | Semantic controls, alternate interaction/output, inclusive journey testing |
+| Compliance | Scoped applicable controls, ownership, evidence, retention/residency mapping |
+| Cost efficiency | Capacity matched to work, unit-cost visibility, lifecycle/resource budgeting |
+| Energy/sustainability efficiency | Measured useful work/resource ratios, efficient retained data/processing, justified headroom |
+
+## 56. Requirement versus solution: 20 pairs
+
+All numerical outcomes below assume a separately defined workload, scope, and method. Architecture must be verified against them.
+
+| # | Requirement outcome | Possible solution response |
+|---|---|---|
+| 1 | 99.99% monthly good-request availability | Distribute independent capacity across appropriate zones |
+| 2 | Search p95 ≤ 200 ms | Cache eligible repeated search results |
+| 3 | Acknowledged orders survive one storage-device loss | Protect writes on sufficient independent storage |
+| 4 | Restore checkout within 30 minutes after site loss | Prepare and test alternate-site recovery |
+| 5 | No more than five minutes’ updates lost in the disaster model | Keep a suitable independent recovery stream/copy |
+| 6 | At most one confirmed purchase per seat | Coordinate allocation through an authoritative decision boundary |
+| 7 | 10,000 completed eligible searches/second | Add suitable processing capacity and remove query bottlenecks |
+| 8 | Useful upload feedback within 150 ms | Nonblocking interface with explicit pending state |
+| 9 | Private records accessible only to authorized roles | Enforce role/object permission checks at all routes |
+| 10 | No raw passwords retained | Use approved password-verifier storage |
+| 11 | Diagnose the defined slow request within fifteen minutes | Linked traces, relevant logs, distributions, and runbook |
+| 12 | Every privileged refund approval is reconstructable | Protected structured audit records |
+| 13 | Core checkout usable without mouse input | Keyboard-operable labeled controls and focus management |
+| 14 | Operate within the workload’s budget | Right-size and remove unnecessary repeated work |
+| 15 | Eventual profile views converge under recovery conditions | Replicate updates with explicit conflict rules |
+| 16 | One application-server loss preserves service at peak | Provide tested spare capacity and health-aware routing |
+| 17 | Recommendation failure does not prevent checkout | Isolate that optional dependency and use fallback |
+| 18 | Add a named second payment method within trial budget | Clear payment interface and focused adapter |
+| 19 | Pass behavior checks on two named environments | Isolate environment-specific dependencies |
+| 20 | Lower energy per completed task while quality holds | Compare batching/right-sizing/algorithm changes by measurement |
+
+An **adapter** translates one interaction form into another, like a clerk translating a partner’s form into the store’s format. It matters for integrations, but adding one does not prove all semantics match.
+
+**Try:** “Use three replicas” belongs in which column?
+
+**Solution:** Solution or mandated constraint. The needed survival/availability/consistency outcome still must be specified.
+
+## 57. Prioritizing NFRs
+
+Critical means failure would defeat an essential goal or obligation. Important means substantial value but possibly more flexibility. Desirable means beneficial after essential needs are protected. Priority is contextual and does not authorize ignoring applicable obligations.
+
+| Product operation | Proposed critical qualities | Qualities with contextual flexibility |
+|---|---|---|
+| Committed banking transfer | Correctness, durability, authorization, auditability, appropriate consistency | Presentation speed may yield to accurate pending/confirmed outcomes |
+| Social-feed browsing | Availability, useful latency, visibility/privacy safety | Informational counts may permit stale views |
+| Store checkout | Correct charge/order/inventory outcomes, security, adequate availability | Recommendations and decorative interface work |
+| Internal weekly report | Correct information and access, recoverability | Continuous availability and immediate completion |
+
+Correctness is the property of producing the required result; it sits within reliable behavior and often explicit FRs. Do not maximize all targets. A latency objective should not incentivize prematurely acknowledging unsafe money movement.
+
+## 58. Conflict exercise
+
+A startup asks for zero downtime, zero lost information, global access, extremely low latency, and minimum possible cost. Identify conflicts before reading.
+
+**Solution:** The words need measurable scope. Independent geographic protection costs resources. Protecting writes across distance can add communication time. Serving every request during network separation can conflict with strict coordinated observations. Operations, testing, secure access, and recovery require spending. “Zero” across every imaginable fault is not a verifiable promise.
+
+Proposed refinement: identify critical operations and failure consequences; define a supported geography and workload; set justified availability, latency, and loss/recovery targets; rank them; compare costed candidate designs. Preserve correctness of accepted commitments, and allow honest refusal or pending status when the guarantees cannot be maintained.
+
+**Try:** What could be relaxed for a recreatable reporting cache?
+
+**Solution:** Its information survival promise may be weaker than the authoritative records; recovery can rebuild it. Its unavailability may still affect other latency/availability targets.
+
+## 59. System-type comparison
+
+Likely starting priorities, not universal rules:
+
+**IoT**, Internet of Things, means physical devices exchanging information through networks, like connected meters. **Ingestion** accepts incoming information, like receiving mail; it matters when many devices produce bursts or repeated readings.
+
+| System | Often prominent | What needs clarification |
+|---|---|---|
+| Bank | Correctness, security, durability, consistency, auditability | Which operations, failure scope, recovery and applicable obligations? |
+| Social network | Scale, availability, latency, privacy | Public counts versus private access versus paid actions |
+| Online game | Interactive latency, responsiveness, integrity, throughput | Real-time play versus account purchases/history |
+| Healthcare | Appropriate access, privacy, reliable records, availability by clinical context | Emergency versus appointment/report workflows |
+| Analytics dashboard | Correct measures, recoverability, affordable throughput | Data freshness and reporting deadlines |
+| E-commerce | Reliable checkout, security, durability, peak capacity | Flash-sale bursts and pricing/inventory consistency |
+| Messaging | Delivery outcomes, durability, privacy, latency | Connected/offline recipients and retention |
+| Video platform | Transfer throughput, playback experience, scale, cost | Geography, quality levels, content access, originals |
+| IoT platform | Reliable ingestion, device identity, scale, recovery | Device connectivity, safety relevance, duplicate readings |
+| Internal admin tool | Authorization, auditability, safe change, operability | Working hours, staff size, critical operations |
+
+## 60. NFR discovery process
+
+| Step | Action and reason |
+|---|---|
+| 1. Understand product | Learn the real goal so quality targets support it |
+| 2. Important journeys | Identify complete tasks; a quick internal step may still leave a slow user journey |
+| 3. Failure impact | Ask who is harmed and how; prioritize irreversible or severe outcomes |
+| 4. Scale | Estimate active users, rate/mix, bursts, storage, and growth |
+| 5. Latency | Identify interaction boundary, distribution, and user expectation |
+| 6. Downtime | Establish usable-service definition, window, and business tolerance |
+| 7. Information loss | Define acknowledgements, data scope, failures, retention, RPO |
+| 8. Consistency | Clarify allowed observations and competing updates by operation |
+| 9. Security/privacy | Identify information, actors, threats, uses, and retention |
+| 10. Operations | Determine ownership, staffing, supported environments, deployment/recovery needs |
+| 11. Compliance | Ask responsible specialists for applicable obligations and evidence |
+| 12. Cost | Define budget, cost scope, workload, and unit-economics needs |
+| 13. Prioritize | Rank justified outcomes and identify dependencies/conflicts |
+| 14. Make testable | Write target, scope, conditions, method, rationale, and open decisions |
+
+A **user journey** is the steps a person follows to reach a goal, like finding and buying shoes. A **stakeholder** is someone affected by or responsible for goals, like a customer, shop owner, or operator. Review requirements with relevant stakeholders and revisit earlier assumptions as measurements improve.
+
+## 61. Clarifying questions for interviews
+
+A **system-design interview** asks a candidate to clarify a problem and reason about a possible solution. Good questions establish decision-relevant needs rather than displaying a memorized checklist.
+
+| Area | Useful question | Why and likely implication |
+|---|---|---|
+| Scale | How many active users and what peak operation mix/burst duration? | Determines capacity, hot paths, and growth strategy |
+| Availability | Which function must be usable, and what failure/downtime is acceptable? | Determines justified independent capacity and fallbacks |
+| Latency | Which user boundary and p95/p99 target matter? | Focuses critical-path and geography decisions |
+| Consistency | What must a read after a successful write observe? | Clarifies coordination and freshness requirements |
+| Durability | What does acceptance promise, and which failures must it survive? | Guides acknowledgements and protected copies |
+| Geography | Where are users and where may information be processed? | Affects communication distance and residency |
+| Security | What sensitive information/actions exist and who may access them? | Guides controls and boundaries |
+| Compliance | What confirmed obligations and assessment scope apply? | Avoids inventing legal rules |
+| Recovery/cost | What loss/restoration targets and operating budget apply? | Distinguishes necessary resilience from unjustified complexity |
+
+Start with the few uncertainties most likely to change your design. State a provisional target only as an assumption and ask the interviewer to correct it.
+
+## 62. Interview anti-pattern: asking everything
+
+Thirty unrelated questions can consume the entire discussion. For a basic URL shortener, whose function is creating a shorter web address and redirecting to its destination, begin with expected creation/redirection rates, read/write ratio, user-facing redirect time, availability, and mapping durability. A **URL** is a web address; a **redirect** tells a client to navigate to another address. A **mapping** associates a short identifier with its destination. These matter for defining the central operation.
+
+Then ask privacy, ownership, expiry, geography, or abuse questions when scope makes them relevant. A **read/write ratio** compares retrieval and change volume; 100 redirects per created link gives a 100:1 operation ratio under that counting definition.
+
+Offer a compact summary: “I’ll assume redirection dominates, links must survive the specified single-site failure, and we measure client-facing redirect responses in the supported region. Let’s confirm target traffic and speed.” Relevant question → explicit answer/assumption → design implication is stronger than a long disconnected list.
+
+## 63. Detailed case study: URL shortener
+
+**Functional scope:** Create a short URL from a supported long URL; redirect existing short URLs; reject invalid inputs and report unknown links. Optional expiry, owner management, and click reporting are excluded here.
+
+**Teaching assumptions:** Supported regional clients; 100,000 redirect requests/second for the stated peak duration; 1,000 creations/second; destination connection/load time excluded from our redirect-response latency. These rates are invented for design practice.
+
+**Metadata** means information about information or an operation, such as a redirect time. A **hot mapping** receives frequent access; a **cold mapping** is rarely used. Measure both; a benchmark using one popular cached link can exaggerate capacity.
+
+| ID | Proposed NFR | Why and verification | Possible design response |
+|---|---|---|---|
+| SHORT-NFR-01 | Redirect-response p95 ≤ 100 ms from server receipt to response completion at the stated peak and mapping set | Fast redirection; benchmark representative hot/cold mappings, measure errors too | Short lookup path, suitable cache, adequate network/storage capacity |
+| SHORT-NFR-02 | ≥ 99.99% of eligible redirects meet defined good-response criteria per rolling 30 days | Redirects are the main value; count unavailable/time-limited attempts | Independent serving capacity and safe failover |
+| SHORT-NFR-03 | Acknowledged mappings survive the named process, storage-device, and single-site loss scenarios with zero acknowledged-mapping loss | Shared links must remain valid; inject failure, restore, compare | Protected independent copies and appropriate acknowledgement |
+| SHORT-NFR-04 | Sustain 100,000 redirects/second while 01–02’s stated benchmark quality limits hold | Rate alone is insufficient; track completion, queues, and resource ceiling | Scale relevant work and remove measured bottleneck |
+| SHORT-NFR-05 | Reads after a completed creation return its mapping under the defined consistency model | A newly shared link should work; verify immediate post-creation read cases | Coordinate publication or ensure the serving read path can see accepted mapping |
+| SHORT-NFR-06 | Collected redirect metadata is limited to the approved purpose/retention inventory | Avoid unnecessary personal tracking | Minimal diagnostic fields and justified retention |
+
+The 100-ms target does not include loading the destination site. If the user journey includes it, measure and communicate that broader dependency separately. Durability and post-create visibility can influence creation latency; do not acknowledge too early just to make creation seem fast.
+
+## 64. Detailed case study: messaging
+
+**Functional scope:** Accounts, one-to-one text, retained history, connected delivery and offline retrieval, permissions, explicit sent/delivered states. A **delivery guarantee** states what accepted work promises, like a postal receipt; it must name acceptance, retention, retries, recipient eligibility, and completion evidence.
+
+| ID | Proposed NFR and conditions | Trade-off/design implication |
+|---|---|---|
+| CHAT-NFR-01 | 99% of accepted eligible messages to connected supported clients are delivered within 500 ms under workload v1 | Network/geography and queueing matter; do not include offline clients in an impossible immediate-delivery claim |
+| CHAT-NFR-02 | ≥ 99.9% of eligible send/retrieve attempts meet good-request criteria over 30 days | Need suitable capacity and dependency behavior |
+| CHAT-NFR-03 | Acknowledged messages survive defined single-device/server/site failures within the retention promise | Acceptance must align with protected storage, not just receipt in memory |
+| CHAT-NFR-04 | Retrying the same intended message produces one history message; failures/pending outcomes remain visible | Redelivery attempts can be allowed without duplicate user effects |
+| CHAT-NFR-05 | Participants see the agreed conversation order and their accepted messages after refresh | Define order rather than trusting client clock times |
+| CHAT-NFR-06 | Only authorized participants can retrieve private content; protection and retention meet approved policies | Permissions, protected channels/storage, minimal diagnostic content |
+| CHAT-NFR-07 | Meet 01–02 at the defined peak connected population and accepted message rate within budget | Connections and message rate are separate dimensions |
+| CHAT-NFR-08 | Operators diagnose the specified missing/delayed-message scenario within fifteen minutes without reading private text | Correlation/status evidence must respect privacy |
+
+**Ordering** defines which message appears before another, like a numbered conversation register. Exactly-once user-visible effects are not the same as exactly-once network delivery: networks may repeat attempts. Define what duplicates are prevented and how pending outcomes resolve.
+
+A private application may require **end-to-end encryption**, where protected content is intended to be readable at communicating endpoints rather than intermediate service components. This changes search, moderation, recovery, and device-key requirements. It is a scoped product/security decision, not an automatic slogan or proof that metadata is private.
+
+## 65. Detailed case study: payments
+
+**Functional scope:** Submit an authorized payment instruction, determine outcome, retrieve history, and request permitted refunds. A **refund** returns previously collected money; it differs from releasing an uncollected reservation of funds.
+
+Prioritize correctly recorded outcomes before ultra-low response times:
+
+- **PAY-NFR-01 — correctness/consistency:** One intended accepted payment produces at most one charge under duplicate/concurrent attempts; status/history reflect reliable provider evidence.
+- **PAY-NFR-02 — durability:** Acknowledged payment records survive the named failures with zero loss; define which acknowledgements are final versus pending.
+- **PAY-NFR-03 — security:** Enforce approved identity and authority rules; protect relevant sensitive information and secrets on all routes.
+- **PAY-NFR-04 — auditability:** Every privileged approval/refund is reconstructable with required actor, amount, currency, time, reason, and outcome evidence.
+- **PAY-NFR-05 — compliance/privacy:** Meet applicable confirmed controls and retention/use rules for the scoped payment-data environment.
+- **PAY-NFR-06 — recoverability:** Restore the defined payment/history function within 30 minutes in the specified drill; reconcile pending outcomes before presenting them as final.
+- **PAY-NFR-07 — availability:** ≥ 99.95% of eligible instruction/status requests meet agreed good-request criteria over 30 days; external dependency outcomes are honestly represented.
+- **PAY-NFR-08 — latency:** p95 instruction acceptance/status response ≤ one second at workload v1; external final settlement has a separately defined objective.
+
+**Settlement** is the financial completion of money movement under the payment process, like the transfer clearing between institutions. Fast local acceptance does not imply settlement completed. Rejecting or holding an uncertain action can be preferable to a fast incorrect result.
+
+## 66. Detailed case study: video streaming
+
+**Streaming** presents media while information continues arriving, like receiving successive pages while reading. Functional scope: upload supported videos, prepare them for viewing, play public ready videos, enforce visibility, and manage owned content.
+
+Proposed qualities: p95 playback start ≤ two seconds on named devices/networks at peak; ≥ 99.9% eligible playback-start success over 30 days; no more than the agreed fraction of playback time stalled; sustained delivered bytes/second sufficient for the peak audience; acknowledged originals survive named failures; cost/energy per useful viewed minute stay within the agreed budgets.
+
+A **bitrate** is bits delivered/used per second. If 10,000 viewers each average 4 megabits/second, useful media traffic ≈ 40,000 megabits/second = **40 gigabits/second** before overhead. Bits and bytes differ by eight.
+
+**CDN**, content delivery network, keeps/serves content through distributed delivery locations, like regional warehouses. **Adaptive bitrate** changes media quality based on conditions, like choosing a smaller parcel when capacity is limited. These are candidate designs for geography/throughput/experience, with costs and freshness/access rules.
+
+Public view counts may tolerate temporary staleness; private-video permissions may not. Global distribution can improve delivery while complicating cost, control, and residency. Measure actual supported playback journeys, not only the origin server’s response speed.
+
+## 67. Detailed case study: internal admin tool
+
+Assume 30 employees use a reporting/admin application during weekday working hours. “Internal” does not imply harmless: privileged functions may expose or change important information.
+
+Proposals: authorized access and accountable changes are Critical; correct reports and safe recovery are Critical; p95 normal queries ≤ two seconds at the modest workload is Important; restore from the defined outage within two working hours is Important. Availability may be measured over the actual required business window, with outages outside that window still subject to recovery/retention obligations.
+
+99.999% availability is not automatically justified. A modest well-operated design may meet the goal more affordably. If this tool controls emergency operations or money, revise the context and priorities. Fit the requirements to business consequence rather than imitating large-company architectures.

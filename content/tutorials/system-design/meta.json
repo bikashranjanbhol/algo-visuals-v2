@@ -1,6 +1,6 @@
 {
   "title": "System Design",
-  "description": "Learn to design software systems step by step, starting with functional requirements: deciding what a system must do before choosing how to build it.",
+  "description": "Learn to design software systems step by step: first functional requirements (what a system must do), then non-functional requirements (how well it must do it).",
   "order": 5,
   "level": "Beginner",
   "icon": "boxes",
@@ -16,6 +16,20 @@
         "requirements-to-design",
         "practice-and-interviews",
         "knowledge-check"
+      ]
+    },
+    {
+      "slug": "non-functional-requirements",
+      "title": "Non-Functional Requirements",
+      "description": "How well must the system work? Make qualities such as availability, latency and security measurable, weigh trade-offs, and use them in design and interviews.",
+      "topics": [
+        "fundamentals",
+        "quality-attributes",
+        "measurement-and-trade-offs",
+        "case-studies",
+        "exercises-and-mock-interviews",
+        "practice-and-knowledge-check",
+        "capstone-and-revision"
       ]
     }
   ]
