@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Providers } from "@/components/providers";
 import { PwaManager } from "@/components/pwa/pwa-manager";
-import { getNavTree, getSearchIndex } from "@/lib/content";
+import { getSearchIndex, getTutorialSummaries } from "@/lib/content";
 import { siteConfig } from "@/lib/site";
 import { themeScript } from "@/lib/theme-script";
 import "./globals.css";
@@ -52,7 +52,9 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
-  const tree = getNavTree();
+  // Only lightweight summaries go to the header and footer; each tutorial
+  // page loads its own chapter/topic tree for the sidebar.
+  const tutorials = getTutorialSummaries();
   const searchIndex = getSearchIndex();
 
   // suppressHydrationWarning on <html>, <head> and <body> covers attributes added
@@ -73,11 +75,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         <Providers>
-          <SiteHeader tree={tree} searchIndex={searchIndex} />
+          <SiteHeader tutorials={tutorials} searchIndex={searchIndex} />
           <div id="main" className="flex flex-1 flex-col">
             {children}
           </div>
-          <SiteFooter tutorials={tree} />
+          <SiteFooter tutorials={tutorials} />
           <PwaManager />
         </Providers>
       </body>

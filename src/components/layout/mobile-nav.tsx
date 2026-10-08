@@ -1,21 +1,27 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { DocsNavTree } from "@/components/docs/docs-nav-tree";
-import { LogoMark } from "@/components/icons";
-import type { NavTutorial } from "@/lib/content-types";
+import { TutorialNav } from "@/components/docs/tutorial-nav";
+import { LogoMark, TutorialIcon } from "@/components/icons";
+import type { TutorialSummary } from "@/lib/content-types";
 import { useLockBodyScroll } from "@/lib/hooks";
 import { primaryNav, siteConfig } from "@/lib/site";
-import { cn } from "@/lib/utils";
+import { useCurrentTutorialNav } from "@/lib/tutorial-nav-store";
+import { accentStyles, cn } from "@/lib/utils";
 import { ThemeSwitcher } from "./theme-toggle";
 
-export function MobileNav({ tree }: { tree: NavTutorial[] }) {
+/** How many tutorials the menu lists outside a tutorial before linking to the full catalog. */
+const LIST_LIMIT = 8;
+
+export function MobileNav({ tutorials }: { tutorials: TutorialSummary[] }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  // Set by the tutorial layout while a tutorial is open.
+  const current = useCurrentTutorialNav();
   useLockBodyScroll(open);
 
   useEffect(() => {
@@ -84,10 +90,13 @@ export function MobileNav({ tree }: { tree: NavTutorial[] }) {
                     })}
                   </ul>
                 </nav>
-                <p className="mt-6 mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:mt-0">
-                  Tutorials
-                </p>
-                <DocsNavTree tree={tree} onNavigate={close} />
+                {current ? (
+                  <div className="mt-6 md:mt-0">
+                    <TutorialNav tutorial={current.tutorial} tutorials={current.tutorials} onNavigate={close} />
+                  </div>
+                ) : (
+                  <TutorialList tutorials={tutorials} onNavigate={close} />
+                )}
               </div>
               <div className="shrink-0 border-t border-border p-4">
                 <ThemeSwitcher />
@@ -97,5 +106,37 @@ export function MobileNav({ tree }: { tree: NavTutorial[] }) {
           document.body,
         )}
     </>
+  );
+}
+
+function TutorialList({ tutorials, onNavigate }: { tutorials: TutorialSummary[]; onNavigate: () => void }) {
+  return (
+    <div className="mt-6 md:mt-0">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tutorials</p>
+      <ul className="space-y-0.5">
+        {tutorials.slice(0, LIST_LIMIT).map((t) => (
+          <li key={t.slug}>
+            <Link
+              href={t.href}
+              onClick={onNavigate}
+              className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm font-medium hover:bg-muted"
+            >
+              <span className={cn("grid size-7 shrink-0 place-items-center rounded-md bg-gradient-to-br text-white", accentStyles[t.accent].gradient)}>
+                <TutorialIcon name={t.icon} className="size-4" />
+              </span>
+              <span className="truncate">{t.title}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <Link
+        href="/tutorials"
+        onClick={onNavigate}
+        className="mt-2 flex items-center justify-between rounded-lg px-2 py-2 text-sm font-medium text-brand hover:bg-brand-soft"
+      >
+        {tutorials.length > LIST_LIMIT ? `Browse all ${tutorials.length} tutorials` : "Browse all tutorials"}
+        <ArrowRight className="size-4" />
+      </Link>
+    </div>
   );
 }

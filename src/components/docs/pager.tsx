@@ -9,6 +9,7 @@ export function Pager({ prev, next }: { prev?: TopicMeta; next?: TopicMeta }) {
       {prev ? (
         <Link
           href={prev.href}
+          prefetch={true}
           className="group flex flex-col rounded-2xl border border-border p-4 transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md"
         >
           <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -22,6 +23,7 @@ export function Pager({ prev, next }: { prev?: TopicMeta; next?: TopicMeta }) {
       {next && (
         <Link
           href={next.href}
+          prefetch={true}
           className="group flex flex-col items-end rounded-2xl border border-border p-4 text-right transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md"
         >
           <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">

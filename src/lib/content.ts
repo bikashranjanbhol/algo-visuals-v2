@@ -20,6 +20,7 @@ import type {
   SearchEntry,
   TopicMeta,
   TutorialMeta,
+  TutorialSummary,
 } from "./content-types";
 
 const CONTENT_DIR = path.join(process.cwd(), "content", "tutorials");
@@ -141,8 +142,8 @@ export function getAllTopics(): TopicMeta[] {
   return getTutorials().flatMap((t) => t.chapters.flatMap((c) => c.topics));
 }
 
-export function getNavTree(): NavTutorial[] {
-  return getTutorials().map((t) => ({
+function toSummary(t: TutorialMeta): TutorialSummary {
+  return {
     slug: t.slug,
     title: t.title,
     description: t.description,
@@ -151,13 +152,34 @@ export function getNavTree(): NavTutorial[] {
     icon: t.icon,
     accent: t.accent,
     topicCount: t.topicCount,
+  };
+}
+
+function toNav(t: TutorialMeta): NavTutorial {
+  return {
+    ...toSummary(t),
     chapters: t.chapters.map((c) => ({
       slug: c.slug,
       title: c.title,
       href: c.href,
       topics: c.topics.map((topic) => ({ id: topic.id, title: topic.title, href: topic.href })),
     })),
-  }));
+  };
+}
+
+export function getTutorialSummaries(): TutorialSummary[] {
+  return getTutorials().map(toSummary);
+}
+
+/** Chapter/topic tree for a single tutorial (the sidebar only shows the one being read). */
+export function getNavTutorial(slug: string): NavTutorial | undefined {
+  const tutorial = getTutorial(slug);
+  return tutorial ? toNav(tutorial) : undefined;
+}
+
+/** Every tutorial's tree. Only for pages that summarize progress across all tutorials. */
+export function getNavTree(): NavTutorial[] {
+  return getTutorials().map(toNav);
 }
 
 /** Strips Markdown syntax from a heading line so it slugs like rehype-slug does. */

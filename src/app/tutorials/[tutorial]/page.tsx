@@ -2,16 +2,20 @@ import { BookOpen, Clock, Layers, Signal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { Breadcrumbs } from "@/components/docs/breadcrumbs";
 import { DocsPage } from "@/components/docs/docs-page";
-import { DocsSkeleton } from "@/components/docs/docs-skeleton";
 import { TutorialProgress } from "@/components/docs/progress";
 import { TopicList } from "@/components/docs/topic-list";
 import { TutorialIcon } from "@/components/icons";
 import { SaveOfflineButton } from "@/components/pwa/save-offline-button";
 import { getTutorial, getTutorials } from "@/lib/content";
 import { accentStyles, cn, formatMinutes } from "@/lib/utils";
+
+// Each page is prerendered for every known slug, so reading params directly
+// keeps the article in the static HTML. A <Suspense> boundary around it would
+// make React stream the content after a skeleton. Prev/next links prefetch the
+// full page from the static cache, so navigation still feels instant.
+export const instant = false;
 
 export function generateStaticParams() {
   return getTutorials().map((t) => ({ tutorial: t.slug }));
@@ -27,15 +31,7 @@ export async function generateMetadata({ params }: PageProps<"/tutorials/[tutori
   };
 }
 
-export default function TutorialPage({ params }: PageProps<"/tutorials/[tutorial]">) {
-  return (
-    <Suspense fallback={<DocsSkeleton />}>
-      <Tutorial params={params} />
-    </Suspense>
-  );
-}
-
-async function Tutorial({ params }: Pick<PageProps<"/tutorials/[tutorial]">, "params">) {
+export default async function TutorialPage({ params }: PageProps<"/tutorials/[tutorial]">) {
   const tutorial = getTutorial((await params).tutorial);
   if (!tutorial) notFound();
 

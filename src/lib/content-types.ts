@@ -47,8 +47,8 @@ export type TutorialMeta = {
   readingMinutes: number;
 };
 
-/** Slimmed-down tree sent to client components (sidebar, mobile nav). */
-export type NavTutorial = {
+/** Just enough to list a tutorial (header menu, switcher, footer). Stays small as tutorials are added. */
+export type TutorialSummary = {
   slug: string;
   title: string;
   description: string;
@@ -57,6 +57,10 @@ export type NavTutorial = {
   icon: TutorialIcon;
   accent: Accent;
   topicCount: number;
+};
+
+/** One tutorial's chapter/topic tree, sent to the sidebar for the tutorial being read. */
+export type NavTutorial = TutorialSummary & {
   chapters: {
     slug: string;
     title: string;

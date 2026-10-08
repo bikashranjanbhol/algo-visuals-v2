@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { TutorialIcon } from "@/components/icons";
-import type { NavTutorial } from "@/lib/content-types";
+import type { TutorialSummary } from "@/lib/content-types";
 import { useDismiss } from "@/lib/hooks";
 import { primaryNav } from "@/lib/site";
 import { accentStyles, cn } from "@/lib/utils";
 
-export function MainNav({ tutorials }: { tutorials: NavTutorial[] }) {
+export function MainNav({ tutorials }: { tutorials: TutorialSummary[] }) {
   // The active section comes from the router tree, not the URL. Unmatched URLs
   // are served the prerendered 404 page, whose segment is "/_not-found" on both
   // server and client, while the browser URL (e.g. /dashboard/settings) would

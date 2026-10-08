@@ -3,7 +3,7 @@ import { cacheLife } from "next/cache";
 import Link from "next/link";
 import { GitHubIcon, LogoMark } from "@/components/icons";
 import { InstallButton } from "@/components/pwa/install-button";
-import type { NavTutorial } from "@/lib/content-types";
+import type { TutorialSummary } from "@/lib/content-types";
 import { siteConfig } from "@/lib/site";
 
 // Cached so the year is fixed at build time instead of making the page dynamic.
@@ -13,7 +13,7 @@ async function CopyrightYear() {
   return new Date().getFullYear();
 }
 
-export function SiteFooter({ tutorials }: { tutorials: NavTutorial[] }) {
+export function SiteFooter({ tutorials }: { tutorials: TutorialSummary[] }) {
   const columns = [
     {
       title: "Tutorials",

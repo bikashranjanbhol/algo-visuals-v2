@@ -4,7 +4,7 @@ import { CornerDownLeft, FileText, Hash, Layers, Search, Sparkles } from "lucide
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import type { NavTutorial, SearchEntry } from "@/lib/content-types";
+import type { SearchEntry, TutorialSummary } from "@/lib/content-types";
 import { useLockBodyScroll } from "@/lib/hooks";
 import { primaryNav } from "@/lib/site";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ function normalize(text: string) {
   return text.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
 }
 
-function search(query: string, entries: SearchEntry[], tutorials: NavTutorial[]): Result[] {
+function search(query: string, entries: SearchEntry[], tutorials: TutorialSummary[]): Result[] {
   const terms = normalize(query).split(/\s+/).filter(Boolean);
   if (terms.length === 0) {
     return [
@@ -95,7 +95,7 @@ function search(query: string, entries: SearchEntry[], tutorials: NavTutorial[])
   return [...pages, ...topics, ...sections];
 }
 
-export function CommandPalette({ entries, tutorials }: { entries: SearchEntry[]; tutorials: NavTutorial[] }) {
+export function CommandPalette({ entries, tutorials }: { entries: SearchEntry[]; tutorials: TutorialSummary[] }) {
   const router = useRouter();
   const isMac = useIsMac();
   const [open, setOpen] = useState(false);

@@ -1,10 +1,8 @@
 import { CalendarDays, Clock, Gauge } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { Breadcrumbs } from "@/components/docs/breadcrumbs";
 import { DocsPage } from "@/components/docs/docs-page";
-import { DocsSkeleton } from "@/components/docs/docs-skeleton";
 import { Pager } from "@/components/docs/pager";
 import { TopicCompleteButton, TutorialProgress } from "@/components/docs/progress";
 import { ReadingProgress } from "@/components/docs/toc";
@@ -12,6 +10,12 @@ import { MdxContent } from "@/components/mdx/mdx-content";
 import { getAllTopics, getTopic, getTopicContent } from "@/lib/content";
 import { siteConfig } from "@/lib/site";
 import { accentStyles, cn, formatDate } from "@/lib/utils";
+
+// Each page is prerendered for every known slug, so reading params directly
+// keeps the article in the static HTML. A <Suspense> boundary around it would
+// make React stream the content after a skeleton. Prev/next links prefetch the
+// full page from the static cache, so navigation still feels instant.
+export const instant = false;
 
 export function generateStaticParams() {
   return getAllTopics().map((t) => ({ tutorial: t.tutorialSlug, chapter: t.chapterSlug, topic: t.slug }));
@@ -38,19 +42,7 @@ const difficultyStyles = {
   advanced: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
 };
 
-export default function TopicPage({ params }: PageProps<"/tutorials/[tutorial]/[chapter]/[topic]">) {
-  // Known topics are fully prerendered; the boundary only shows during client navigation.
-  return (
-    <>
-      <ReadingProgress />
-      <Suspense fallback={<DocsSkeleton />}>
-        <Topic params={params} />
-      </Suspense>
-    </>
-  );
-}
-
-async function Topic({ params }: Pick<PageProps<"/tutorials/[tutorial]/[chapter]/[topic]">, "params">) {
+export default async function TopicPage({ params }: PageProps<"/tutorials/[tutorial]/[chapter]/[topic]">) {
   const { tutorial: tutorialSlug, chapter: chapterSlug, topic: topicSlug } = await params;
   const found = getTopic(tutorialSlug, chapterSlug, topicSlug);
   if (!found) notFound();
@@ -72,7 +64,9 @@ async function Topic({ params }: Pick<PageProps<"/tutorials/[tutorial]/[chapter]
   };
 
   return (
-    <DocsPage
+    <>
+      <ReadingProgress />
+      <DocsPage
         headings={headings}
         editPath={`${tutorial.slug}/${chapter.slug}/${topic.slug}.mdx`}
         aside={
@@ -118,6 +112,7 @@ async function Topic({ params }: Pick<PageProps<"/tutorials/[tutorial]/[chapter]
         <TopicCompleteButton id={topic.id} href={topic.href} title={topic.title} nextHref={next?.href} />
         <Pager prev={prev} next={next} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-    </DocsPage>
+      </DocsPage>
+    </>
   );
 }
