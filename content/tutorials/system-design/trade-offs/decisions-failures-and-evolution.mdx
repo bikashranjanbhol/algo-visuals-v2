@@ -190,7 +190,7 @@ Example: 40 ms network + 20 ms application + 60 ms database + 80 ms required pro
 
 ### Reliability budget
 
-A **service-level objective**, SLO, is a measured target for service quality, like “99.9% of eligible checkouts succeed within two seconds this month.” An **error budget** is the permitted fraction missing that target, like a planned tolerance for late deliveries. These matter because reliability investment should match an outcome, not pursue a vague perfection label. [S3]
+A **service-level objective**, SLO, is a measured target for service quality, like “99.9% of eligible checkouts succeed within two seconds this month.” An **error budget** is the permitted fraction missing that target, like a planned tolerance for late deliveries. These matter because reliability investment should match an outcome, not pursue a vague perfection label. [[S3]](/tutorials/system-design/trade-offs/cheat-sheet-and-next-steps#54-source-notes-and-further-reading)
 
 Not every component needs the same target. **Graceful degradation** keeps essential functions working when optional features fail, like serving meals despite a broken music system. Recommendation failure should not block checkout. Payment failure cannot safely degrade into “pretend paid.”
 

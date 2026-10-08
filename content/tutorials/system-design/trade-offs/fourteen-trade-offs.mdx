@@ -61,7 +61,7 @@ A common hybrid keeps browsing available and blocks uncertain reservations. Some
 
 ### CAP, carefully
 
-**CAP** names consistency, availability, and partition tolerance. In the classical read/write model, it is impossible to guarantee both linearizable observations and completion of every request to a non-failing node despite an indefinite partition. CAP availability requires completing operations according to the service specification; returning “unavailable” to everything does not satisfy it. Practical availability is usually measured with deadlines and success rates. [S1]
+**CAP** names consistency, availability, and partition tolerance. In the classical read/write model, it is impossible to guarantee both linearizable observations and completion of every request to a non-failing node despite an indefinite partition. CAP availability requires completing operations according to the service specification; returning “unavailable” to everything does not satisfy it. Practical availability is usually measured with deadlines and success rates. [[S1]](/tutorials/system-design/trade-offs/cheat-sheet-and-next-steps#54-source-notes-and-further-reading)
 
 “Pick any two forever” is misleading. A network failure is an operating condition you must handle, not a desirable feature you remove to obtain two guarantees. Normal operation can have strong observations and successful responses, but coordination still costs time. Requirements vary by operation. CAP also does not say that any weakening immediately solves every business rule.
 
@@ -85,7 +85,7 @@ You dictate a letter. “Got it” could mean the secretary heard it, wrote it i
 | Acknowledge after durable local persistence | Survives specified local restarts | Storage waiting | Machine or location loss still possible | Local failure survival suffices |
 | Acknowledge after required durable remote copies | Survives additional independent failures | Storage and network waiting; more cost | Common failures, incorrect failover, corruption | Important accepted business records |
 
-Persistence means retaining data beyond the current process. Writing through a storage layer may leave data in temporary buffers; a durability promise depends on flushing, hardware behavior, and database configuration. **Write-ahead logging** records intended database changes in a durable log before completion, like entering a transaction in a journal before updating the main ledger. The log can support recovery; not every data page has to be rewritten before acknowledgement. [S2]
+Persistence means retaining data beyond the current process. Writing through a storage layer may leave data in temporary buffers; a durability promise depends on flushing, hardware behavior, and database configuration. **Write-ahead logging** records intended database changes in a durable log before completion, like entering a transaction in a journal before updating the main ledger. The log can support recovery; not every data page has to be rewritten before acknowledgement. [[S2]](/tutorials/system-design/trade-offs/cheat-sheet-and-next-steps#54-source-notes-and-further-reading)
 
 Memory copies on three machines are not automatically three durable copies. Synchronous replication may wait for receipt, durable storage, or application of the change; define which. Replication is also different from backups: accidental deletion can propagate immediately.
 
@@ -117,7 +117,7 @@ Redundancy can allow maintenance or failures without stopping service. Reliabili
 | 99.99% | 4.32 min |
 | 99.999% | 0.432 min = 25.92 s |
 
-These are budgets, not guarantees of evenly spaced outages. A request-based measure uses successful eligible requests divided by total eligible requests and need not yield the same result. Extra nines often cost more because rare shared failures, recovery, and change risk become dominant. [S3]
+These are budgets, not guarantees of evenly spaced outages. A request-based measure uses successful eligible requests divided by total eligible requests and need not yield the same result. Extra nines often cost more because rare shared failures, recovery, and change risk become dominant. [[S3]](/tutorials/system-design/trade-offs/cheat-sheet-and-next-steps#54-source-notes-and-further-reading)
 
 **Hybrid:** Protect checkout more than recommendations; show a generic list if recommendation logic fails. Invest first in recovery testing when unused replicas cannot fail over safely.
 
@@ -266,7 +266,7 @@ At a print shop you can wait until the document is printed, or leave a job and c
 
 A synchronous sequence through services A, B, and C accumulates sequential waits. If C fails, the original request may fail. A queue can allow acceptance while workers temporarily stop, within queue durability and capacity limits. It does not remove the dependency required for eventual success.
 
-**At-least-once delivery** allows the same job to be delivered again, like reissuing a delivery slip after uncertainty. It can prevent loss but risks duplicate business effects. Design workers to be idempotent and preserve the result, not merely check a flag in a race-prone way. AWS SQS standard queues are one concrete documented example where duplicates can occur. [S4]
+**At-least-once delivery** allows the same job to be delivered again, like reissuing a delivery slip after uncertainty. It can prevent loss but risks duplicate business effects. Design workers to be idempotent and preserve the result, not merely check a flag in a race-prone way. AWS SQS standard queues are one concrete documented example where duplicates can occur. [[S4]](/tutorials/system-design/trade-offs/cheat-sheet-and-next-steps#54-source-notes-and-further-reading)
 
 **Backpressure** slows or refuses new work when capacity is insufficient, like stopping orders when the kitchen is full. **Dead-letter storage** holds repeatedly failing jobs for investigation, like a tray for orders that cannot be fulfilled. These help avoid infinite retries and unbounded waiting.
 
@@ -342,7 +342,7 @@ One person numbering every receipt in a single global sequence can become a bott
 
 Guarantees include strong observation rules, unique usernames, all-or-nothing changes, ordering, and **exactly-once business effects**: repeated processing produces one intended action, like one voucher redeemed once. Message delivery and business effect are different. A delivered-twice message can have a once-only effect if records and changes are atomic and external providers support safe duplicate handling. Promising exactly-once across every boundary without assumptions is misleading.
 
-**Serializable transactions** behave like transactions ran in some one-at-a-time order, even if work overlaps. This protects many concurrent business rules but does not by itself require that order to match real-time completion. **Strict serializability** combines serializability with real-time ordering. Like separate rules for “take turns” and “respect who finished first,” these are distinct promises. Systems may retry transactions to enforce isolation. [S5]
+**Serializable transactions** behave like transactions ran in some one-at-a-time order, even if work overlaps. This protects many concurrent business rules but does not by itself require that order to match real-time completion. **Strict serializability** combines serializability with real-time ordering. Like separate rules for “take turns” and “respect who finished first,” these are distinct promises. Systems may retry transactions to enforce isolation. [[S5]](/tutorials/system-design/trade-offs/cheat-sheet-and-next-steps#54-source-notes-and-further-reading)
 
 | Option | Benefits | Costs | Risks | Best when |
 |---|---|---|---|---|
